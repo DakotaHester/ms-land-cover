@@ -1,0 +1,221 @@
+import os
+from zipfile import ZipFile
+from subprocess import Popen
+from warnings import warn
+from ..utils import raise_if_not_exists
+
+# typing
+from typing import Optional, Literal
+from tqdm.std import tqdm
+
+
+
+def unzip(zip_path: str, dest_path: Optional[str]=None) -> None:
+    '''
+    Unzip a file to a destination path. If no destination path is provided, the
+    contents of the zip file will be placed in a folder with the same name as
+    the zip file in the same directory as the zip file, minus the '.zip' 
+    extension.
+    
+    Parameters
+    ----------
+    zip_path : str
+        The path to the zip file to be unzipped.
+    dest_path : str, optional
+        The path to the directory where the contents of the zip file will be
+        extracted. If not provided, the contents will be extracted to a folder
+        with the same name as the zip file in the same directory as the zip file,
+        minus the '.zip' extension.
+    
+    Returns
+    -------
+    None
+    '''
+    
+    raise_if_not_exists(zip_path)
+    if dest_path is None:
+        dest_path = zip_path.replace('.zip', '')
+    with ZipFile(zip_path, 'r') as zip_ref:
+        zip_ref.extractall(dest_path)
+
+
+
+def mrsid_to_tiff(mrsid_path: str, tiff_path: Optional[str]=None) -> None:
+    '''Convert a .sid file to a .tif file using the mrsiddecode command line tool.
+    
+    Use the mrsiddecode command line tool to convert a .sid file to a .tif file.
+    
+    Parameters
+    ----------
+    mrsid_path : str
+        The path to the input .sid file.
+    tiff_path : Optional[str], optional
+        The path to the output .tif file. If not provided, the output file will
+        be saved in the same directory as the input file with the .tif extension.
+    
+    Returns
+    -------
+    None
+    
+    Raises
+    ------
+    ValueError
+        If the input file is not a .sid file.
+    '''
+
+    raise_if_not_exists(mrsid_path)
+    
+    if mrsid_path.split('.')[-1] != 'sid':
+        raise ValueError('Input file must be a .sid file')
+    
+    if tiff_path is None:
+        tiff_path = mrsid_path.replace('.sid', '.tif')
+    
+    # 'gdal_translate -of GTiff {mrsid_path} {tiff_path}')
+    Popen([
+        'mrsiddecode', 
+        '-i', mrsid_path, 
+        '-o', tiff_path, 
+        '-of', 'tifg', 
+        '-quiet'
+    ]).wait()
+
+
+
+def resample(
+    input_path: str,
+    output_path: Optional[str]=None, 
+    target_resolution: int=1, 
+    resampling: Literal[
+        'bilinear', 
+        'cubic', 
+        'cubicspline', 
+        'lanczos', 
+        'average', 
+        'rms', 
+        'mode'
+    ]='bilinear',
+    crs: str='EPSG:3813', # default to mississippi transverse mercator
+    pbar: Optional[tqdm]=None,
+) -> None:
+    '''Resample a tiff file to a target resolution using GDAL.
+    
+    Use the GDAL command line tool `gdalwarp` to resample a tiff file to a
+    target resolution. The resampling method can be specified using the
+    `resampling` parameter.
+    
+    Parameters
+    ----------
+    input_path : str
+        The path to the input tiff file.
+    output_path : Optional[str], optional
+        The path to the output tiff file. If not provided, the output file will
+        be saved in the same directory as the input file with the target
+        resolution appended to the filename.
+    target_resolution : int, optional
+        The target resolution of the output tiff file in meters. The default is 1.
+    resampling : {'bilinear', 'cubic', 'cubicspline', 'lanczos', 'average', 'rms', 'mode'}, optional
+        The resampling method to use. The default is 'bilinear'.
+    pbar : Optional[tqdm], optional
+        A tqdm progress bar to update when the function completes. The default is None.
+    
+    Returns
+    -------
+    None
+    
+    Raises
+    ------
+    ValueError
+        If the input file is not a .tif or .tiff file.
+        If the output file is not a .tif or .tiff file.
+        
+    
+    '''
+    
+    try:
+    
+        if input_path.split('.')[-1] != 'tif' or input_path.split('.')[-1] != 'tiff':
+            raise ValueError('Input file must be a .tif or .tiff file')
+        
+        if output_path is None:
+            output_path = input_path.replace('.sid', f'_{target_resolution}m.tif')
+        
+        if output_path.split('.')[-1] != 'tif' or output_path.split('.')[-1] != 'tiff':
+            raise ValueError('Output file must be a .tif or .tiff file')
+
+        Popen([
+            'gdalwarp',
+            '-quiet',
+            '-tr', str(target_resolution), str(target_resolution),
+            '-r', resampling,
+            '-t_srs', crs,
+            input_path,
+            output_path,
+            '-co', 'COMPRESS=LZW',
+            '-co', 'TILED=YES',
+            '-co', 'BIGTIFF=YES',
+            '-co', 'BLOCKXSIZE=256',
+            '-co', 'BLOCKYSIZE=256',
+            '-co', 'NUM_THREADS=ALL_CPUS',
+        ]).wait()
+
+    except Exception as e:
+        warn(f'Error resampling tiff file: {type(e)}: {e}', UserWarning)
+        
+    finally:
+        if pbar:
+            pbar.update(1)
+
+
+def preprocess_file(
+    zip_path: str, 
+    target_resolution: int=1, 
+    resampling: Literal[
+        'bilinear', 
+        'cubic', 
+        'cubicspline', 
+        'lanczos', 
+        'average', 
+        'rms', 
+        'mode'
+    ]='bilinear',
+    pbar: Optional[tqdm]=None,
+) -> str:
+    '''Preprocess a file by unzipping, converting to tiff, and resampling.
+    
+    Preprocess a file in a zip archive by unzipping the archive, converting any
+    .sid files to .tif files, and resampling the .tif files to a target
+    resolution.
+    
+    Parameters
+    ----------
+    zip_path : str
+        The path to the zip archive containing the file to preprocess.
+    target_resolution : int, optional
+        The target resolution of the output tiff file in meters. The default is 1.
+    resampling : {'bilinear', 'cubic', 'cubicspline', 'lanczos', 'average', 'rms', 'mode'}, optional
+        The resampling method to use. The default is 'bilinear'.
+    
+    Returns
+    -------
+    str
+        The path to the resampled tiff file.
+    '''
+    
+    unzip(zip_path)
+    
+    file_name = os.path.basename(zip_path).replace('.zip', '')
+    folder_name = zip_path.replace('.zip', '')
+    folder_dir = os.path.join(os.path.dirname(zip_path), file_name)
+    mrsid_path = os.path.join(folder_dir, file_name + '.sid')
+    mrsid_to_tiff(mrsid_path)
+    
+    tiff_path = mrsid_path.replace('.sid', '.tif')
+    resample(tiff_path, target_resolution=target_resolution, resampling=resampling)
+    
+    resampled_path = tiff_path.replace('.tif', f'_{target_resolution}m.tif')
+    
+    if pbar:
+        pbar.update(1)
+    
+    return resampled_path
