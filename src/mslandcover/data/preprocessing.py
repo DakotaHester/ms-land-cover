@@ -95,7 +95,7 @@ def resample(
         'rms', 
         'mode'
     ]='bilinear',
-    crs: str='EPSG:3813', # default to mississippi transverse mercator
+    crs: str='+proj=tmerc +lat_0=32.5 +lon_0=-89.75 +k=0.9998335 +x_0=500000 +y_0=1300000', # default to mississippi transverse mercator
     pbar: Optional[tqdm]=None,
 ) -> None:
     '''Resample a tiff file to a target resolution using GDAL.
@@ -133,16 +133,20 @@ def resample(
     '''
     
     try:
-    
-        if input_path.split('.')[-1] != 'tif' or input_path.split('.')[-1] != 'tiff':
-            raise ValueError('Input file must be a .tif or .tiff file')
+        
+        if input_path.split('.')[-1] != 'tif' and input_path.split('.')[-1] != 'tiff':
+            # print(input_path.split('.')[-1])
+            # print(input_path.split('.')[-1] == 'tif')
+            raise ValueError('Input file must be a .tif or .tiff file, got: ' + input_path)
         
         if output_path is None:
-            output_path = input_path.replace('.sid', f'_{target_resolution}m.tif')
+            output_path = input_path.replace('.tif', f'_{target_resolution}m.tif')
         
-        if output_path.split('.')[-1] != 'tif' or output_path.split('.')[-1] != 'tiff':
+        if output_path.split('.')[-1] != 'tif' and output_path.split('.')[-1] != 'tiff':
             raise ValueError('Output file must be a .tif or .tiff file')
 
+        # print(input_path)
+        # print(f'DOES IT EXIST? {os.path.exists(input_path)}')  
         Popen([
             'gdalwarp',
             '-quiet',
@@ -156,7 +160,7 @@ def resample(
             '-co', 'BIGTIFF=YES',
             '-co', 'BLOCKXSIZE=256',
             '-co', 'BLOCKYSIZE=256',
-            '-co', 'NUM_THREADS=ALL_CPUS',
+            '-wo', 'NUM_THREADS=ALL_CPUS',
         ]).wait()
 
     except Exception as e:
@@ -180,7 +184,7 @@ def preprocess_file(
         'mode'
     ]='bilinear',
     pbar: Optional[tqdm]=None,
-) -> str:
+) -> None:
     '''Preprocess a file by unzipping, converting to tiff, and resampling.
     
     Preprocess a file in a zip archive by unzipping the archive, converting any
@@ -198,24 +202,30 @@ def preprocess_file(
     
     Returns
     -------
-    str
-        The path to the resampled tiff file.
+    None
     '''
     
-    unzip(zip_path)
-    
+    raise_if_not_exists(zip_path)
+
+    # convert to absolute path
+    zip_path = os.path.abspath(zip_path)
+
+    # define file names    
     file_name = os.path.basename(zip_path).replace('.zip', '')
-    folder_name = zip_path.replace('.zip', '')
     folder_dir = os.path.join(os.path.dirname(zip_path), file_name)
     mrsid_path = os.path.join(folder_dir, file_name + '.sid')
-    mrsid_to_tiff(mrsid_path)
-    
     tiff_path = mrsid_path.replace('.sid', '.tif')
-    resample(tiff_path, target_resolution=target_resolution, resampling=resampling)
     
-    resampled_path = tiff_path.replace('.tif', f'_{target_resolution}m.tif')
+    if not os.path.exists(folder_dir):
+        unzip(zip_path)
+        os.remove(zip_path)
+    
+    if not os.path.exists(tiff_path):
+        mrsid_to_tiff(mrsid_path)
+    
+    if not os.path.exists(tiff_path.replace('.tif', f'_{target_resolution}m.tif')):
+        resample(tiff_path, target_resolution=target_resolution, resampling=resampling)
+        os.remove(tiff_path)
     
     if pbar:
         pbar.update(1)
-    
-    return resampled_path

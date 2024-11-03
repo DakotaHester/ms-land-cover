@@ -1,2 +1,11 @@
 ./data/
 /data/MS_NAIP_2023
+/data/sampling/NLCD
+/data/sampling/._tvt_centroids.gpkg
+/data/sampling/._cb_2023_28_bg_500k
+*.pyc
+*.aux.xml
+*.pyc
+
+data/sampling/grid_counts.pkl
+data/sampling/histogram_vectors.npy
