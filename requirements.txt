@@ -41,7 +41,6 @@ pyparsing==3.2.0
 pyproj==3.7.0
 python-dateutil==2.9.0.post0
 pytz==2024.2
-pywin32==308
 pyzmq==26.2.0
 rasterio==1.4.2
 scikit-learn==1.5.2
