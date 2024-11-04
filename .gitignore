@@ -6,6 +6,6 @@
 *.pyc
 *.aux.xml
 *.pyc
-
+*.DS_Store
 data/sampling/grid_counts.pkl
 data/sampling/histogram_vectors.npy
