@@ -60,7 +60,7 @@
         <mxCell id="YUAjgswRs7v28uLpNq4v-61" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Times New Roman;" parent="1" source="YUAjgswRs7v28uLpNq4v-24" target="YUAjgswRs7v28uLpNq4v-53" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="YUAjgswRs7v28uLpNq4v-24" value="Sample 1 Patch&lt;div&gt;From Each Cluster&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
+        <mxCell id="YUAjgswRs7v28uLpNq4v-24" value="Randomly Sample 1 Patch&lt;div&gt;From Each Cluster&lt;/div&gt;" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Times New Roman;fillColor=#ffe6cc;strokeColor=#d79b00;" parent="1" vertex="1">
           <mxGeometry x="660" y="550" width="120" height="60" as="geometry" />
         </mxCell>
         <mxCell id="YUAjgswRs7v28uLpNq4v-41" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Times New Roman;" parent="1" source="YUAjgswRs7v28uLpNq4v-26" target="YUAjgswRs7v28uLpNq4v-40" edge="1">
@@ -104,7 +104,7 @@
         <mxCell id="YUAjgswRs7v28uLpNq4v-38" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Times New Roman;" parent="1" source="YUAjgswRs7v28uLpNq4v-35" target="YUAjgswRs7v28uLpNq4v-27" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
-        <mxCell id="YUAjgswRs7v28uLpNq4v-35" value="Extract Mississippi Data" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Times New Roman;" parent="1" vertex="1">
+        <mxCell id="YUAjgswRs7v28uLpNq4v-35" value="Extract Mississippi Land Cover Data" style="rounded=0;whiteSpace=wrap;html=1;fontFamily=Times New Roman;" parent="1" vertex="1">
           <mxGeometry x="410" y="130" width="110" height="60" as="geometry" />
         </mxCell>
         <mxCell id="YUAjgswRs7v28uLpNq4v-44" value="" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;fontFamily=Times New Roman;" parent="1" source="YUAjgswRs7v28uLpNq4v-40" target="YUAjgswRs7v28uLpNq4v-4" edge="1">
