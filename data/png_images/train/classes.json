@@ -1,0 +1,13 @@
+{
+    "classes": [
+        { "id": 1, "name": "Open Water", "color": "#516c97" },
+        { "id": 2, "name": "Raised Structure", "color": "#989899" },
+        { "id": 3, "name": "Impervious Surface", "color": "#ffffff" },
+        { "id": 4, "name": "Barren Land", "color": "#805944" },
+        { "id": 5, "name": "Forest", "color": "#2a5439" },
+        { "id": 6, "name": "Herbaceous", "color": "#88e5b8" },
+        { "id": 7, "name": "Cultivated Crops", "color": "#f6c376" },
+        { "id": 8, "name": "Wetlands", "color": "#88e5b8" },
+        { "id": 9, "name": "Unclassified", "color": "#000000" }
+    ]
+}
