@@ -1,0 +1,31 @@
+{
+    "driver": "GTiff",
+    "dtype": "uint8",
+    "nodata": 0.0,
+    "width": 256,
+    "height": 256,
+    "count": 3,
+    "crs": "PROJCS[\"unknown\",GEOGCS[\"WGS 84\",DATUM[\"World Geodetic System 1984\",SPHEROID[\"WGS 84\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]]],PROJECTION[\"Transverse_Mercator\"],PARAMETER[\"latitude_of_origin\",32.5],PARAMETER[\"central_meridian\",-89.75],PARAMETER[\"scale_factor\",0.9998335],PARAMETER[\"false_easting\",500000],PARAMETER[\"false_northing\",1300000],UNIT[\"metre\",1,AUTHORITY[\"EPSG\",\"9001\"]],AXIS[\"Easting\",EAST],AXIS[\"Northing\",NORTH]]",
+    "transform": [
+        1.0,
+        0.0,
+        632157.363930126,
+        0.0,
+        -1.0,
+        1405342.1146021134,
+        0.0,
+        0.0,
+        1.0
+    ],
+    "lat": 1405213.7855580237,
+    "lon": 632286.0250545107,
+    "class_freq": {
+        "Open Water": 0.024691358024691357,
+        "Impervious (raised structures)": 0.6790123456790124,
+        "Impervious (paved surfaces)": 0.14814814814814814,
+        "Barren Land": 0.0,
+        "Forest": 0.08641975308641975,
+        "Herbaceous": 0.06172839506172839,
+        "Cultivated Crops": 0.0
+    }
+}
