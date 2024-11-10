@@ -11,3 +11,5 @@ data/splits/pretrain/*
 data/splits/pretrain_val/*
 data/sampling/grid_counts.pkl
 data/sampling/histogram_vectors.npy
+*.gpkg-shm
+*.gpkg-wal
