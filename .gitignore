@@ -13,6 +13,8 @@ data/sampling/grid_counts.pkl
 data/sampling/histogram_vectors.npy
 *.gpkg-shm
 *.gpkg-wal
+/data/splits/pretrain_val.tar
+/data/splits/pretrain_val.zip
 data/png_images
 data/splits/test/clusters
 data/splits/train/clusters
