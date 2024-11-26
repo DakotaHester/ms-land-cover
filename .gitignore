@@ -13,3 +13,11 @@ data/sampling/grid_counts.pkl
 data/sampling/histogram_vectors.npy
 *.gpkg-shm
 *.gpkg-wal
+data/png_images
+data/splits/test/clusters
+data/splits/train/clusters
+data/splits/val/clusters
+data/splits/val/masks
+data/splits/train/masks
+data/splits/test/masks
+data/splits/pretrain/masks
