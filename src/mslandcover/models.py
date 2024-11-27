@@ -7,6 +7,7 @@ from __future__ import print_function
 import os
 import logging
 import functools
+from typing import List
 
 import numpy as np
 
@@ -297,10 +298,10 @@ class HighResolutionNet(nn.Module):
             self.stage4_cfg, num_channels, multi_scale_output=True)
 
         # Classification Head
-        self.incre_modules, self.downsamp_modules, \
-            self.final_layer = self._make_head(pre_stage_channels)
+        # self.incre_modules, self.downsamp_modules, \
+        #     self.final_layer = self._make_head(pre_stage_channels)
 
-        self.classifier = nn.Linear(2048, 1000)
+        # self.classifier = nn.Linear(2048, 1000)
 
     def _make_head(self, pre_stage_channels):
         head_block = Bottleneck
@@ -469,7 +470,22 @@ class HighResolutionNet(nn.Module):
                 x_list.append(y_list[i])
         y_list = self.stage4(x_list)
         
-        return y_list
+        out_shape = y_list[0].shape[-2:]
+        
+        y_list_interpolated = []
+        for y in y_list:
+            y_list_interpolated.append(
+                F.interpolate(
+                    y, 
+                    size=out_shape, 
+                    mode='bilinear', 
+                    align_corners=True
+                )
+            )
+        
+        y = torch.cat(y_list_interpolated, 1)
+        
+        return y
 
     def init_weights(self, pretrained='',):
         logger.info('=> init weights from normal distribution')
@@ -501,16 +517,110 @@ def get_cls_net(config, **kwargs):
 
 
 class DecoderModule(nn.Module):
-    def __init__(self, in_channels, out_channels, num_classes):
+    def __init__(self, num_channels: int=720, num_blocks: int=2):
         super(DecoderModule, self).__init__()
-        self.conv1 = nn.Conv2d(in_channels, out_channels, kernel_size=3, padding=1)
-        self.bn1 = nn.BatchNorm2d(out_channels)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv2 = nn.Conv2d(out_channels, num_classes, kernel_size=1)
 
-    def forward(self, x):
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.conv2(x)
+        self.num_blocks = num_blocks
+        self.module_list = nn.ModuleList()
+        for _ in range(num_blocks):
+            self.module_list.append(nn.Sequential(
+                nn.Conv2d(num_channels, num_channels, kernel_size=3, padding=1),
+                nn.BatchNorm2d(num_channels),
+                nn.ReLU(inplace=True),
+            ))
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        
+        x_up = F.interpolate(x, scale_factor=2, mode='bilinear', align_corners=True)
+        x = x_up.clone()
+        
+        for module in self.module_list:
+            x = module(x)
+        
+        return x + x_up
+
+
+
+class ImageDecoderHead(nn.Module):
+    
+    def __init__(self, in_channels: int=720, num_classes: int=3, num_blocks: int=2):
+        super(ImageDecoderHead, self).__init__()
+
+        self.in_channels = in_channels
+        
+        self.layer1 = DecoderModule(num_channels=in_channels, num_blocks=num_blocks)
+        self.layer2 = DecoderModule(num_channels=in_channels, num_blocks=num_blocks)
+        self.classifier = nn.Conv2d(in_channels, num_classes, kernel_size=1)
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        
+        # for residual connection between encoder output and final output
+        x_upsampled = F.interpolate(x, scale_factor=4, mode='bilinear', align_corners=True)
+        x = self.layer1(x)
+        x = self.layer2(x)
+        x += x_upsampled # residual connection from encoder output
+        x = self.classifier(x)
         return x
+    
+    def reinit_classifier(self, num_classes: int=3):
+        self.classifier = nn.Conv2d(self.in_channels, num_classes, kernel_size=1)
+        return self        
+
+
+# ProjectionHead implementation inspired by official TF code https://github.com/google-research/simclr/blob/383d4143fd8cf7879ae10f1046a9baeb753ff438/tf2/model.py#L157
+# per paper, only use one hidden layer and do not apply a non-linearity to the output embeddings
+# z_i = W^{(2)} \sigma(W^{(1)} h_i)
+class ProjectionHead(nn.Module):
+    
+    def __init__(self, in_channels: int=720, num_hiddens: int=1, embedding_dim: int=128):
+        super(ProjectionHead, self).__init__()
+        
+        self.gap = nn.AdaptiveAvgPool2d((1, 1))
+        
+        self.hiddens = nn.ModuleList([])
+        for _ in range(num_hiddens):
+            self.hiddens.append(nn.Sequential(
+                nn.Linear(in_channels, in_channels),
+                nn.BatchNorm1d(in_channels),
+                nn.ReLU(inplace=True)
+            ))
+        
+        self.output = nn.Sequential(
+            nn.Linear(in_channels, embedding_dim, bias=False),
+            nn.BatchNorm1d(embedding_dim)
+        )
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        
+        x = self.gap(x).view(x.size(0), -1) # reshape to (batch_size, num_channels)
+        
+        for hidden_layer in self.hiddens:
+            x = hidden_layer(x)
+
+        return self.output(x)
+
+
+class HRNetSegmentationModel(nn.Module):
+    
+    def __init__(self, config: dict, num_classes: int=3, aux_simclr_head: bool=False):
+        super(HRNetSegmentationModel, self).__init__()
+        
+        self.config = config
+        self.encoder_output_channels = sum(config['STAGE4']['NUM_CHANNELS'])
+        
+        self.encoder = get_cls_net(config)
+        self.decoder = ImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes, num_blocks=config['IMAGE_DECODER']['NUM_BLOCKS'])
+        
+        self.aux_simclr_head = aux_simclr_head
+        if self.aux_simclr_head:
+            self.projection_head = ProjectionHead(in_channels=self.encoder_output_channels)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        
+        x = self.encoder(x)
+        y = self.decoder(x)
+        
+        if self.aux_simclr_head: # return both segmentation and simclr head outputs
+            return y, self.projection_head(x)
+        
+        return y # return only segmentation output

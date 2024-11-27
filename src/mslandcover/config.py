@@ -64,5 +64,12 @@ HRNET_BASE_CONFIG = {
         'NUM_BLOCKS': [4, 4, 4, 4],
         'NUM_CHANNELS': [48, 96, 192, 384],
         'FUSE_METHOD': 'SUM'
+    },
+    'IMAGE_DECODER': {
+        'NUM_BLOCKS': 2, # number of blocks per decoder layer - 2 is the default for simplicity
+    },
+    'SIMCLR_PROJECTION_HEAD': {
+        'NUM_HIDDENS': 1, # number of hidden layers to use in the projection head
+        'EMBED_DIM': 128,
     }
 }
