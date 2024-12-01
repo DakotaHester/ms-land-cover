@@ -5,6 +5,7 @@ import numpy as np
 from argparse import ArgumentParser
 import os
 from glob import glob
+from tqdm import tqdm
 
 from src.mslandcover.data.datasets import PreTrainDataset
 from src.mslandcover.data import transforms
@@ -135,7 +136,23 @@ def main():
     imagenet_weights = torch.load(args.imagenet_weights, weights_only=True)
     model.load_encoder_weights(imagenet_weights)
     
-    loss = utils.nt_xent_loss
+    # define loss functions for the different pretraining schemes
+    if args.pretrain_scheme == 'hsv': # reconstruction loss
+        loss_fn = nn.MSELoss()
+    elif args.pretrain_scheme == 'simclr': # contrastive loss
+        loss_fn = utils.nt_xent_loss
+    elif args.pretrain_scheme == 'hsv_simclr': # contrastive loss + reconstruction loss
+        contrastive_loss = utils.nt_xent_loss
+        reconstruction_loss = nn.MSELoss()
+        def loss_fn(
+            z_1: torch.Tensor, z_2: torch.Tensor, # embeddings from the projection head
+            y_pred_1: torch.Tensor, y_pred_2: torch.Tensor, # predictions from the image decoder head
+            y_true_1: torch.Tensor, y_true_2: torch.Tensor, # target images
+        ) -> torch.Tensor:
+            return contrastive_loss(z_1, z_2) + \
+                0.5 * (reconstruction_loss(y_pred_1, y_true_1) + reconstruction_loss(y_pred_2, y_true_2))
+    
+    # define optimizer and scheduler - the specifics are taken from the original SimCLR implementation
     optimizer = utils.LARS(
         params=model.parameters(),
         lr=0.3*args.batch_size/256, # per original SimCLR implementation
@@ -156,6 +173,63 @@ def main():
         milestones=[10], # step after warmup
     )
     
+    model.to(device)
+    
+    history_dict = {
+        'train_loss': [],
+        'val_loss': [],
+        'learning_rate': [],
+    }
+    
+    for epoch in range(args.num_epochs):
+        
+        for phase in ['train', 'val']:
+            
+            if phase == 'train':
+                model.train()
+                loader = tqdm(
+                    train_loader, 
+                    desc=f'Epoch {epoch+1} Training', 
+                    total=len(train_loader),
+                    unit='batch',
+                )
+            else:
+                model.eval()
+                loader = tqdm(
+                    train_loader, 
+                    desc=f'Epoch {epoch+1} Training', 
+                    total=len(train_loader),
+                    unit='batch',
+                )
+            
+            running_loss = 0.0
+            for i, batch in enumerate(loader):
+                
+                optimizer.zero_grad(set_to_none=True)
+                
+                if args.pretrain_scheme in ['simclr', 'hsv_simclr']:
+                    img, hsv, meta = batch
+                    img, hsv = img.to(device), hsv.to(device)
+                    img_logits, hsv_logits = model(img, hsv)
+                    loss = contrastive_loss(img_logits, hsv_logits)
+                else:
+                    img, meta = batch
+                    img = img.to(device)
+                    img_recon, img_logits = model(img)
+                    loss = reconstruction_loss(img_recon, img)
+                
+                if phase == 'train':
+                    loss.backward()
+                    optimizer.step()
+                    scheduler.step()
+                
+                running_loss += loss.item()
+            
+            epoch_loss = running_loss / len(loader)
+            history_dict[f'{phase}_loss'].append(epoch_loss)
+            history_dict['learning_rate'].append(optimizer.param_groups[0]['lr'])
+            
+            print(f'Epoch {epoch+1} {phase} loss: {epoch_loss}')
     
     
 
