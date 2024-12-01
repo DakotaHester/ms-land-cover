@@ -7,7 +7,7 @@ from __future__ import print_function
 import os
 import logging
 import functools
-from typing import List
+from typing import List, Union, Tuple
 
 import numpy as np
 
@@ -602,25 +602,52 @@ class ProjectionHead(nn.Module):
 
 class HRNetSegmentationModel(nn.Module):
     
-    def __init__(self, config: dict, num_classes: int=3, aux_simclr_head: bool=False):
+    def __init__(self, 
+        config: dict, 
+        img_decoder_head: bool=True,
+        num_classes: int=3, 
+        aux_simclr_head: bool=False
+    ):
         super(HRNetSegmentationModel, self).__init__()
         
         self.config = config
         self.encoder_output_channels = sum(config['STAGE4']['NUM_CHANNELS'])
         
         self.encoder = get_cls_net(config)
-        self.decoder = ImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes, num_blocks=config['IMAGE_DECODER']['NUM_BLOCKS'])
         
-        self.aux_simclr_head = aux_simclr_head
-        if self.aux_simclr_head:
+        if not (img_decoder_head or aux_simclr_head):
+            raise ValueError('At least one of `img_decoder_head` or `aux_simclr_head` must be True.')
+        
+        self.decoder = None
+        if img_decoder_head:
+            self.decoder = ImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes, num_blocks=config['IMAGE_DECODER']['NUM_BLOCKS'])
+        
+        self.projection_head = None
+        if aux_simclr_head:
             self.projection_head = ProjectionHead(in_channels=self.encoder_output_channels)
+    
+    
+    
+    def load_encoder_weights(self, state_dict: dict):
+        for key in list(state_dict.keys()):
+            # remove keys that are not in the encoder
+            if key.split('.')[0] in ['incre_modules', 'downsamp_modules', 'final_layer', 'classifier']:
+                del state_dict[key]
+        self.encoder.load_state_dict(state_dict)
+        
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         
-        x = self.encoder(x)
-        y = self.decoder(x)
+        h = self.encoder(x)
         
-        if self.aux_simclr_head: # return both segmentation and simclr head outputs
-            return y, self.projection_head(x)
+        returns = []
+        if self.decoder is not None:
+            returns.append(self.decoder(h))
         
-        return y # return only segmentation output
+        if self.projection_head is not None:
+            returns.append(self.projection_head(h))
+        
+        if len(returns) == 1:
+            return returns[0]
+
+        return tuple(returns)
