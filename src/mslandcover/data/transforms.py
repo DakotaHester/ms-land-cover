@@ -69,7 +69,7 @@ def get_color_transforms(s: float=1.0) -> transforms.Compose:
     
 
 
-def rgb2hsv_torch(rgb: torch.Tensor) -> torch.Tensor:
+def rgb_to_hsv(rgb: torch.Tensor) -> torch.Tensor:
     """
     Convert an RGB image tensor to an HSV image tensor. Code sourced from:
     https://github.com/limacv/RGB_HSV_HSL/blob/6dbbd0af542bc8a4000dffa14b8629b2e093bcdf/color_torch.py#L28
@@ -84,8 +84,8 @@ def rgb2hsv_torch(rgb: torch.Tensor) -> torch.Tensor:
     torch.Tensor
         Output HSV image tensor.
     """
-    
-    if len(rgb.size()) == 3:
+    in_dims = len(rgb.size())
+    if in_dims == 3:
         rgb = rgb.unsqueeze(0)
         
     cmax, cmax_idx = torch.max(rgb, dim=1, keepdim=True)
@@ -102,11 +102,13 @@ def rgb2hsv_torch(rgb: torch.Tensor) -> torch.Tensor:
     hsv_s = torch.where(cmax == 0, torch.tensor(0.).type_as(rgb), delta / cmax)
     hsv_v = cmax
     
-    return torch.cat([hsv_h, hsv_s, hsv_v], dim=1)
+    hsv = torch.cat([hsv_h, hsv_s, hsv_v], dim=1)
+    if in_dims == 3:
+        return hsv.squeeze(0)
 
 
 
-def hsv2rgb_torch(hsv: torch.Tensor) -> torch.Tensor:
+def hsv_to_rgb(hsv: torch.Tensor) -> torch.Tensor:
     """
     Convert an HSV image tensor to an RGB image tensor. Code sourced from:
     https://github.com/limacv/RGB_HSV_HSL/blob/6dbbd0af542bc8a4000dffa14b8629b2e093bcdf/color_torch.py#L44
@@ -121,8 +123,8 @@ def hsv2rgb_torch(hsv: torch.Tensor) -> torch.Tensor:
     torch.Tensor
         Output RGB image tensor.
     """
-    
-    if len(hsv.size()) == 3:
+    in_dims = len(hsv.size())
+    if in_dims == 3:
         hsv = hsv.unsqueeze(0)
     
     hsv_h, hsv_s, hsv_l = hsv[:, 0:1], hsv[:, 1:2], hsv[:, 2:3]
@@ -143,6 +145,8 @@ def hsv2rgb_torch(hsv: torch.Tensor) -> torch.Tensor:
     rgb[idx == 5] = torch.cat([_c, _o, _x], dim=1)[idx == 5]
     rgb += _m
     
+    if in_dims == 3:
+        return rgb.squeeze(0)
     return rgb
 
 
@@ -152,8 +156,8 @@ class SimCLRDataAugmentation:
     Data Transformer for creating a pair of views from an image.
     """
     
-    def __init__(self):
-        
+    def __init__(self, size: int=256):
+        self.size = size
         self.color_transforms = get_color_transforms()
     
     
@@ -176,19 +180,16 @@ class SimCLRDataAugmentation:
                 
         # resize and random crop
         if y is not None:
-            X_1, y_1 = random_resize_crop(X, y, size=256)
-            X_2, y_2 = random_resize_crop(X, y, size=256)
+            X, y = random_resize_crop(X, y, size=self.size)
         else:
-            X_1 = random_resize_crop(X, size=256)
-            X_2 = random_resize_crop(X, size=256)
+            X = random_resize_crop(X, size=self.size)
         
         # color distortions
-        X_1 = self.color_transforms(X_1)
-        X_2 = self.color_transforms(X_2)
+        X = self.color_transforms(X)
         
         if y is not None:
-            return (X_1, y_1), (X_2, y_2)
-        return X_1, X_2
+            return X, y
+        return X
 
 
 class StandardDataAugmentations:

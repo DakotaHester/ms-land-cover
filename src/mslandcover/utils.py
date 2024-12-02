@@ -1,7 +1,25 @@
 import os
 from typing import Tuple
-from torch.optim.optimizer import Optimizer, required
 from torch.nn import functional as F
+from torch.optim.optimizer import Optimizer, required
+import torch
+import torch.nn as nn
+from grad_cache.functional import cached, cat_input_tensor
+
+def get_torch_device() -> torch.device:
+    '''
+    Get the torch device to use for training.
+    
+    Returns
+    -------
+    torch.device
+        The torch device.
+    '''
+    if torch.cuda.is_available():
+        return torch.device('cuda')
+    if torch.backends.mps.is_available():
+        return torch.device('mps')
+    return torch.device('cpu')
 
 def raise_if_not_exists(path: str) -> None:
     '''
@@ -24,6 +42,8 @@ def raise_if_not_exists(path: str) -> None:
     if not os.path.exists(path):
         raise FileNotFoundError(f'The path {path} does not exist.')
 
+
+
 def hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
     '''
     Convert a hex color to an RGB tuple.
@@ -43,37 +63,125 @@ def hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
 
-
-def nt_xent_loss(x, temperature: float=0.5):
+class NTXentLoss(nn.Module):
     """
     Normalized temperature-scaled cross entropy loss for self-supervised learning.
     Code adapted from: https://github.com/dhruvbird/ml-notebooks/blob/main/nt-xent-loss/NT-Xent%20Loss.ipynb
+    """
+    
+    def __init__(self, temperature: float=0.5):
+        super(NTXentLoss, self).__init__()
+        self.temperature = temperature
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        
+        assert len(x.size()) == 2
+        
+        # Cosine similarity
+        xcs = F.cosine_similarity(x[None,:,:], x[:,None,:], dim=-1)
+        xcs[torch.eye(x.size(0)).bool()] = float("-inf")
+        
+        # Ground truth labels
+        target = torch.arange(8)
+        target[0::2] += 1
+        target[1::2] -= 1
+        
+        # Standard cross entropy loss
+        return F.cross_entropy(xcs / self.temperature, target, reduction="mean")
+
+
+
+def nt_xent_loss(x: torch.Tensor, temperature: float=0.5) -> torch.Tensor:
+    """
+    Functional implementation of the normalized temperature-scaled cross entropy loss.
     
     Parameters
     ----------
     x : torch.Tensor
-        Input tensor of shape (N, D) where N is the batch size and D is the feature dimension.
-    temperature : float, optional
-        Temperature scaling factor, by default 0.5
-        NOTE: the authors argue that the optimal temperature is 0.5 for most batch
-            sizes, but tends to approach 0.1 as the batch size increases
+        The input tensor.
+    temperature : float
+        The temperature scaling factor.
     
+    Returns
+    -------
+    torch.Tensor
+        The loss value.
     
+    Raises
+    ------
+    ValueError
+        If the input tensor is not of rank 2.
     """
-    assert len(x.size()) == 2
+    
+    if len(x.size()) != 2:
+        raise ValueError(f'Expected input tensor of rank 2, got tensor of rank {len(x.size())}.')
     
     # Cosine similarity
     xcs = F.cosine_similarity(x[None,:,:], x[:,None,:], dim=-1)
     xcs[torch.eye(x.size(0)).bool()] = float("-inf")
-
+    
     # Ground truth labels
-    target = torch.arange(8)
+    target = torch.arange(len(x)) # len(X) to mathc batch size of 
     target[0::2] += 1
     target[1::2] -= 1
+    
+    print(xcs.size(), target.size())
     
     # Standard cross entropy loss
     return F.cross_entropy(xcs / temperature, target, reduction="mean")
 
+
+
+class HybridLoss(nn.Module):
+    
+    def __init__(self, mse_weight: float=0.5):
+        super(HybridLoss, self).__init__()
+        self.nt_xent_loss = NTXentLoss()
+        self.mse_loss = nn.MSELoss()
+        self.mse_weight = mse_weight
+    
+    def forward(self, 
+        z_1: torch.Tensor, z_2: torch.Tensor, # embeddings from the projection head
+        y_pred_1: torch.Tensor, y_pred_2: torch.Tensor, # predictions from the image decoder head
+        y_true_1: torch.Tensor, y_true_2: torch.Tensor, # target images
+    ) -> torch.Tensor:
+        contrastive_loss = self.nt_xent_loss(z_1) 
+        reconsutructive_loss = self.mse_loss(y_pred_1, y_true_1) + self.mse_loss(y_pred_2, y_true_2)
+        return contrastive_loss + (self.mse_weight * reconsutructive_loss)
+
+
+
+def get_loss_function(scheme: str) -> nn.Module:
+    '''
+    Get the loss function for the given pretraining scheme.
+    
+    Parameters
+    ----------
+    scheme : str
+        The pretraining scheme.
+    
+    Returns
+    -------
+    nn.Module
+        The loss function.
+    '''
+    if scheme == 'hsv':
+        return nn.MSELoss()
+    if scheme == 'simclr':
+        return NTXentLoss()
+    if scheme == 'hsv_simclr':
+        return HybridLoss()
+    raise ValueError(f'Unknown pretraining scheme: {scheme}')
+
+
+@cached
+def cached_model_call(model: nn.Module, X: torch.Tensor):
+    return model(X)
+
+
+@cat_input_tensor
+def cached_contrastive_loss_call(z_0: torch.Tensor, z_1: torch.Tensor) -> torch.Tensor:
+    return nt_xent_loss(torch.cat([z_0, z_1], dim=0)).to(z_0.device)
 
 
 class LARS(Optimizer):
@@ -98,8 +206,16 @@ class LARS(Optimizer):
         >>> optimizer.step()
     """
 
-    def __init__(self, params, lr=required, momentum=0, eta=1e-3, dampening=0,
-                 weight_decay=0, nesterov=False, epsilon=0):
+    def __init__(self, 
+        params, 
+        lr=required, 
+        momentum=0, 
+        eta=1e-3, 
+        dampening=0,
+        weight_decay=0, 
+        nesterov=False, 
+        epsilon=0
+    ):
         if lr is not required and lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
         if momentum < 0.0:

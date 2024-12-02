@@ -24,7 +24,7 @@ def read_image(
     
     if as_tensor:
         dtype = torch.float32 if as_float else torch.uint8
-        return torch.tensor(img, device=device, dtype=dtype)
+        img = torch.tensor(img, device=device, dtype=dtype)
     
     if return_metadata:
         return img, meta

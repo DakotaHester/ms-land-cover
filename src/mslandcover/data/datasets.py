@@ -13,6 +13,7 @@ class PreTrainDataset(Dataset):
     
     def __init__(self, 
         data_paths: Iterable[str],
+        n_views: int=2,
         mean: Optional[np.ndarray]=None,
         std: Optional[np.ndarray]=None,
         transform: Optional[transforms.Compose]=T.SimCLRDataAugmentation(),
@@ -21,7 +22,11 @@ class PreTrainDataset(Dataset):
         device: torch.device=torch.device('cpu'),
     ):
         
+        if return_metadata and isinstance(transform, T.SimCLRDataAugmentation):
+            raise ValueError('return_metadata=True is not supported when using SimCLRDataAugmentation.')
+        
         self.data_paths = data_paths
+        self.n_views = n_views
         self.transform = transform
         self.return_hsv = return_hsv
         self.return_metadata = return_metadata
@@ -48,17 +53,15 @@ class PreTrainDataset(Dataset):
             self.std = utils.batched_std(data_paths, mean=self.mean, as_tensor=True, device=device)
     
     
-    
     def __len__(self) -> int:
         return len(self.data_paths)
     
     
-    
-    def __getitem__(self, idx: int) -> Union[
-        torch.Tensor,                               # image tensor only
-        Tuple[torch.Tensor, torch.Tensor],          # image and HSV tensors
-        Tuple[torch.Tensor, dict],                  # image tensor and metadata dict
-        Tuple[torch.Tensor, torch.Tensor, dict]     # image, HSV tensors, and metadata dict
+    def __getitem__(self, idx: int) -> Union[ # many possible return types, hint is not exhaustive (n_views>2 excluded)), 
+        torch.Tensor,                                                               # image tensor only
+        Tuple[torch.Tensor, torch.Tensor],                                          # (image, hsv) tensors OR (view1, view2) tensors (no hsv or metadata)
+        Tuple[Tuple[torch.Tensor, torch.Tensor], dict],                             # (image, hsv) tensors and metadata dict
+        Tuple[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor]] # multiple views of (image, hsv) tensors (n_views=2)
     ]:
         
         path = self.data_paths[idx]
@@ -69,13 +72,21 @@ class PreTrainDataset(Dataset):
             return_metadata=True, 
             device=self.device,
         )
+        
+        img = img.permute(1, 2, 0)
         img = (img - self.mean) / self.std
-        img = self.transform(img)
+        img = img.permute(2, 0, 1)
         
-        returns = [img]
-        
-        if self.return_hsv:
-            returns.append(T.rgb_to_hsv(img))
+        returns = []
+        for _ in range(self.n_views): 
+            if self.transform is not None:
+                img = self.transform(img)
+            
+            if self.return_hsv:
+                hsv = T.rgb_to_hsv(img)
+                returns.append((img, hsv))
+            else:
+                returns.append(img)
         
         if self.return_metadata:
             returns.append(meta)
@@ -84,6 +95,7 @@ class PreTrainDataset(Dataset):
             return returns[0]
         
         return tuple(returns)
+
 
 
 class FineTuneDataset(Dataset):
@@ -123,6 +135,7 @@ class FineTuneDataset(Dataset):
                 raise ValueError(f'std must be a numpy array or a torch tensor, got {type(std)}.')
         else:
             self.std = utils.batched_std(data_paths, mean=self.mean, as_tensor=True, device=device)
+    
     
     
     def __len__(self) -> int:
