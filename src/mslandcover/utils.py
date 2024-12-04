@@ -316,7 +316,8 @@ class ProfilerHistory:
     
     def save(self, path: str) -> None:
         
-        df = pd.DataFrame(self.profiler_history_dict, index=range(len(self.profiler_history_dict['epoch'])*2))
+        n_rows = len(self.profiler_history_dict['epoch'])
+        df = pd.DataFrame(self.profiler_history_dict, index=list(range(n_rows)))
         df.to_csv(path, index=False)
 
 

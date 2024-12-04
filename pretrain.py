@@ -418,8 +418,6 @@ def main():
                     epoch_loss = np.sum(batch_losses) / ((step * args.mini_batch_size) + len(batch)) 
                     loader.set_postfix(loss=f'{epoch_loss:.5f}')
                     del total_loss
-                    if len(batch_losses) > 2:
-                        break
             
             history_dict[f'{phase}_loss'].append(epoch_loss)
             
