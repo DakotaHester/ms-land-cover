@@ -1,10 +1,12 @@
 import os
 from typing import Tuple
+import pandas as pd
 from torch.nn import functional as F
 from torch.optim.optimizer import Optimizer, required
 import torch
 import torch.nn as nn
-from grad_cache.functional import cached, cat_input_tensor
+from .gradcaching import cached, cat_input_tensor
+import datetime
 
 def get_torch_device() -> torch.device:
     '''
@@ -91,7 +93,7 @@ class NTXentLoss(nn.Module):
 
 
 
-def nt_xent_loss(x: torch.Tensor, temperature: float=0.5) -> torch.Tensor:
+def nt_xent_loss(x: torch.Tensor, temperature: float=0.5, reduction: str='sum') -> torch.Tensor:
     """
     Functional implementation of the normalized temperature-scaled cross entropy loss.
     
@@ -118,17 +120,15 @@ def nt_xent_loss(x: torch.Tensor, temperature: float=0.5) -> torch.Tensor:
     
     # Cosine similarity
     xcs = F.cosine_similarity(x[None,:,:], x[:,None,:], dim=-1)
-    xcs[torch.eye(x.size(0)).bool()] = float("-inf")
+    xcs[torch.eye(x.size(0), device=x.device).bool()] = float("-inf")
     
     # Ground truth labels
-    target = torch.arange(len(x)) # len(X) to mathc batch size of 
+    target = torch.arange(len(x), device=x.device) # len(X) to match batch size of input
     target[0::2] += 1
     target[1::2] -= 1
-    
-    print(xcs.size(), target.size())
-    
+        
     # Standard cross entropy loss
-    return F.cross_entropy(xcs / temperature, target, reduction="mean")
+    return F.cross_entropy(xcs / temperature, target, reduction=reduction)
 
 
 
@@ -175,7 +175,7 @@ def get_loss_function(scheme: str) -> nn.Module:
 
 
 @cached
-def cached_model_call(model: nn.Module, X: torch.Tensor):
+def cached_model_call(model: nn.Module, X: torch.Tensor) -> torch.Tensor:
     return model(X)
 
 
@@ -265,7 +265,8 @@ class LARS(Optimizer):
                     local_lr = 1
                 d_p = p.grad.data
                 if weight_decay != 0:
-                    d_p.add_(weight_decay, p.data)
+                    d_p.add_(p.data, alpha=weight_decay)
+                    # d_p.add_(weight_decay, p.data)
                 if momentum != 0:
                     param_state = self.state[p]
                     if 'momentum_buffer' not in param_state:
@@ -278,6 +279,51 @@ class LARS(Optimizer):
                     else:
                         d_p = buf
 
-                p.data.add_(-local_lr * group['lr'], d_p)
+                p.data.add_(d_p, alpha=(-local_lr * group['lr']))
 
         return loss
+
+
+
+class ProfilerHistory:
+    
+    def __init__(self, device: torch.device):
+        
+        self.device = device
+        self.profiler_history_dict = {
+            'epoch': [],
+            'phase': [],
+            'time': [],
+            'mem_usage': [],
+            'mem_alloc': [],
+            'mem_cache': [],
+            'power_draw': [],
+            'gpu_util': [],
+            'temperature': [],
+        }
+    
+    def update(self, epoch: int, phase: str, time: int) -> None:
+        
+        self.profiler_history_dict['epoch'].append(epoch)
+        self.profiler_history_dict['phase'].append(phase)
+        self.profiler_history_dict['time'].append(time)
+        self.profiler_history_dict['mem_usage'].append(torch.cuda.memory_usage(self.device))
+        self.profiler_history_dict['mem_alloc'].append(torch.cuda.memory_allocated(self.device))
+        self.profiler_history_dict['mem_cache'].append(torch.cuda.memory_reserved(self.device))
+        self.profiler_history_dict['power_draw'].append(torch.cuda.power_draw(self.device))
+        self.profiler_history_dict['gpu_util'].append(torch.cuda.utilization(self.device))
+        self.profiler_history_dict['temperature'].append(torch.cuda.temperature(self.device))
+    
+    def save(self, path: str) -> None:
+        
+        df = pd.DataFrame(self.profiler_history_dict, index=range(len(self.profiler_history_dict['epoch'])*2))
+        df.to_csv(path, index=False)
+
+
+
+def get_datetime(surrounding_brackets: bool=True) -> str:
+    
+    dt = datetime.datetime.now(datetime.timezone.utc)
+    if surrounding_brackets:
+        return '[' + dt.strftime('%Y-%m-%d %H:%M:%SZ') + ']'
+    return dt.strftime('%Y-%m-%d %H:%M:%SZ')

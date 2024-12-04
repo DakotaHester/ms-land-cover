@@ -5,6 +5,9 @@ from torch.utils.data import Dataset
 from torchvision import transforms
 from . import transforms as T
 from . import utils
+import h5py
+import os
+from time import time
 
 from typing import Iterable, Optional, Union, Tuple
 
@@ -12,19 +15,34 @@ from typing import Iterable, Optional, Union, Tuple
 class PreTrainDataset(Dataset):
     
     def __init__(self, 
-        data_paths: Iterable[str],
+        hdf5_path: str,
+        hdf5_group: str,
         n_views: int=2,
+        data_paths: Optional[Iterable[str]]=None, # Only needed to calculate mean and std, may be removed in the future
         mean: Optional[np.ndarray]=None,
         std: Optional[np.ndarray]=None,
         transform: Optional[transforms.Compose]=T.SimCLRDataAugmentation(),
         return_hsv: bool=False,
         return_metadata: bool=False,
         device: torch.device=torch.device('cpu'),
+        batch_size_for_stats: int=1024,
+        n_threads_for_stats: int=os.cpu_count() // 4,
     ):
+        
+        if (hdf5_path is not None and hdf5_group is None) or (hdf5_path is None and hdf5_group is not None):
+            raise ValueError('Both hdf5_path and hdf5_group must be provided if one is provided.')
+        
+        if (hdf5_path is None or hdf5_group is None) and data_paths is None:
+            raise ValueError('Either hdf5_path and hdf5_group or data_paths must be provided.')
+
+        if return_metadata and hdf5_group is not None:
+            raise ValueError('return_metadata=True is not supported when using hdf5 datasets.')
         
         if return_metadata and isinstance(transform, T.SimCLRDataAugmentation):
             raise ValueError('return_metadata=True is not supported when using SimCLRDataAugmentation.')
         
+        self.hdf5_path = hdf5_path
+        self.hdf5_group = hdf5_group
         self.data_paths = data_paths
         self.n_views = n_views
         self.transform = transform
@@ -34,26 +52,53 @@ class PreTrainDataset(Dataset):
         
         if mean is not None:
             if isinstance(mean, np.ndarray):
-                self.mean = torch.tensor(mean, device=device, dtype=torch.float32)
+                self.mean = torch.tensor(mean, dtype=torch.float32, device=device)
             elif isinstance(mean, torch.Tensor):
                 self.mean = mean.float().to(device)
             else:
                 raise ValueError(f'mean must be a numpy array or a torch tensor, got {type(mean)}.')
         else:
-            self.mean = utils.batched_mean(data_paths, as_tensor=True, device=device)
+            if self.data_paths is None:
+                raise ValueError('mean must be provided if data_paths is not provided.')
+            print(f'Computing mean using batch size {batch_size_for_stats} and {n_threads_for_stats} threads.')
+            self.mean = utils.batched_mean(
+                data=data_paths, 
+                batch_size=batch_size_for_stats, 
+                as_tensor=True, 
+                n_threads=n_threads_for_stats,
+                device=device,
+            )
         
         if std is not None:
             if isinstance(std, np.ndarray):
-                self.std = torch.tensor(std, device=device, dtype=torch.float32)
+                self.std = torch.tensor(std, dtype=torch.float32, device=device)
             elif isinstance(std, torch.Tensor):
                 self.std = std.float().to(device)
             else:
                 raise ValueError(f'std must be a numpy array or a torch tensor, got {type(std)}.')
         else:
-            self.std = utils.batched_std(data_paths, mean=self.mean, as_tensor=True, device=device)
+            if self.data_paths is None:
+                raise ValueError('std must be provided if data_paths is not provided.')
+            print(f'Computing standard deviation using batch size {batch_size_for_stats} and {n_threads_for_stats} threads.')
+            self.std = utils.batched_std(
+                data=self.data_paths, 
+                mean=self.mean, 
+                batch_size=batch_size_for_stats, 
+                as_tensor=True, 
+                n_threads=n_threads_for_stats,
+                device=device,
+            )
+        
+        if self.hdf5_path is not None:
+            self.ids_list = list(h5py.File(self.hdf5_path, 'r')[self.hdf5_group].keys()    )
+        else:
+            self.ids_list = [os.path.basename(path).replace('.tif', '') for path in self.data_paths]
+    
     
     
     def __len__(self) -> int:
+        if self.hdf5_path is not None:
+            return len(self.ids_list)
         return len(self.data_paths)
     
     
@@ -64,29 +109,42 @@ class PreTrainDataset(Dataset):
         Tuple[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor]] # multiple views of (image, hsv) tensors (n_views=2)
     ]:
         
-        path = self.data_paths[idx]
-        img, meta = utils.read_image(
-            path, 
-            as_float=True, 
-            as_tensor=True,
-            return_metadata=True, 
-            device=self.device,
-        )
-        
-        img = img.permute(1, 2, 0)
-        img = (img - self.mean) / self.std
-        img = img.permute(2, 0, 1)
-        
+        if self.hdf5_path is not None:
+            # start = time()
+            key = self.ids_list[idx]
+            # print(f'Accessing index took {time() - start} seconds.')
+            # start = time()
+            img = torch.from_numpy(h5py.File(self.hdf5_path, 'r')[self.hdf5_group][key][()])
+            # print(f'Loading image took {time() - start} seconds.')
+        else:
+            path = self.data_paths[idx]
+            img, meta = utils.read_image(
+                path, 
+                as_float=True, 
+                as_tensor=True,
+                return_metadata=True, 
+                device=self.device,
+            )
+                
         returns = []
         for _ in range(self.n_views): 
-            if self.transform is not None:
-                img = self.transform(img)
+            # start = time()
+            view = self.transform(img) if self.transform is not None else img
+            # print(f'Transforming image took {time() - start} seconds.')
             
-            if self.return_hsv:
-                hsv = T.rgb_to_hsv(img)
-                returns.append((img, hsv))
+            if self.return_hsv: 
+                # start = time()
+                hsv = T.rgb_to_hsv(view)
+                # print(f'Converting to HSV took {time() - start} seconds.')
+                # start = time()
+                view = T.normalize(view, mean=self.mean, std=self.std)
+                # print(f'Normalizing view took {time() - start} seconds.')
+                # start = time()
+                returns.append((view.to(self.device), hsv.to(self.device)))
+                # print(f'Appending view and hsv took {time() - start} seconds.')
             else:
-                returns.append(img)
+                view = T.normalize(view, mean=self.mean, std=self.std)
+                returns.append(view.to(self.device))
         
         if self.return_metadata:
             returns.append(meta)
@@ -137,7 +195,6 @@ class FineTuneDataset(Dataset):
             self.std = utils.batched_std(data_paths, mean=self.mean, as_tensor=True, device=device)
     
     
-    
     def __len__(self) -> int:
         return len(self.data_paths)
     
@@ -167,11 +224,11 @@ class FineTuneDataset(Dataset):
                 device=self.device,
             )
             target = target.unsqueeze(0) if len(target.shape) == 2 else target
-        img = (img - self.mean) / self.std
         
         if self.target_paths is not None:
             img, target = self.transform(img, target)
 
+        img = T.normalize(img, mean=self.mean, std=self.std)
         returns = [img]
         
         if self.target_paths is not None:

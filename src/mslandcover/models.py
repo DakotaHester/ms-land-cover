@@ -473,6 +473,7 @@ class HighResolutionNet(nn.Module):
         out_shape = y_list[0].shape[-2:]
         
         y_list_interpolated = []
+        # return y_list
         for y in y_list:
             y_list_interpolated.append(
                 F.interpolate(
@@ -600,11 +601,36 @@ class ProjectionHead(nn.Module):
         return self.output(x)
 
 
+
+class SimpleImageDecoderHead(nn.Module):
+    '''
+    Image decoder that simply upsamples the input tensor by a factor of 4 and 
+    applies a 1x1 convolution to reduce the number of channels to the number of 
+    classes.
+    '''
+    
+    def __init__(self, in_channels: int=720, num_classes: int=3):
+        super(SimpleImageDecoderHead, self).__init__()
+
+        self.in_channels = in_channels
+        self.classifier = nn.Conv2d(in_channels, num_classes, kernel_size=1)
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        
+        x = F.interpolate(x, scale_factor=4, mode='bilinear', align_corners=True)
+        return self.classifier(x)
+    
+    def reinit_classifier(self, num_classes: int=3):
+        self.classifier = nn.Conv2d(self.in_channels, num_classes, kernel_size=1)
+        return self     
+
+
 class HRNetSegmentationModel(nn.Module):
     
     def __init__(self, 
         config: dict, 
         img_decoder_head: bool=True,
+        use_simple_decoder: bool=True, # if True, use SimpleImageDecoderHead, else use ImageDecoderHead with multiple blocks
         num_classes: int=3, 
         aux_simclr_head: bool=False
     ):
@@ -620,7 +646,10 @@ class HRNetSegmentationModel(nn.Module):
         
         self.decoder = None
         if img_decoder_head:
-            self.decoder = ImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes, num_blocks=config['IMAGE_DECODER']['NUM_BLOCKS'])
+            if use_simple_decoder:
+                self.decoder = SimpleImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes)
+            else:
+                self.decoder = ImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes, num_blocks=config['IMAGE_DECODER']['NUM_BLOCKS'])
         
         self.projection_head = None
         if aux_simclr_head:

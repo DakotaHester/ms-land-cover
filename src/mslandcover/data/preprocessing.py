@@ -3,9 +3,14 @@ from zipfile import ZipFile
 from subprocess import Popen
 from warnings import warn
 from ..utils import raise_if_not_exists
+import h5py
+from .utils import read_images
+from tqdm import trange
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 
 # typing
-from typing import Optional, Literal
+from typing import Iterable, Optional, Literal
 from tqdm.std import tqdm
 
 
@@ -229,3 +234,83 @@ def preprocess_file(
     
     if pbar:
         pbar.update(1)
+
+
+
+class LargeRasterDataset:
+    """
+    Class for creating HDF5 dataset from a large amount of geotiff images.
+    
+    Parameters
+    ----------
+    h5_path : str
+        Path to the output HDF5 file
+    """
+    def __init__(self, h5_path: str):
+        self.h5_path = h5_path
+        self.n_threads = 32
+        self.chunk_size = 4096
+    
+    def create_group(self, name: str, data_paths: Iterable[str], n_threads: int = 4, chunk_size: int = 4096):
+        """
+        Create a group in the HDF5 file and populate it with image data.
+        
+        Parameters
+        ----------
+        name : str
+            Name of the group to create
+        data_paths : Iterable[str]
+            Paths to image files
+        n_threads : int, optional
+            Number of threads to use for reading images
+        chunk_size : int, optional
+            Number of images to process in each chunk
+        """
+        with h5py.File(self.h5_path, 'a') as h5_file:
+            # Create or get the group
+            if name not in h5_file:
+                group = h5_file.create_group(name)
+            else:
+                group = h5_file[name]
+            
+            # Process images in chunks
+            for i in trange(0, len(data_paths), chunk_size, desc=f'Creating group {name}', unit='images', leave=False, unit_scale=chunk_size):
+                chunk_paths = data_paths[i:i+chunk_size]
+                chunk_ids = [os.path.basename(path).replace('.tif', '') for path in chunk_paths]
+                chunk_images = read_images(chunk_paths, n_threads=n_threads)
+                
+                for id, img in zip(chunk_ids, chunk_images):
+                    group.create_dataset(id, data=img, compression='gzip', chunks=True)
+                
+                # # Add each image as a dataset in the group
+                # func = lambda id, img: group.create_dataset(id, data=img, compression='gzip', chunks=True)
+                # with ThreadPoolExecutor(n_threads) as executor:
+                #     results = executor.map(func, chunk_ids, chunk_images)
+                #     for _ in results:
+                #         pass # iterate through results to trigger exceptions if any
+                    
+
+    def create_groups_from_folders(self, folder_paths: Iterable[str], n_threads: int = 4, chunk_size: int = 4096):
+        """
+        Create groups for multiple folders, with each group containing 
+        images from that folder.
+        
+        Parameters
+        ----------
+        folder_paths : Iterable[str]
+            Paths to folders containing .tif images
+        n_threads : int, optional
+            Number of threads to use for reading images
+        chunk_size : int, optional
+            Number of images to process in each chunk
+        """
+        for folder_path in folder_paths:
+            # Get all .tif files in the folder
+            data_paths = [
+                os.path.join(folder_path, f) 
+                for f in os.listdir(folder_path) 
+                if f.endswith('.tif')
+            ]
+            # Use folder name as group name
+            group_name = os.path.basename(folder_path)
+            self.create_group(group_name, data_paths, n_threads=n_threads, chunk_size=chunk_size)

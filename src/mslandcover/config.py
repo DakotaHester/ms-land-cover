@@ -32,7 +32,7 @@ LEGEND_COLORS_HEX = {
 LEGEND_COLORS_RGB = {k: hex_to_rgb(v) for k, v in LEGEND_COLORS_HEX.items()}
 
 # modified from HRNET w48 (https://github.com/HRNet/HRNet-Image-Classification/blob/master/experiments/cls_hrnet_w48_sgd_lr5e-2_wd1e-4_bs32_x100.yaml)
-HRNET_BASE_CONFIG = {
+HRNET_W48_CONFIG = {
     'STAGE1': {
         'NUM_MODULES': 1,
         'NUM_RANCHES': 1,
@@ -72,4 +72,51 @@ HRNET_BASE_CONFIG = {
         'NUM_HIDDENS': 1, # number of hidden layers to use in the projection head
         'EMBED_DIM': 128,
     }
+}
+
+HRNET_W18_CONFIG = {
+    'STAGE1': {
+        'NUM_MODULES': 1,
+        'NUM_BRANCHES': 1,
+        'BLOCK': 'BOTTLENECK',
+        'NUM_BLOCKS': [4],
+        'NUM_CHANNELS': [64],
+        'FUSE_METHOD': 'SUM',
+    },
+    'STAGE2': {
+        'NUM_MODULES': 1,
+        'NUM_BRANCHES': 2,
+        'BLOCK': 'BASIC',
+        'NUM_BLOCKS': [4, 4],
+        'NUM_CHANNELS': [18, 36],
+        'FUSE_METHOD': 'SUM',
+    },
+    'STAGE3': {
+        'NUM_MODULES': 4,
+        'NUM_BRANCHES': 3,
+        'BLOCK': 'BASIC',
+        'NUM_BLOCKS': [4, 4, 4],
+        'NUM_CHANNELS': [18, 36, 72],
+        'FUSE_METHOD': 'SUM',
+    },
+    'STAGE4': {
+        'NUM_MODULES': 3,
+        'NUM_BRANCHES': 4,
+        'BLOCK': 'BASIC',
+        'NUM_BLOCKS': [4, 4, 4, 4],
+        'NUM_CHANNELS': [18, 36, 72, 144],
+        'FUSE_METHOD': 'SUM',
+    },
+    'IMAGE_DECODER': {
+        'NUM_BLOCKS': 2, # number of blocks per decoder layer - 2 is the default for simplicity
+    },
+    'SIMCLR_PROJECTION_HEAD': {
+        'NUM_HIDDENS': 1, # number of hidden layers to use in the projection head
+        'EMBED_DIM': 128,
+    }
+}
+
+WEIGHTS_PATH = {
+    'hrnet_w48': './weights/hrnetv2_w48_imagenet_pretrained.pth',
+    'hrnet_w18': './weights/hrnetv2_w18_imagenet_pretrained.pth',
 }

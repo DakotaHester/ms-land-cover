@@ -1,26 +1,38 @@
 import torch
 from torchvision.transforms import functional as F
 from torchvision.transforms import transforms
+import numpy as np
+from typing import Callable, List, Optional, Union, Tuple
+import cv2 as cv
+import os
 
-from typing import Optional, Union, Tuple
+
+class Clamp(Callable):
+    def __init__(self, min_val: float=0.0, max_val: float=1.0):
+        self.min_val = min_val
+        self.max_val = max_val
+    
+    def __call__(self, tensor: torch.Tensor) -> torch.Tensor:
+        return torch.clamp(tensor, min=self.min_val, max=self.max_val)
+
 
 def random_resize_crop(
     X: torch.Tensor, 
-    y: Optional[torch.Tensor]=None, 
+    aspect_ratio_range: Tuple[float, float]=(3/4, 4/3),
+    area_range: Tuple[float, float]=(0.08, 1.0),
+    hflip_prob: float=0.5,
     size: int=256, 
-    seed: Optional[int]=None
+    seed: Optional[int]=None,
 ) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
     """
-    Randomly crop the input image tensor. If a target tensor is provided, 
-    crop it in the same way. This implementation is similar to torchvision.transforms.RandomResizedCrop,
+    Randomly crop the input image tensor. This implementation is similar to
+    torchvision.transforms.RandomResizedCrop,
     exceot that two tensors can be passed in and cropped in the same way.
     
     Parameters
     ----------
     X : torch.Tensor
         Input image tensor.
-    y : torch.Tensor, optional
-        Target tensor, by default None.
     size : int, optional
         Size of the crop, by default 256.
     seed : int, optional
@@ -35,17 +47,45 @@ def random_resize_crop(
     if seed is not None:
         torch.manual_seed(seed)
     
-    i, j, h, w = transforms.RandomCrop.get_params(X, output_size=(size, size))
+    i, j, h, w = transforms.RandomResizedCrop.get_params(X, scale=area_range, ratio=aspect_ratio_range)
+    
+    X = F.resized_crop(X, i, j, h, w, size=(size, size))
+    if y is not None:
+        y = F.resized_crop(y, i, j, h, w, size=(size, size))
+    
+    if torch.rand(1) < hflip_prob:
+        X = F.hflip(X)
+        if y is not None:
+            y = F.hflip(y)
     
     if y is not None:
-        return F.resized_crop(X, i, j, h, w, size=size), F.resized_crop(y, i, j, h, w, size=size)
-    return F.resized_crop(X, i, j, h, w, size=size)
+        return X, y
+    return X
 
 
+def normalize(tensor: torch.Tensor, mean: torch.Tensor, std: torch.Tensor) -> torch.Tensor:
+    
+    permuted = False
+    if tensor.size(0) == 3:
+        tensor = tensor.permute(1, 2, 0)
+        permuted = True
+    
+    tensor = (tensor - mean) / std
+    
+    if permuted:
+        tensor = tensor.permute(2, 0, 1)
+    
+    return tensor
+    
 
-def get_color_transforms(s: float=1.0) -> transforms.Compose:
+
+def get_color_transforms(s: float=0.5) -> transforms.Compose:
     """
     Create a composition of color space augmentations.
+    
+    NOTE: In original implementation, s=1.0. For this implementation, the 
+    strength of the color augmentations can be reduced due to the nature of the 
+    imagery data.
     
     Parameters
     ----------
@@ -57,16 +97,18 @@ def get_color_transforms(s: float=1.0) -> transforms.Compose:
     transforms.Compose
         Composition of color space augmentations.
     """
+
+
     return transforms.Compose([
         transforms.RandomApply([
             transforms.ColorJitter(0.8*s, 0.8*s, 0.8*s, 0.2*s)
         ], p=0.8),
         transforms.RandomGrayscale(p=0.2),
         transforms.RandomApply([
-            transforms.GaussianBlur(kernel_size=23, sigma=(0.1, 2.0))
-        ], p=0.5)
+            transforms.GaussianBlur(kernel_size=25, sigma=(0.1, 2.0)) # kernel size should be 10% of image size
+        ], p=0.5),
+        Clamp(),
     ])
-    
 
 
 def rgb_to_hsv(rgb: torch.Tensor) -> torch.Tensor:
@@ -84,28 +126,24 @@ def rgb_to_hsv(rgb: torch.Tensor) -> torch.Tensor:
     torch.Tensor
         Output HSV image tensor.
     """
-    in_dims = len(rgb.size())
-    if in_dims == 3:
-        rgb = rgb.unsqueeze(0)
         
-    cmax, cmax_idx = torch.max(rgb, dim=1, keepdim=True)
-    cmin = torch.min(rgb, dim=1, keepdim=True)[0]
+    cmax, cmax_idx = torch.max(rgb, dim=0, keepdim=True)
+    cmin = torch.min(rgb, dim=0, keepdim=True)[0]
     delta = cmax - cmin
-    hsv_h = torch.empty_like(rgb[:, 0:1, :, :])
+    hsv_h = torch.empty_like(rgb[0:1, :, :])
     cmax_idx[delta == 0] = 3
-    
-    hsv_h[cmax_idx == 0] = (((rgb[:, 1:2] - rgb[:, 2:3]) / delta) % 6)[cmax_idx == 0]
-    hsv_h[cmax_idx == 1] = (((rgb[:, 2:3] - rgb[:, 0:1]) / delta) + 2)[cmax_idx == 1]
-    hsv_h[cmax_idx == 2] = (((rgb[:, 0:1] - rgb[:, 1:2]) / delta) + 4)[cmax_idx == 2]
+        
+    hsv_h[cmax_idx == 0] = (((rgb[1:2] - rgb[2:3]) / delta) % 6)[cmax_idx == 0]
+    hsv_h[cmax_idx == 1] = (((rgb[2:3] - rgb[0:1]) / delta) + 2)[cmax_idx == 1]
+    hsv_h[cmax_idx == 2] = (((rgb[0:1] - rgb[1:2]) / delta) + 4)[cmax_idx == 2]
     hsv_h[cmax_idx == 3] = 0.
     hsv_h /= 6.
     hsv_s = torch.where(cmax == 0, torch.tensor(0.).type_as(rgb), delta / cmax)
     hsv_v = cmax
     
-    hsv = torch.cat([hsv_h, hsv_s, hsv_v], dim=1)
-    if in_dims == 3:
-        return hsv.squeeze(0)
-
+    hsv = torch.cat([hsv_h, hsv_s, hsv_v], dim=0)
+    
+    return hsv
 
 
 def hsv_to_rgb(hsv: torch.Tensor) -> torch.Tensor:
@@ -123,8 +161,8 @@ def hsv_to_rgb(hsv: torch.Tensor) -> torch.Tensor:
     torch.Tensor
         Output RGB image tensor.
     """
-    in_dims = len(hsv.size())
-    if in_dims == 3:
+    rank = len(hsv.size())
+    if rank == 4:
         hsv = hsv.unsqueeze(0)
     
     hsv_h, hsv_s, hsv_l = hsv[:, 0:1], hsv[:, 1:2], hsv[:, 2:3]
@@ -145,7 +183,7 @@ def hsv_to_rgb(hsv: torch.Tensor) -> torch.Tensor:
     rgb[idx == 5] = torch.cat([_c, _o, _x], dim=1)[idx == 5]
     rgb += _m
     
-    if in_dims == 3:
+    if rank == 3:
         return rgb.squeeze(0)
     return rgb
 
@@ -156,12 +194,19 @@ class SimCLRDataAugmentation:
     Data Transformer for creating a pair of views from an image.
     """
     
-    def __init__(self, size: int=256):
+    def __init__(self, size: int=64):
         self.size = size
+        self.random_resize_crop = transforms.RandomResizedCrop(size=size)
+        self.random_horizontal_flip = transforms.RandomHorizontalFlip()
         self.color_transforms = get_color_transforms()
+        self.composed_transforms = transforms.Compose([
+            self.random_resize_crop,
+            self.random_horizontal_flip,
+            self.color_transforms,
+        ])
     
     
-    def __call__(self, X: torch.Tensor, y: Optional[torch.Tensor] = None):
+    def __call__(self, X: torch.Tensor) -> torch.Tensor:
         """
         Apply data augmentation to the input image tensor.
         
@@ -169,27 +214,15 @@ class SimCLRDataAugmentation:
         ----------
         X : torch.Tensor
             Input image tensor.
-        y : torch.Tensor, optional
-            Target tensor, by default None.
         
         Returns
         -------
-        Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]
-            Augmented image tensor or a tuple of augmented image and target tensors.
+        torch.Tensor
+            Augmented image tensor 
         """
                 
         # resize and random crop
-        if y is not None:
-            X, y = random_resize_crop(X, y, size=self.size)
-        else:
-            X = random_resize_crop(X, size=self.size)
-        
-        # color distortions
-        X = self.color_transforms(X)
-        
-        if y is not None:
-            return X, y
-        return X
+        return self.composed_transforms(X)
 
 
 class StandardDataAugmentations:
@@ -219,4 +252,73 @@ class StandardDataAugmentations:
         if y is not None:
             return X, y
         return X
+
+
+def visualize_transforms(
+    out_dir: str,
+    n_views: int, 
+    return_hsv: bool, 
+    dataset: torch.utils.data.Dataset, 
+    data_paths: List[str], 
+    pretrain_schema: str,
+    mean: torch.Tensor,
+    std: torch.Tensor,
+    n_examples: int=20,
+) -> None:
+    """
+    Very crude function to load a few images from the dataset, visualize the
+    augmentations, and save them to disk. Probably not the best way to do this,
+    but it serves the purpose for now.
+    """
+    for i in range(n_examples):
+        im_index = np.random.randint(len(dataset))
+        og_img = cv.imread(data_paths[im_index])
+        out_path = os.path.join(out_dir, pretrain_schema, str(im_index))
+        os.makedirs(out_path, exist_ok=True)
+        cv.imwrite(os.path.join(out_path, f'{i}_original.png'), og_img)
+        if return_hsv:
+            if n_views == 1:
+                X, hsv = dataset[im_index]
+                X = X.permute(1, 2, 0)
+                X = ((X * std) + mean) * 255 # undo normalization
+                X = X.int().cpu().numpy().astype(np.uint8)
+                X = cv.cvtColor(X, cv.COLOR_RGB2BGR)
+                cv.imwrite(os.path.join(out_path, f'{i}_view_0.png'), X)
+                
+                hsv = hsv.permute(1, 2, 0).cpu().numpy()
+                hsv = (hsv * 255).astype(np.uint8)
+                hsv = cv.cvtColor(hsv, cv.COLOR_RGB2BGR)
+                cv.imwrite(os.path.join(out_path, f'{i}_view_0_hsv.png'), hsv)
+            
+            else:
+                for view in range(n_views):
+                    X, hsv = dataset[im_index][view]
+                    X = X.permute(1, 2, 0)
+                    X = ((X * std) + mean) * 255
+                    X = X.int().cpu().numpy().astype(np.uint8)
+                    X = cv.cvtColor(X, cv.COLOR_RGB2BGR)
+                    cv.imwrite(os.path.join(out_path, f'{i}_view_{view}.png'), X)
+
+                    hsv = hsv.permute(1, 2, 0).cpu().numpy()
+                    hsv = (hsv * 255).astype(np.uint8)
+                    hsv = cv.cvtColor(hsv, cv.COLOR_RGB2BGR)
+                    cv.imwrite(os.path.join(out_path, f'{i}_view_{view}_hsv.png'), hsv)
+                    
+        else:
+            if n_views == 1:
+                X= dataset[im_index]
+                X = X.permute(1, 2, 0)
+                X = ((X * std) + mean) * 255 # undo normalization
+                X = X.int().cpu().numpy().astype(np.uint8)
+                X = cv.cvtColor(X, cv.COLOR_RGB2BGR)
+                cv.imwrite(os.path.join(out_path, f'{i}_view_0.png'), X)
+            
+            else:
+                for view in range(n_views):
+                    X = dataset[im_index][view]
+                    X = X.permute(1, 2, 0)
+                    X = ((X * std) + mean) * 255
+                    X = X.int().cpu().numpy().astype(np.uint8)
+                    X = cv.cvtColor(X, cv.COLOR_RGB2BGR)
+                    cv.imwrite(os.path.join(out_path, f'{i}_view_{view}.png'), X)
     
