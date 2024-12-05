@@ -1,12 +1,15 @@
 import os
-from typing import Tuple
+from typing import List, Tuple
 import pandas as pd
 from torch.nn import functional as F
 from torch.optim.optimizer import Optimizer, required
 import torch
 import torch.nn as nn
+from torch.amp import autocast
 from .gradcaching import cached, cat_input_tensor
 import datetime
+
+from typing import Callable, Dict, Union, Tuple
 
 def get_torch_device() -> torch.device:
     '''
@@ -93,7 +96,7 @@ class NTXentLoss(nn.Module):
 
 
 
-def nt_xent_loss(x: torch.Tensor, temperature: float=0.5, reduction: str='sum') -> torch.Tensor:
+def nt_xent_loss(x: torch.Tensor, temperature: float=0.5) -> torch.Tensor:
     """
     Functional implementation of the normalized temperature-scaled cross entropy loss.
     
@@ -128,60 +131,58 @@ def nt_xent_loss(x: torch.Tensor, temperature: float=0.5, reduction: str='sum') 
     target[1::2] -= 1
         
     # Standard cross entropy loss
-    return F.cross_entropy(xcs / temperature, target, reduction=reduction)
+    return F.cross_entropy(xcs / temperature, target, reduction='sum')
+
+# NOTE: Due to the size of the inputs passed to MSE for reconstruction compared to
+# NT-Xent for cotnrastive learning, the magnitude of the loss will vary significantly.
+# In order to make sure that the NT-Xent loss is not overwhelmed by the MSE loss,
+# both losses will be normalized by the number of elements in the input tensor.
+# (Not accounting for the batch size, as the batch size is the same for both losses.)
+def normalized_mse_loss(y_pred: torch.Tensor, y_true: torch.Tensor, reduction: str='sum') -> torch.Tensor:
+    return F.mse_loss(y_pred, y_true, reduction=reduction) / y_pred[0,:].numel()
 
 
 
-class HybridLoss(nn.Module):
-    
-    def __init__(self, mse_weight: float=0.5):
-        super(HybridLoss, self).__init__()
-        self.nt_xent_loss = NTXentLoss()
-        self.mse_loss = nn.MSELoss()
-        self.mse_weight = mse_weight
-    
-    def forward(self, 
-        z_1: torch.Tensor, z_2: torch.Tensor, # embeddings from the projection head
-        y_pred_1: torch.Tensor, y_pred_2: torch.Tensor, # predictions from the image decoder head
-        y_true_1: torch.Tensor, y_true_2: torch.Tensor, # target images
-    ) -> torch.Tensor:
-        contrastive_loss = self.nt_xent_loss(z_1) 
-        reconsutructive_loss = self.mse_loss(y_pred_1, y_true_1) + self.mse_loss(y_pred_2, y_true_2)
-        return contrastive_loss + (self.mse_weight * reconsutructive_loss)
+def normalized_nt_xent_loss(z: torch.Tensor) -> torch.Tensor:
+    return nt_xent_loss(z) / z[0,:].numel()
 
-
-
-def get_loss_function(scheme: str) -> nn.Module:
-    '''
-    Get the loss function for the given pretraining scheme.
-    
-    Parameters
-    ----------
-    scheme : str
-        The pretraining scheme.
-    
-    Returns
-    -------
-    nn.Module
-        The loss function.
-    '''
-    if scheme == 'hsv':
-        return nn.MSELoss()
-    if scheme == 'simclr':
-        return NTXentLoss()
-    if scheme == 'hsv_simclr':
-        return HybridLoss()
-    raise ValueError(f'Unknown pretraining scheme: {scheme}')
 
 
 @cached
+@autocast(get_torch_device().type)
 def cached_model_call(model: nn.Module, X: torch.Tensor) -> torch.Tensor:
     return model(X)
 
 
+
 @cat_input_tensor
+@autocast(get_torch_device().type)
 def cached_contrastive_loss_call(z_0: torch.Tensor, z_1: torch.Tensor) -> torch.Tensor:
-    return nt_xent_loss(torch.cat([z_0, z_1], dim=0)).to(z_0.device)
+    return normalized_nt_xent_loss(torch.cat([z_0, z_1], dim=0)).to(z_0.device)
+
+
+
+def init_grad_cache_closure_dicts(n_views: int=2) -> Tuple[Dict[torch.Tensor, Callable[[torch.Tensor], None]], Dict[torch.Tensor, Callable[[torch.Tensor], None]]]:
+    cache = {}
+    closure = {}
+    for view in range(n_views):
+        cache[f'z_{view}'] = []
+        closure[f'z_{view}'] = []
+    return cache, closure
+
+
+
+def call_closures(
+    cache: Dict[str, List[torch.Tensor]], 
+    closure: Dict[str, List[Callable[[torch.Tensor], None]]],
+    n_views: int=2,
+) -> None:
+    for view in range(n_views):
+        for closure_fn, z in zip(
+            closure[f'z_{view}'],
+            cache[f'z_{view}'],
+        ):
+            closure_fn(z)
 
 
 class LARS(Optimizer):

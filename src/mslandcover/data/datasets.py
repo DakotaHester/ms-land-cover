@@ -102,6 +102,7 @@ class PreTrainDataset(Dataset):
         return len(self.data_paths)
     
     
+    
     def __getitem__(self, idx: int) -> Union[ # many possible return types, hint is not exhaustive (n_views>2 excluded)), 
         torch.Tensor,                                                               # image tensor only
         Tuple[torch.Tensor, torch.Tensor],                                          # (image, hsv) tensors OR (view1, view2) tensors (no hsv or metadata)
@@ -110,12 +111,8 @@ class PreTrainDataset(Dataset):
     ]:
         
         if self.hdf5_path is not None:
-            # start = time()
             key = self.ids_list[idx]
-            # print(f'Accessing index took {time() - start} seconds.')
-            # start = time()
             img = torch.from_numpy(h5py.File(self.hdf5_path, 'r')[self.hdf5_group][key][()])
-            # print(f'Loading image took {time() - start} seconds.')
         else:
             path = self.data_paths[idx]
             img, meta = utils.read_image(
@@ -128,20 +125,12 @@ class PreTrainDataset(Dataset):
                 
         returns = []
         for _ in range(self.n_views): 
-            # start = time()
             view = self.transform(img) if self.transform is not None else img
-            # print(f'Transforming image took {time() - start} seconds.')
             
             if self.return_hsv: 
-                # start = time()
                 hsv = T.rgb_to_hsv(view)
-                # print(f'Converting to HSV took {time() - start} seconds.')
-                # start = time()
                 view = T.normalize(view, mean=self.mean, std=self.std)
-                # print(f'Normalizing view took {time() - start} seconds.')
-                # start = time()
                 returns.append((view.to(self.device), hsv.to(self.device)))
-                # print(f'Appending view and hsv took {time() - start} seconds.')
             else:
                 view = T.normalize(view, mean=self.mean, std=self.std)
                 returns.append(view.to(self.device))

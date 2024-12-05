@@ -2,6 +2,7 @@ from multiprocessing import get_context
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from torch.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 from calflops import calculate_flops
 import numpy as np
@@ -11,6 +12,7 @@ from glob import glob
 from tqdm import tqdm
 import pandas as pd
 from time import time
+import json
 
 from src.mslandcover.data.datasets import PreTrainDataset
 from src.mslandcover.data import transforms
@@ -74,14 +76,14 @@ def parse_arguments():
     parser.add_argument(
         '--num_epochs',
         type=int,
-        default=1000,
+        default=100,
         help='The number of epochs to train for.',
     )
     
     parser.add_argument(
         '--early_stopping_patience',
         type=int,
-        default=50,
+        default=10,
         help='The number of epochs to wait for validation loss improvement before stopping training.',
     )
     
@@ -95,7 +97,7 @@ def parse_arguments():
     parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=64,
+        default=32,
         help='The mini-batch size to use for gradient accumulation and/or caching.',
     )
     
@@ -107,10 +109,12 @@ def parse_arguments():
     )
     
     parser.add_argument(
-        '--output_dir', 
+        '--weights_dir', 
         type=str, 
-        default='./weights/pretrain/',
-        help='The directory to save the final model weights.',
+        default='./weights/',
+        help='The directory from which model weights will be loaded and saved.' + \
+            'The directory should have the following structure: ' + \
+                'output_dir/model_name/imagenet.pth'
     )
     
     parser.add_argument(
@@ -135,12 +139,33 @@ def parse_arguments():
     )
     
     parser.add_argument(
+        '--contrastive_loss_weight',
+        type=float,
+        default=1.0,
+        help='The weight to apply to the contrastive loss under pretraining schema `hsv_simclr`.',
+    )
+    
+    parser.add_argument(
+        '--reconstruction_loss_weight',
+        type=float,
+        default=0.5,
+        help='The weight to apply to the reconstruction loss under pretraining schema `hsv_simclr`.',
+    )
+    
+    parser.add_argument(
         '--visualize_augmentations_dir',
         type=str,
         default='./paper/images/augmentations/' if False else None,
         help='The directory to save augmented images for visualization. If \
             provided, the script will only visualize the augmentations and not \
             train the model.',
+    )
+    
+    parser.add_argument(
+        '--debug',
+        default=False,
+        action='store_true',
+        help='Run the script in debug mode - reduce amount of training data used.',
     )
     
     return parser.parse_args()
@@ -159,8 +184,8 @@ def main():
     torch.random.manual_seed(args.seed)
     np.random.seed(args.seed)
     
-    log_dir = os.path.join(args.log_dir, args.pretrain_scheme, args.model)
-    out_dir = os.path.join(args.output_dir, args.pretrain_scheme, args.model)
+    log_dir = os.path.join(args.log_dir, args.model, args.pretrain_scheme)
+    out_dir = os.path.join(args.weights_dir, args.model)
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
     
@@ -171,19 +196,13 @@ def main():
         torch.backends.cudnn.deterministic = True
         torch.cuda.manual_seed_all(args.seed)
     
-    # pretrain_data_paths = glob(os.path.join(args.pretrain_data_dir, '*.tif'))
-    # print(f'{utils.get_datetime()} Found {len(pretrain_data_paths)} pretraining images in {args.pretrain_data_dir}.')
-    
-    # pretrain_val_data_paths = glob(os.path.join(args.pretrain_val_data_dir, '*.tif'))
-    # print(f'{utils.get_datetime()} Found {len(pretrain_val_data_paths)} pretraining validation images in {args.pretrain_val_data_dir}.')
-    
     transform = transforms.SimCLRDataAugmentation(size=args.image_size) if 'simclr' in args.pretrain_scheme \
         else transforms.StandardDataAugmentations()
     return_hsv = 'hsv' in args.pretrain_scheme
     n_views = 2 if 'simclr' in args.pretrain_scheme else 1
     
-    mean_path = os.path.join(args.output_dir, 'mean.pth')
-    std_path = os.path.join(args.output_dir, 'std.pth')
+    mean_path = os.path.join(args.weights_dir, 'pretrain_mean.pth')
+    std_path = os.path.join(args.weights_dir, 'pretrain_std.pth')
     
     mean = torch.load(mean_path, weights_only=True) if os.path.exists(mean_path) else None
     std = torch.load(std_path, weights_only=True) if os.path.exists(std_path) else None
@@ -196,7 +215,6 @@ def main():
         mean=mean,
         std=std,
         return_hsv=return_hsv,
-        # device=device,
     )
     val_dataset = PreTrainDataset(
         hdf5_path=args.pretrain_hdf5_path,
@@ -206,8 +224,15 @@ def main():
         std=train_dataset.std,
         transform=None,
         return_hsv=return_hsv,
-        # device=device,
     )
+    
+    if args.debug:
+        train_dataset.ids_list = train_dataset.ids_list[:10000]
+        val_dataset.ids_list = val_dataset.ids_list[:5000]
+    
+    print(f'{utils.get_datetime()} Training dataset size: {len(train_dataset)}')
+    print(f'{utils.get_datetime()} Validation dataset size: {len(val_dataset)}')
+    
     print(f'{utils.get_datetime()} Training dataset mean: {train_dataset.mean}')
     print(f'{utils.get_datetime()} Training dataset std: {train_dataset.std}')
     
@@ -226,7 +251,7 @@ def main():
         drop_last=True,
         pin_memory=True,
         num_workers=args.num_workers,
-        prefetch_factor=2,
+        prefetch_factor=4,
     )
     val_loader = DataLoader(
         val_dataset, 
@@ -235,7 +260,7 @@ def main():
         drop_last=False,
         pin_memory=True,
         num_workers=args.num_workers,
-        prefetch_factor=2,
+        prefetch_factor=4,
     )
     
     if args.visualize_augmentations_dir is not None:
@@ -257,21 +282,27 @@ def main():
         img_decoder_head='hsv' in args.pretrain_scheme,
         aux_simclr_head='simclr' in args.pretrain_scheme,
     )
-    imagenet_weights = torch.load(config.WEIGHTS_PATH[args.model], weights_only=True)
+    imagenet_weights = torch.load(os.path.join(out_dir, 'imagenet.pth'), weights_only=True)
     model.load_encoder_weights(imagenet_weights)
     model.to(device)
     
-    flops, macs, params = calculate_flops(
+    flops, macs, _ = calculate_flops(
         model=model,
         input_shape=(1, 3, 256, 256),
         output_as_string=False,
         print_results=False,
         print_detailed=False,
     )
-    print(f'{utils.get_datetime()} Model {args.model} Computational Complexity:')
-    print(f'{utils.get_datetime()} FLOPs: {flops}, MACs: {macs}, Parameters: {params}')
-    with open(os.path.join(log_dir, 'flops_macs_params.txt'), 'w') as f:
-        f.write(f'FLOPs: {flops}, MACs: {macs}, Parameters: {params}')
+    params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f'{utils.get_datetime()} Model GFLOPs: {flops*1e-9:,.2f} | GMACs: {macs*1e-9:,.2f} | Total Parameters: {params:,} | Trainable Parameters: {trainable_params:,}')
+    with open(os.path.join(log_dir, 'model_complexity.json'), 'w') as f:
+        json.dump({
+            'flops': flops,
+            'macs': macs,
+            'total_parameters': params,
+            'trainable_parameters': trainable_params,
+        }, f, indent=4)
     
     # define optimizer and scheduler - the specifics are taken from the original SimCLR implementation
     optimizer = utils.LARS(
@@ -293,12 +324,18 @@ def main():
         ],
         milestones=[10], # step after warmup
     )
+    scaler = GradScaler()
+    reconstruction_loss_weight = args.reconstruction_loss_weight if args.pretrain_scheme == 'hsv_simclr' else 1.0
+    contrastive_loss_weight = args.contrastive_loss_weight if args.pretrain_scheme == 'hsv_simclr' else 1.0
     
     history_dict = {
-        'train_loss': [],
-        'val_loss': [],
         'learning_rate': [],
     }
+    for phase in ['train', 'val']:
+        history_dict[f'{phase}_total_loss'] = []
+        history_dict[f'{phase}_reconstruction_loss'] = []
+        history_dict[f'{phase}_contrastive_loss'] = []
+    
     profiler = utils.ProfilerHistory(device)
     profiler.update(epoch=-1, phase='init', time=0)
     
@@ -307,23 +344,23 @@ def main():
     print(f'{utils.get_datetime()} Starting training...')
     for epoch in range(args.num_epochs):
         
-        optimizer.zero_grad(set_to_none=True) # just to be super safe
+        lr = optimizer.param_groups[0]['lr']
+        history_dict['learning_rate'].append(lr)
         
         for phase in ['train', 'val']:
             phase_start_time = time()
-            
-            batch_losses = []
+            tqdm_postfix = {'lr': f'{lr:.2E}',}
             
             if phase == 'train':
                 torch.set_grad_enabled(True)
+                optimizer.zero_grad() # just in case
                 model.train()
                 loader = tqdm(
                     train_loader, 
                     desc=f'Epoch {epoch+1}/{args.num_epochs} Training', 
                     total=len(train_loader),
                     unit='batch',
-                    position=0,
-                    leave=False,
+                    postfix=tqdm_postfix,
                 )
             
             else:
@@ -334,107 +371,109 @@ def main():
                     desc=f'Epoch {epoch+1}/{args.num_epochs} Validation', 
                     total=len(val_loader),
                     unit='batch',
-                    # position=1,
-                    leave=False,
+                    postfix=tqdm_postfix,
                 )
 
-            # next_batch = [_.to(device, non_blocking=True) for _ in next_batch]
-            
             if 'simclr' in args.pretrain_scheme:
-                cache = {}
-                closure = {}
-            
-                for view in range(train_dataset.n_views):
-                    cache[f'z_{view}'], closure[f'z_{view}'] = [], []
+                cache, closure = utils.init_grad_cache_closure_dicts(train_dataset.n_views)
+                contrastive_loss_values = []
             
             if 'hsv' in args.pretrain_scheme:
-                reconstruction_loss = torch.tensor(0.0, device=device)
+                reconstruction_losses = []
+                reconstruction_loss_values = []
             
             for step, batch in enumerate(loader):
-                
-                optimizer.zero_grad(set_to_none=True)
-                
-                if args.pretrain_scheme == 'simclr':
-                    
-                    for view in range(len(batch)):
-                        X = batch[view]
-                        X = X.to(device, non_blocking=True)
-                        z, cz = utils.cached_model_call(model, X)
-                        
-                        cache[f'z_{view}'].append(z)
-                        closure[f'z_{view}'].append(cz)
-                        del X
-                    
-                elif args.pretrain_scheme == 'hsv':
-                    
-                    X, y = batch
-                    X, y = X.to(device, non_blocking=True), y.to(device, non_blocking=True)
-                    y_hat = model(X)
-                    y_hat = F.sigmoid(y_hat) # sigmoid as y is in [0, 1]
-                    
-                    reconstruction_loss = F.mse_loss(y, y_hat, reduction='sum')
-                    if phase == 'train':
-                        reconstruction_loss.backward() # reconstruction loss does not require gradient caching
-                    del X, y, y_hat
-                
-                elif args.pretrain_scheme == 'hsv_simclr':
-                    
-                    for view in range(len(batch)):
-                        X, y = batch[view]
-                        X, y = X.to(device, non_blocking=True), y.to(device, non_blocking=True)
-                        y_hat, z, cz = utils.cached_model_call(model, X) # do not need to cache y_hat
-                        y_hat = F.sigmoid(y_hat) # sigmoid as y is in [0, 1] 
                             
-                        cache[f'z_{view}'].append(z)
-                        closure[f'z_{view}'].append(cz)
+                with autocast(device.type):
+                    
+                    if args.pretrain_scheme == 'simclr':
+                        for view in range(len(batch)):
+                            X = batch[view]
+                            X = X.to(device)
+                            z, cz = utils.cached_model_call(model, X)
+                            
+                            cache[f'z_{view}'].append(z)
+                            closure[f'z_{view}'].append(cz)
                         
-                        reconstruction_loss = F.mse_loss(y, y_hat, reduction='sum') * (1 / train_dataset.n_views)
-                        if phase == 'train':
-                            reconstruction_loss.backward()
-                        del X, y, y_hat
-
+                    elif args.pretrain_scheme == 'hsv':
+                        X, y = batch
+                        X, y = X.to(device), y.to(device)
+                        y_hat = model(X)
+                        y_hat = F.sigmoid(y_hat) # sigmoid as y is in [0, 1]
+                        
+                        reconstruction_losses.append(utils.normalized_mse_loss(y_hat, y))
+                    
+                    elif args.pretrain_scheme == 'hsv_simclr':
+                        for view in range(len(batch)):
+                            X, y = batch[view]
+                            X, y = X.to(device), y.to(device)
+                            y_hat, z, cz = utils.cached_model_call(model, X) # do not need to cache y_hat
+                            y_hat = F.sigmoid(y_hat) # sigmoid as y is in [0, 1] 
+                            
+                            reconstruction_losses.append(utils.normalized_mse_loss(y_hat, y))    
+                            cache[f'z_{view}'].append(z)
+                            closure[f'z_{view}'].append(cz)
+                        
                 
                 if (step + 1) % grad_accum_steps == 0:
+                                                            
+                    if 'simclr' in args.pretrain_scheme:
+                        contrastive_loss = utils.cached_contrastive_loss_call(cache['z_0'], cache['z_1'])
+                        contrastive_loss_values.append(contrastive_loss.item())
+                        epoch_contrastive_loss = np.sum(contrastive_loss_values) / ((step * args.mini_batch_size) + len(batch)) 
+                        tqdm_postfix['NT-Xent Loss'] = f'{epoch_contrastive_loss:.2f}'
                     
-                    total_loss = torch.tensor(0.0, device=device)
+                    if 'hsv' in args.pretrain_scheme:
+                        reconstruction_loss = torch.stack(reconstruction_losses).sum()
+                        reconstruction_loss_values.append(reconstruction_loss.item())
+                        epoch_reconstruction_loss = np.sum(reconstruction_loss_values) / ((step * args.mini_batch_size) + len(batch)) 
+                        tqdm_postfix['MSE Loss'] = f'{epoch_reconstruction_loss:.2f}'
+                    
+                    if args.pretrain_scheme == 'hsv_simclr':
+                        total_loss = (reconstruction_loss_weight * reconstruction_loss) + (contrastive_loss_weight * contrastive_loss)
+                        epoch_loss = (reconstruction_loss_weight * epoch_reconstruction_loss) + (contrastive_loss_weight * epoch_contrastive_loss)
+                        tqdm_postfix['Total Loss'] = f'{epoch_loss:.2f}'
+                    
+                    else:
+                        total_loss = contrastive_loss if 'simclr' in args.pretrain_scheme else reconstruction_loss
+                        epoch_loss = epoch_contrastive_loss if 'simclr' in args.pretrain_scheme else epoch_reconstruction_loss
+                    
+                    if phase == 'train':
+                        scaler.scale(total_loss).backward()
+                        if 'simclr' in args.pretrain_scheme:
+                            utils.call_closures(cache, closure)
+                        
+                        scaler.step(optimizer)
+                        scaler.update()
+                        optimizer.zero_grad(set_to_none=True)
                     
                     if 'simclr' in args.pretrain_scheme:
-                        total_loss += utils.cached_contrastive_loss_call(cache['z_0'], cache['z_1'])
-                        total_loss.backward()
-                        
-                        for view in range(train_dataset.n_views):
-                            for closure_fn, z in zip(closure[f'z_{view}'], cache[f'z_{view}']):
-                                closure_fn(z)
-                            cache[f'z_{view}'], closure[f'z_{view}'] = [], []
-                        
+                        cache, closure = utils.init_grad_cache_closure_dicts(train_dataset.n_views)
                     if 'hsv' in args.pretrain_scheme:
-                        total_loss += reconstruction_loss
-                            
-                    if phase == 'train':
-                        optimizer.step()
-                    optimizer.zero_grad(set_to_none=True) # just to be super safe (again)
-                
-                    batch_losses.append(total_loss.item())
-                    epoch_loss = np.sum(batch_losses) / ((step * args.mini_batch_size) + len(batch)) 
-                    loader.set_postfix(loss=f'{epoch_loss:.5f}')
-                    del total_loss
-            
-            history_dict[f'{phase}_loss'].append(epoch_loss)
+                        reconstruction_losses = []
+                    
+                    loader.set_postfix(tqdm_postfix)
+                                
+            history_dict[f'{phase}_total_loss'].append(epoch_loss)            
+            if args.pretrain_scheme == 'hsv_simclr':
+                history_dict[f'{phase}_reconstruction_loss'].append(epoch_reconstruction_loss)
+                history_dict[f'{phase}_contrastive_loss'].append(epoch_contrastive_loss)
             
             if phase == 'val':
                 if epoch_loss < best_val_loss:
+                    print(f'{utils.get_datetime()} Validation loss improved from {best_val_loss:.2f} at epoch {best_epoch} to {epoch_loss:.2f} during epoch {epoch}. Saving model...')
                     best_val_loss = epoch_loss
                     best_epoch = epoch
                     torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}.pth'))
+                    torch.save(optimizer.state_dict(), os.path.join(log_dir, 'optimizer.pth'))
+                    torch.save(scheduler.state_dict(), os.path.join(log_dir, 'scheduler.pth'))
+                    torch.save(scaler.state_dict(), os.path.join(log_dir, 'scaler.pth'))
                     with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
                         f.write(str(best_epoch)) # just in case
 
-            # profiling information
             profiler.update(epoch=epoch, phase=phase, time=time()-phase_start_time)
             profiler.save(os.path.join(log_dir, 'profiler.csv'))
             
-        lr = optimizer.param_groups[0]['lr']
-        history_dict['learning_rate'].append(lr)
         scheduler.step()
         
         history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch+1)))
@@ -443,6 +482,7 @@ def main():
         if epoch - best_epoch > args.early_stopping_patience:
             print(f'{utils.get_datetime()} No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
             break
+
 
 
 if __name__ == '__main__':
