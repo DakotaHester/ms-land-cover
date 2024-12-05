@@ -184,7 +184,6 @@ def call_closures(
         ):
             closure_fn(z)
 
-
 class LARS(Optimizer):
     """Implements LARS (Layer-wise Adaptive Rate Scaling). Code adapted from: 
     https://github.com/4uiiurz1/pytorch-lars/blob/3d1f02dc86792e393552e054789f6b9349d2cc4e/lars.py#L4C1-L92C20
@@ -329,3 +328,23 @@ def get_datetime(surrounding_brackets: bool=True) -> str:
     if surrounding_brackets:
         return '[' + dt.strftime('%Y-%m-%d %H:%M:%SZ') + ']'
     return dt.strftime('%Y-%m-%d %H:%M:%SZ')
+
+
+class Logger:
+    def __init__(self, path: str, exist_ok: bool=True):
+        self.path = path
+        if os.path.exists(path):
+            if not exist_ok:
+                raise FileExistsError(f'The file {path} already exists.')
+            os.remove(path)
+    
+    def write(self, message: str) -> None:
+        with open(self.path, 'a') as f:
+            f.write(message + '\n')
+    
+    def log(self, message: str, prepend_timestamp: bool=True, echo: bool=True) -> None:
+        if prepend_timestamp:
+            message = get_datetime() + ' ' + message
+        if echo: 
+            print(message)
+        self.write(message)

@@ -97,7 +97,7 @@ def parse_arguments():
     parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=32,
+        default=64,
         help='The mini-batch size to use for gradient accumulation and/or caching.',
     )
     
@@ -176,11 +176,6 @@ def main():
     
     args = parse_arguments()
     
-    print(f'{utils.get_datetime()} Configuration:')
-    for k, v in vars(args).items():
-        print(f'{k}: {v}')
-    print('-'*20)
-    
     torch.random.manual_seed(args.seed)
     np.random.seed(args.seed)
     
@@ -189,8 +184,15 @@ def main():
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
     
+    logger = utils.Logger(os.path.join(log_dir, 'log.txt'))
+    
+    logger.log(f'Configuration:')
+    for k, v in vars(args).items():
+        logger.log(f'{k}: {v}', prepend_timestamp=False)
+    logger.log('='*20, prepend_timestamp=False)
+    
     device = utils.get_torch_device()
-    print(f'{utils.get_datetime()} Using device: {device}')
+    logger.log(f'Using device: {device}')
     if device.type == 'cuda':
         torch.backends.cudnn.benchmark = True
         torch.backends.cudnn.deterministic = True
@@ -230,11 +232,11 @@ def main():
         train_dataset.ids_list = train_dataset.ids_list[:10000]
         val_dataset.ids_list = val_dataset.ids_list[:5000]
     
-    print(f'{utils.get_datetime()} Training dataset size: {len(train_dataset)}')
-    print(f'{utils.get_datetime()} Validation dataset size: {len(val_dataset)}')
+    logger.log(f'Training dataset size: {len(train_dataset)}')
+    logger.log(f'Validation dataset size: {len(val_dataset)}')
     
-    print(f'{utils.get_datetime()} Training dataset mean: {train_dataset.mean}')
-    print(f'{utils.get_datetime()} Training dataset std: {train_dataset.std}')
+    logger.log(f'Training dataset mean: {train_dataset.mean}')
+    logger.log(f'Training dataset std: {train_dataset.std}')
     
     # save the mean and std for the training dataset
     if mean is None:  torch.save(train_dataset.mean, mean_path)
@@ -242,7 +244,7 @@ def main():
     
     # take into account grad cache/acculumation steps when setting the batch size
     grad_accum_steps = args.full_batch_size // args.mini_batch_size
-    print(f'{utils.get_datetime()} Full batch size: {args.full_batch_size}, Mini batch size: {args.mini_batch_size}, Grad accumulation steps: {grad_accum_steps}')
+    logger.log(f'Full batch size: {args.full_batch_size}, Mini batch size: {args.mini_batch_size}, Grad accumulation steps: {grad_accum_steps}')
     
     train_loader = DataLoader(
         train_dataset, 
@@ -295,7 +297,7 @@ def main():
     )
     params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f'{utils.get_datetime()} Model GFLOPs: {flops*1e-9:,.2f} | GMACs: {macs*1e-9:,.2f} | Total Parameters: {params:,} | Trainable Parameters: {trainable_params:,}')
+    logger.log(f'Model GFLOPs: {flops*1e-9:,.2f} | GMACs: {macs*1e-9:,.2f} | Total Parameters: {params:,} | Trainable Parameters: {trainable_params:,}')
     with open(os.path.join(log_dir, 'model_complexity.json'), 'w') as f:
         json.dump({
             'flops': flops,
@@ -341,7 +343,7 @@ def main():
     
     best_val_loss = np.inf
     best_epoch = -1
-    print(f'{utils.get_datetime()} Starting training...')
+    logger.log(f'Starting training...')
     for epoch in range(args.num_epochs):
         
         lr = optimizer.param_groups[0]['lr']
@@ -410,7 +412,7 @@ def main():
                             y_hat, z, cz = utils.cached_model_call(model, X) # do not need to cache y_hat
                             y_hat = F.sigmoid(y_hat) # sigmoid as y is in [0, 1] 
                             
-                            reconstruction_losses.append(utils.normalized_mse_loss(y_hat, y))    
+                            reconstruction_losses.append(utils.normalized_mse_loss(y_hat, y))
                             cache[f'z_{view}'].append(z)
                             closure[f'z_{view}'].append(cz)
                         
@@ -424,7 +426,7 @@ def main():
                         tqdm_postfix['NT-Xent Loss'] = f'{epoch_contrastive_loss:.2f}'
                     
                     if 'hsv' in args.pretrain_scheme:
-                        reconstruction_loss = torch.stack(reconstruction_losses).sum()
+                        reconstruction_loss = torch.stack(reconstruction_losses).sum(dim=0)
                         reconstruction_loss_values.append(reconstruction_loss.item())
                         epoch_reconstruction_loss = np.sum(reconstruction_loss_values) / ((step * args.mini_batch_size) + len(batch)) 
                         tqdm_postfix['MSE Loss'] = f'{epoch_reconstruction_loss:.2f}'
@@ -449,6 +451,7 @@ def main():
                     
                     if 'simclr' in args.pretrain_scheme:
                         cache, closure = utils.init_grad_cache_closure_dicts(train_dataset.n_views)
+                    
                     if 'hsv' in args.pretrain_scheme:
                         reconstruction_losses = []
                     
@@ -461,7 +464,7 @@ def main():
             
             if phase == 'val':
                 if epoch_loss < best_val_loss:
-                    print(f'{utils.get_datetime()} Validation loss improved from {best_val_loss:.2f} at epoch {best_epoch} to {epoch_loss:.2f} during epoch {epoch}. Saving model...')
+                    logger.log(f'Validation loss improved from {best_val_loss:.2f} at epoch {best_epoch} to {epoch_loss:.2f} during epoch {epoch}. Saving model...')
                     best_val_loss = epoch_loss
                     best_epoch = epoch
                     torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}.pth'))
@@ -480,7 +483,7 @@ def main():
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
         
         if epoch - best_epoch > args.early_stopping_patience:
-            print(f'{utils.get_datetime()} No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
+            logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
             break
 
 
