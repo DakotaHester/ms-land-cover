@@ -55,6 +55,8 @@ def cached(func: Callable[..., Tensor]):
         else:
             assert all(isinstance(v, Tensor) for v in reps_no_grad)
         leaf_reps = tuple(t.detach().requires_grad_() for t in reps_no_grad)
+        
+        # need to handle case that model returns two or more tensors for multi-task learning
 
         @wraps(func)
         def forward_backward_func(cache_reps: Union[Tensor, Tuple[Tensor]]):
@@ -62,18 +64,28 @@ def cached(func: Callable[..., Tensor]):
                 reps = func(*args, **kwargs)
             if isinstance(reps, Tensor):
                 reps = (reps,)
-            if isinstance(cache_reps, Tensor):
+            if isinstance(cache_reps, Tensor):                
                 cache_reps = (cache_reps,)
-                            
-            # NOTE: THE FOLLOWING IS A VERY VERY SPECIAL CASE. BE WARNED.
-            # When the model returns a tuple of tensors, we assume that the first
-            # Tensor corresponds to a reconstruction and the second Tensor corresponds
-            # to the representation. We only cache the representation tensor.
-            if len(reps) == 2:
-                reps = (reps[1],)
-
+            
+            # if the model returns multiple tensors, we need to find which
+            # ones correspond to the cached representations passed to this function
+            if len(reps) > 1:
+                cr_size = cache_reps[0].shape[1:]
+                for r in reps:
+                    if r.size()[1:] == cr_size:
+                        reps = (r,)
+                        break
+                if len(reps) > 1:
+                    raise ValueError('Could not find the correct representation tensor in the model output.')
+            
             surrogate = sum(map(lambda u, v: torch.dot(u.flatten(), v.grad.flatten()), reps, cache_reps), 0)
-            surrogate.backward()
+            
+            try:
+                surrogate.backward()
+            except RuntimeError as e:
+                print(f'RuntimeError: {e}')
+                print("This is most likely caused by the gradients being too large for CUDA. Try reducing the batch size.")
+                raise e
 
         return leaf_reps + (forward_backward_func,)
     return cache_func
@@ -97,8 +109,8 @@ def cat_input_tensor(func: Callable[..., Tensor]):
     @wraps(func)
     def cat_f(*args, **kwargs):
         args_cat = [_cat_tensor_list(x) for x in args]
-        for k, v in kwargs.items():
-            print(f'k: {k}, v: {v}')
+        # for k, v in kwargs.items():
+        #     print(f'k: {k}, v: {v}')
         kwargs_cat = dict((k, _cat_tensor_list(v)) for k, v in kwargs.values())
         return func(*args_cat, **kwargs_cat)
     return cat_f

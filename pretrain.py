@@ -4,6 +4,7 @@ import torch.nn as nn
 from torch.nn import functional as F
 from torch.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
+from torch.optim.lr_scheduler import SequentialLR, ReduceLROnPlateau, CosineAnnealingLR, LambdaLR
 from calflops import calculate_flops
 import numpy as np
 from argparse import ArgumentParser
@@ -13,10 +14,12 @@ from tqdm import tqdm
 import pandas as pd
 from time import time
 import json
+import math
 
 from src.mslandcover.data.datasets import PreTrainDataset
 from src.mslandcover.data import transforms
 from src.mslandcover.models import HRNetSegmentationModel
+from src.mslandcover.optim import LARS, PCGradAMP, UncertainLossWeighter
 from src.mslandcover import config
 from src.mslandcover import utils
 
@@ -83,22 +86,36 @@ def parse_arguments():
     parser.add_argument(
         '--early_stopping_patience',
         type=int,
-        default=10,
+        default=35,
         help='The number of epochs to wait for validation loss improvement before stopping training.',
+    )
+    
+    parser.add_argument(
+        '--reduce_lr_patience',
+        type=int,
+        default=10,
+        help='The number of epochs to wait for validation loss improvement before reducing the learning rate.',
+    )
+    
+    parser.add_argument(
+        '--learning_rate_factor',
+        type=float,
+        default=.1,
+        help='The factor by which to reduce the learning rate after loading the imagenet weights.',
     )
     
     parser.add_argument(
         '--full_batch_size', 
         type=int, 
-        default=2048, # 4096 in original SimCLR implementation
+        default=1024, # 4096 in original SimCLR implementation
         help='The batch size to use for pretraining.',
     )
     
     parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=64,
-        help='The mini-batch size to use for gradient accumulation and/or caching.',
+        default=32,
+        help='The mini-batch size to use for gradient caching.',
     )
     
     parser.add_argument(
@@ -139,26 +156,26 @@ def parse_arguments():
     )
     
     parser.add_argument(
-        '--contrastive_loss_weight',
-        type=float,
-        default=1.0,
-        help='The weight to apply to the contrastive loss under pretraining schema `hsv_simclr`.',
-    )
-    
-    parser.add_argument(
-        '--reconstruction_loss_weight',
-        type=float,
-        default=0.5,
-        help='The weight to apply to the reconstruction loss under pretraining schema `hsv_simclr`.',
-    )
-    
-    parser.add_argument(
         '--visualize_augmentations_dir',
         type=str,
         default='./paper/images/augmentations/' if False else None,
         help='The directory to save augmented images for visualization. If \
             provided, the script will only visualize the augmentations and not \
             train the model.',
+    )
+    
+    parser.add_argument(
+        '--use_amp',
+        default=True,
+        action='store_true',
+        help='Use Automatic Mixed Precision (AMP) for training.',
+    )
+    
+    parser.add_argument(
+        '--use_pcgrad',
+        default=True,
+        action='store_true',
+        help='Use Projected Conflicting Gradients (PCGrad) for training.',
     )
     
     parser.add_argument(
@@ -229,8 +246,11 @@ def main():
     )
     
     if args.debug:
-        train_dataset.ids_list = train_dataset.ids_list[:10000]
-        val_dataset.ids_list = val_dataset.ids_list[:5000]
+        train_dataset.ids_list = train_dataset.ids_list[:(512)*4]
+        val_dataset.ids_list = val_dataset.ids_list[:512]
+        
+        args.full_batch_size = 512
+        args.mini_batch_size = 32
     
     logger.log(f'Training dataset size: {len(train_dataset)}')
     logger.log(f'Validation dataset size: {len(val_dataset)}')
@@ -242,9 +262,9 @@ def main():
     if mean is None:  torch.save(train_dataset.mean, mean_path)
     if std is None: torch.save(train_dataset.std, std_path) 
     
-    # take into account grad cache/acculumation steps when setting the batch size
+    # take into account grad cache steps when setting the batch size
     grad_accum_steps = args.full_batch_size // args.mini_batch_size
-    logger.log(f'Full batch size: {args.full_batch_size}, Mini batch size: {args.mini_batch_size}, Grad accumulation steps: {grad_accum_steps}')
+    logger.log(f'Full batch size: {args.full_batch_size}, Mini batch size: {args.mini_batch_size}, Grad cache steps: {grad_accum_steps}')
     
     train_loader = DataLoader(
         train_dataset, 
@@ -283,6 +303,7 @@ def main():
         config=model_config,
         img_decoder_head='hsv' in args.pretrain_scheme,
         aux_simclr_head='simclr' in args.pretrain_scheme,
+        img_decoder_activation='sigmoid' # sigmoid for HSV task - not mathematically necessary but y_true is in [0, 1] so it makes sense
     )
     imagenet_weights = torch.load(os.path.join(out_dir, 'imagenet.pth'), weights_only=True)
     model.load_encoder_weights(imagenet_weights)
@@ -295,40 +316,72 @@ def main():
         print_results=False,
         print_detailed=False,
     )
-    params = sum(p.numel() for p in model.parameters())
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    logger.log(f'Model GFLOPs: {flops*1e-9:,.2f} | GMACs: {macs*1e-9:,.2f} | Total Parameters: {params:,} | Trainable Parameters: {trainable_params:,}')
+    n_params = sum(p.numel() for p in model.parameters())
+    n_trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    logger.log(f'Model GFLOPs: {flops*1e-9:,.2f} | GMACs: {macs*1e-9:,.2f} | Total Parameters: {n_params:,} | Trainable Parameters: {n_trainable_params:,}')
     with open(os.path.join(log_dir, 'model_complexity.json'), 'w') as f:
         json.dump({
             'flops': flops,
             'macs': macs,
-            'total_parameters': params,
-            'trainable_parameters': trainable_params,
+            'total_parameters': n_params,
+            'trainable_parameters': n_trainable_params,
         }, f, indent=4)
     
     # define optimizer and scheduler - the specifics are taken from the original SimCLR implementation
-    optimizer = utils.LARS(
-        params=model.parameters(),
-        lr=0.3*args.full_batch_size/256, # per original SimCLR implementation
+    learning_rate = 0.3 * args.full_batch_size / 256 # per original SimCLR implementation
+    learning_rate *= args.learning_rate_factor # reduce the learning rate as model is pretrained
+    
+    # note: uncertainty based loss weighting usedo for multi-task learning, params 
+    # need to be included in the optimizer
+    params = list(model.parameters())
+    if args.pretrain_scheme == 'hsv_simclr':
+        loss_weighter = UncertainLossWeighter(
+            num_tasks=2,
+        ).to(device)
+        params.extend(list(loss_weighter.parameters()))
+    
+    optimizer = LARS(
+        params=params,
+        lr=learning_rate, # per original SimCLR implementation
         weight_decay=1e-6,
     )
-    scheduler = torch.optim.lr_scheduler.SequentialLR(
+    
+    warmup_epochs = 10
+    scheduler = SequentialLR(
         optimizer=optimizer,
         schedulers=[
-            torch.optim.lr_scheduler.LambdaLR( # linear warmup for 10 epochs
+            LambdaLR( # linear warmup for 10 epochs
                 optimizer=optimizer,
-                lr_lambda=lambda epoch: min(1, (epoch+1) / 10),
+                lr_lambda=lambda epoch: min(1, (epoch+1) / warmup_epochs),
             ),
-            torch.optim.lr_scheduler.CosineAnnealingLR( # cosine annealing with no restarts
+            CosineAnnealingLR( # cosine annealing with no restarts
                 optimizer=optimizer,
-                T_max=args.num_epochs - 10, # 90 epochs after warmup
+                T_max=args.num_epochs-warmup_epochs,
             ),
         ],
-        milestones=[10], # step after warmup
+        milestones=[warmup_epochs], # step after warmup
     )
-    scaler = GradScaler()
-    reconstruction_loss_weight = args.reconstruction_loss_weight if args.pretrain_scheme == 'hsv_simclr' else 1.0
-    contrastive_loss_weight = args.contrastive_loss_weight if args.pretrain_scheme == 'hsv_simclr' else 1.0
+    lr_reducer = ReduceLROnPlateau(
+        optimizer=optimizer,
+        patience=args.reduce_lr_patience,
+    )
+    if args.use_amp:
+        scaler = GradScaler() # AMP for gradient scaling
+    
+    args.use_pcgrad = args.use_pcgrad and (args.pretrain_scheme == 'hsv_simclr') # only use PCGrad for SimCLR + HSV task
+    # Gradient Surgery (projected conflicting gradients) - only used for SimCLR + HSV task as u
+    if args.use_pcgrad:
+        grad_optimizer = PCGradAMP(
+            num_tasks=2,
+            optimizer=optimizer,
+            scaler=scaler if args.use_amp else None,
+        )
+    
+    cache_contents = []
+    if 'simclr' in args.pretrain_scheme:
+        cache_contents.append('z')
+    if 'hsv' in args.pretrain_scheme:
+        cache_contents.extend(['y', 'y_hat'])
     
     history_dict = {
         'learning_rate': [],
@@ -339,7 +392,7 @@ def main():
         history_dict[f'{phase}_contrastive_loss'] = []
     
     profiler = utils.ProfilerHistory(device)
-    profiler.update(epoch=-1, phase='init', time=0)
+    profiler.update(epoch=-1, phase='init', step=0, time=0)
     
     best_val_loss = np.inf
     best_epoch = -1
@@ -351,16 +404,16 @@ def main():
         
         for phase in ['train', 'val']:
             phase_start_time = time()
-            tqdm_postfix = {'lr': f'{lr:.2E}',}
+            tqdm_postfix = {'lr': f'{lr:.2e}',}
             
             if phase == 'train':
                 torch.set_grad_enabled(True)
                 optimizer.zero_grad() # just in case
                 model.train()
-                loader = tqdm(
-                    train_loader, 
+                loader = train_loader 
+                pbar = tqdm(
                     desc=f'Epoch {epoch+1}/{args.num_epochs} Training', 
-                    total=len(train_loader),
+                    total=math.ceil(len(train_loader) / grad_accum_steps),
                     unit='batch',
                     postfix=tqdm_postfix,
                 )
@@ -368,123 +421,140 @@ def main():
             else:
                 torch.set_grad_enabled(False)
                 model.eval()
-                loader = tqdm(
-                    val_loader, 
+                loader = val_loader
+                pbar = tqdm(
                     desc=f'Epoch {epoch+1}/{args.num_epochs} Validation', 
-                    total=len(val_loader),
+                    total=math.ceil(len(val_loader) / grad_accum_steps),
                     unit='batch',
                     postfix=tqdm_postfix,
                 )
 
-            if 'simclr' in args.pretrain_scheme:
-                cache, closure = utils.init_grad_cache_closure_dicts(train_dataset.n_views)
-                contrastive_loss_values = []
+            contrastive_loss_values = []
+            reconstruction_loss_values = []
+            total_loss_values = [] # adaptive weighting of the losses changes actual loss values
+
+            cache, closures = utils.init_grad_cache_closure_dicts(n_views, cache_contents)
             
-            if 'hsv' in args.pretrain_scheme:
-                reconstruction_losses = []
-                reconstruction_loss_values = []
-            
+            reconstruction_loss = torch.tensor(0.0, device=device)
+            optimizer.zero_grad()
+
             for step, batch in enumerate(loader):
                             
-                with autocast(device.type):
+                with autocast(device.type, enabled=args.use_amp):
                     
                     if args.pretrain_scheme == 'simclr':
-                        for view in range(len(batch)):
+                        for view in range(n_views):
                             X = batch[view]
                             X = X.to(device)
-                            z, cz = utils.cached_model_call(model, X)
+                            z, closure = utils.cached_model_call(model, X)
                             
-                            cache[f'z_{view}'].append(z)
-                            closure[f'z_{view}'].append(cz)
+                            cache[view]['z'].append(z)
+                            closures[view].append(closure)
                         
                     elif args.pretrain_scheme == 'hsv':
                         X, y = batch
                         X, y = X.to(device), y.to(device)
-                        y_hat = model(X)
-                        y_hat = F.sigmoid(y_hat) # sigmoid as y is in [0, 1]
+                        y_hat, closure = utils.cached_model_call(model, X)
                         
-                        reconstruction_losses.append(utils.normalized_mse_loss(y_hat, y))
-                    
+                        cache[0]['y'].append(y)
+                        cache[0]['y_hat'].append(y_hat)
+                        closures[0].append(closure)
+                                           
                     elif args.pretrain_scheme == 'hsv_simclr':
-                        for view in range(len(batch)):
+                        for view in range(n_views):
                             X, y = batch[view]
                             X, y = X.to(device), y.to(device)
-                            y_hat, z, cz = utils.cached_model_call(model, X) # do not need to cache y_hat
-                            y_hat = F.sigmoid(y_hat) # sigmoid as y is in [0, 1] 
+                            y_hat, z, closure = utils.cached_model_call(model, X) 
                             
-                            reconstruction_losses.append(utils.normalized_mse_loss(y_hat, y))
-                            cache[f'z_{view}'].append(z)
-                            closure[f'z_{view}'].append(cz)
+                            cache[view]['y'].append(y)
+                            cache[view]['y_hat'].append(y_hat)
+                            cache[view]['z'].append(z)
+                            closures[view].append(closure)
                         
-                
                 if (step + 1) % grad_accum_steps == 0:
                                                             
                     if 'simclr' in args.pretrain_scheme:
-                        contrastive_loss = utils.cached_contrastive_loss_call(cache['z_0'], cache['z_1'])
+                        contrastive_loss = utils.cached_contrastive_loss_call(cache[0]['z'], cache[1]['z'])
                         contrastive_loss_values.append(contrastive_loss.item())
                         epoch_contrastive_loss = np.sum(contrastive_loss_values) / ((step * args.mini_batch_size) + len(batch)) 
-                        tqdm_postfix['NT-Xent Loss'] = f'{epoch_contrastive_loss:.2f}'
+                        tqdm_postfix['NT-Xent Loss'] = f'{epoch_contrastive_loss:.2e}'
                     
                     if 'hsv' in args.pretrain_scheme:
-                        reconstruction_loss = torch.stack(reconstruction_losses).sum(dim=0)
+                        reconstruction_loss = torch.tensor(0.0, device=device)
+                        for view in range(n_views):
+                            reconstruction_loss += utils.cached_mse_loss_call(cache[view]['y_hat'], cache[view]['y'])
                         reconstruction_loss_values.append(reconstruction_loss.item())
                         epoch_reconstruction_loss = np.sum(reconstruction_loss_values) / ((step * args.mini_batch_size) + len(batch)) 
-                        tqdm_postfix['MSE Loss'] = f'{epoch_reconstruction_loss:.2f}'
+                        tqdm_postfix['MSE Loss'] = f'{epoch_reconstruction_loss:.2e}'
                     
                     if args.pretrain_scheme == 'hsv_simclr':
-                        total_loss = (reconstruction_loss_weight * reconstruction_loss) + (contrastive_loss_weight * contrastive_loss)
-                        epoch_loss = (reconstruction_loss_weight * epoch_reconstruction_loss) + (contrastive_loss_weight * epoch_contrastive_loss)
-                        tqdm_postfix['Total Loss'] = f'{epoch_loss:.2f}'
+                        loss = [contrastive_loss, reconstruction_loss]
+                        loss = loss_weighter(loss)
+                        total_loss_values.append(sum([l.item() for l in loss]))
+                        epoch_loss = np.sum(total_loss_values) / ((step * args.mini_batch_size) + len(batch))
+                        tqdm_postfix['Total Loss'] = f'{epoch_loss:.2e}'
                     
                     else:
-                        total_loss = contrastive_loss if 'simclr' in args.pretrain_scheme else reconstruction_loss
+                        loss = contrastive_loss if 'simclr' in args.pretrain_scheme else reconstruction_loss
                         epoch_loss = epoch_contrastive_loss if 'simclr' in args.pretrain_scheme else epoch_reconstruction_loss
                     
                     if phase == 'train':
-                        scaler.scale(total_loss).backward()
-                        if 'simclr' in args.pretrain_scheme:
-                            utils.call_closures(cache, closure)
-                        
-                        scaler.step(optimizer)
-                        scaler.update()
-                        optimizer.zero_grad(set_to_none=True)
+                        if args.use_pcgrad:
+                            grad_optimizer.backward(loss) 
+                            utils.call_closures(cache, closures) 
+                            grad_optimizer.step()
+                            
+                        elif args.use_amp:
+                            scaler.scale(loss).backward()
+                            utils.call_closures(cache, closures)
+                            scaler.step(optimizer)
+                            scaler.update()
+                            
+                        else:
+                            loss.backward()
+                            utils.call_closures(cache, closures)
+                            optimizer.step()
+                            
+                        optimizer.zero_grad()
                     
-                    if 'simclr' in args.pretrain_scheme:
-                        cache, closure = utils.init_grad_cache_closure_dicts(train_dataset.n_views)
+                    cache, closures = utils.init_grad_cache_closure_dicts(n_views, cache_contents)
                     
-                    if 'hsv' in args.pretrain_scheme:
-                        reconstruction_losses = []
-                    
-                    loader.set_postfix(tqdm_postfix)
+                    pbar.set_postfix(tqdm_postfix)
+                    pbar.update(1)
+
+                profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                                 
             history_dict[f'{phase}_total_loss'].append(epoch_loss)            
             if args.pretrain_scheme == 'hsv_simclr':
                 history_dict[f'{phase}_reconstruction_loss'].append(epoch_reconstruction_loss)
                 history_dict[f'{phase}_contrastive_loss'].append(epoch_contrastive_loss)
             
-            if phase == 'val':
-                if epoch_loss < best_val_loss:
-                    logger.log(f'Validation loss improved from {best_val_loss:.2f} at epoch {best_epoch} to {epoch_loss:.2f} during epoch {epoch}. Saving model...')
-                    best_val_loss = epoch_loss
-                    best_epoch = epoch
-                    torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}.pth'))
-                    torch.save(optimizer.state_dict(), os.path.join(log_dir, 'optimizer.pth'))
-                    torch.save(scheduler.state_dict(), os.path.join(log_dir, 'scheduler.pth'))
-                    torch.save(scaler.state_dict(), os.path.join(log_dir, 'scaler.pth'))
-                    with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
-                        f.write(str(best_epoch)) # just in case
-
-            profiler.update(epoch=epoch, phase=phase, time=time()-phase_start_time)
             profiler.save(os.path.join(log_dir, 'profiler.csv'))
             
-        scheduler.step()
+        if epoch_loss < best_val_loss:
+            logger.log(f'Validation loss improved from {best_val_loss:.5f} at epoch {best_epoch} to {epoch_loss:.5f} during epoch {epoch}. Saving model...')
+            best_val_loss = epoch_loss
+            best_epoch = epoch
+            torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}.pth'))
+            torch.save(optimizer.state_dict(), os.path.join(log_dir, 'optimizer.pth'))
+            torch.save(scheduler.state_dict(), os.path.join(log_dir, 'scheduler.pth'))
+            torch.save(scaler.state_dict(), os.path.join(log_dir, 'scaler.pth'))
+            with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
+                    f.write(str(best_epoch)) # just in case
         
         history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch+1)))
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
-        
+                
         if epoch - best_epoch > args.early_stopping_patience:
             logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
             break
+        
+        scheduler.step()
+        if epoch >= warmup_epochs: # wait until after warmup to call ReduceLROnPlateau
+            lr_reducer.step(history_dict['val_total_loss'][-1])
+            new_lr = optimizer.param_groups[0]['lr']
+            if lr != new_lr:
+                logger.log(f'No improvement in validation loss for {args.reduce_lr_patience} epochs. Reducing learning rate from {lr:.2e} to {new_lr:.2e}.')
 
 
 

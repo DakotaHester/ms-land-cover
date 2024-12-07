@@ -631,9 +631,14 @@ class HRNetSegmentationModel(nn.Module):
         config: dict, 
         img_decoder_head: bool=True,
         use_simple_decoder: bool=True, # if True, use SimpleImageDecoderHead, else use ImageDecoderHead with multiple blocks
+        img_decoder_activation: str='sigmoid',
         num_classes: int=3, 
         aux_simclr_head: bool=False
     ):
+        
+        if img_decoder_activation not in ['sigmoid', 'softmax', 'none', None]:
+            raise ValueError('Invalid value for `img_decoder_activation`. Must be one of ["sigmoid", "softmax", "none", None].')
+
         super(HRNetSegmentationModel, self).__init__()
         
         self.config = config
@@ -650,7 +655,15 @@ class HRNetSegmentationModel(nn.Module):
                 self.decoder = SimpleImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes)
             else:
                 self.decoder = ImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes, num_blocks=config['IMAGE_DECODER']['NUM_BLOCKS'])
-        
+            
+            self.img_decoder_activation = None
+            if img_decoder_activation == 'sigmoid':
+                self.img_decoder_activation = nn.Sigmoid()
+            elif img_decoder_activation == 'softmax':
+                self.img_decoder_activation = nn.Softmax(dim=1)
+            else:
+                self.img_decoder_activation = None
+                    
         self.projection_head = None
         if aux_simclr_head:
             self.projection_head = ProjectionHead(in_channels=self.encoder_output_channels)
@@ -671,7 +684,10 @@ class HRNetSegmentationModel(nn.Module):
         
         returns = []
         if self.decoder is not None:
-            returns.append(self.decoder(h))
+            y = self.decoder(h)
+            if self.img_decoder_activation is not None:
+                y = self.img_decoder_activation(y)
+            returns.append(y)
         
         if self.projection_head is not None:
             returns.append(self.projection_head(h))

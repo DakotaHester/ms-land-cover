@@ -1,8 +1,7 @@
 import os
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 import pandas as pd
 from torch.nn import functional as F
-from torch.optim.optimizer import Optimizer, required
 import torch
 import torch.nn as nn
 from torch.amp import autocast
@@ -158,130 +157,38 @@ def cached_model_call(model: nn.Module, X: torch.Tensor) -> torch.Tensor:
 @cat_input_tensor
 @autocast(get_torch_device().type)
 def cached_contrastive_loss_call(z_0: torch.Tensor, z_1: torch.Tensor) -> torch.Tensor:
-    return normalized_nt_xent_loss(torch.cat([z_0, z_1], dim=0)).to(z_0.device)
+    return nt_xent_loss(torch.cat([z_0, z_1], dim=0)).to(z_0.device)
+
+
+@cat_input_tensor
+@autocast(get_torch_device().type)
+def cached_mse_loss_call(y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+    return F.mse_loss(y_pred, y_true, reduction='sum')
 
 
 
-def init_grad_cache_closure_dicts(n_views: int=2) -> Tuple[Dict[torch.Tensor, Callable[[torch.Tensor], None]], Dict[torch.Tensor, Callable[[torch.Tensor], None]]]:
-    cache = {}
-    closure = {}
-    for view in range(n_views):
-        cache[f'z_{view}'] = []
-        closure[f'z_{view}'] = []
-    return cache, closure
+def init_grad_cache_closure_dicts(n_views: int=2, cache_contents: str=['z', 'y', 'y_hat']) -> Tuple[List[Dict[str, List]], List[List]]:
+    cache = [{content: [] for content in cache_contents} for _ in range(n_views)]
+    closures = [[] for _ in range(n_views)] # only one closure foe each view
+    
+    return cache, closures
 
 
 
 def call_closures(
-    cache: Dict[str, List[torch.Tensor]], 
-    closure: Dict[str, List[Callable[[torch.Tensor], None]]],
-    n_views: int=2,
+    cache: List[Dict[str, List[torch.Tensor]]],
+    closures: List[Callable[[torch.Tensor], None]],
+    ignore_keys: List[str]=['y'], # ignore the y key in the cache - no gradients to compute 
 ) -> None:
-    for view in range(n_views):
-        for closure_fn, z in zip(
-            closure[f'z_{view}'],
-            cache[f'z_{view}'],
-        ):
-            closure_fn(z)
-
-class LARS(Optimizer):
-    """Implements LARS (Layer-wise Adaptive Rate Scaling). Code adapted from: 
-    https://github.com/4uiiurz1/pytorch-lars/blob/3d1f02dc86792e393552e054789f6b9349d2cc4e/lars.py#L4C1-L92C20
-
-    Args:
-        params (iterable): iterable of parameters to optimize or dicts defining
-            parameter groups
-        lr (float): learning rate
-        momentum (float, optional): momentum factor (default: 0)
-        eta (float, optional): LARS coefficient as used in the paper (default: 1e-3)
-        weight_decay (float, optional): weight decay (L2 penalty) (default: 0)
-        dampening (float, optional): dampening for momentum (default: 0)
-        nesterov (bool, optional): enables Nesterov momentum (default: False)
-        epsilon (float, optional): epsilon to prevent zero division (default: 0)
-
-    Example:
-        >>> optimizer = torch.optim.LARS(model.parameters(), lr=0.1, momentum=0.9)
-        >>> optimizer.zero_grad()
-        >>> loss_fn(model(input), target).backward()
-        >>> optimizer.step()
-    """
-
-    def __init__(self, 
-        params, 
-        lr=required, 
-        momentum=0, 
-        eta=1e-3, 
-        dampening=0,
-        weight_decay=0, 
-        nesterov=False, 
-        epsilon=0
-    ):
-        if lr is not required and lr < 0.0:
-            raise ValueError("Invalid learning rate: {}".format(lr))
-        if momentum < 0.0:
-            raise ValueError("Invalid momentum value: {}".format(momentum))
-        if weight_decay < 0.0:
-            raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
-
-        defaults = dict(lr=lr, momentum=momentum, eta=eta, dampening=dampening,
-                        weight_decay=weight_decay, nesterov=nesterov, epsilon=epsilon)
-        if nesterov and (momentum <= 0 or dampening != 0):
-            raise ValueError("Nesterov momentum requires a momentum and zero dampening")
-        super(LARS, self).__init__(params, defaults)
-
-    def __setstate__(self, state):
-        super(LARS, self).__setstate__(state)
-        for group in self.param_groups:
-            group.setdefault('nesterov', False)
-
-    def step(self, closure=None):
-        """Performs a single optimization step.
-
-        Arguments:
-            closure (callable, optional): A closure that reevaluates the model
-                and returns the loss.
-        """
-        loss = None
-        if closure is not None:
-            loss = closure()
-
-        for group in self.param_groups:
-            weight_decay = group['weight_decay']
-            momentum = group['momentum']
-            eta = group['eta']
-            dampening = group['dampening']
-            nesterov = group['nesterov']
-            epsilon = group['epsilon']
-
-            for p in group['params']:
-                if p.grad is None:
+    if len(cache) != len(closures):
+        raise ValueError('The number number of elements in both cache and closures must be the same - check to make sure the views are consistent.')
+    n_views = len(cache)
+    for i in range(n_views):
+        for closure_fn in closures[i]:
+            for key in cache[i].keys():
+                if key in ignore_keys:
                     continue
-                w_norm = torch.norm(p.data)
-                g_norm = torch.norm(p.grad.data)
-                if w_norm * g_norm > 0:
-                    local_lr = eta * w_norm / (g_norm +
-                        weight_decay * w_norm + epsilon)
-                else:
-                    local_lr = 1
-                d_p = p.grad.data
-                if weight_decay != 0:
-                    d_p.add_(p.data, alpha=weight_decay)
-                    # d_p.add_(weight_decay, p.data)
-                if momentum != 0:
-                    param_state = self.state[p]
-                    if 'momentum_buffer' not in param_state:
-                        buf = param_state['momentum_buffer'] = torch.clone(d_p).detach()
-                    else:
-                        buf = param_state['momentum_buffer']
-                    buf.mul_(momentum).add_(1 - dampening, d_p)
-                    if nesterov:
-                        d_p = d_p.add(momentum, buf)
-                    else:
-                        d_p = buf
-
-                p.data.add_(d_p, alpha=(-local_lr * group['lr']))
-
-        return loss
+                closure_fn(cache[i][key])
 
 
 
@@ -293,6 +200,7 @@ class ProfilerHistory:
         self.profiler_history_dict = {
             'epoch': [],
             'phase': [],
+            'step': [],
             'time': [],
             'mem_usage': [],
             'mem_alloc': [],
@@ -300,12 +208,14 @@ class ProfilerHistory:
             'power_draw': [],
             'gpu_util': [],
             'temperature': [],
+            'notes': [],
         }
     
-    def update(self, epoch: int, phase: str, time: int) -> None:
+    def update(self, epoch: int, phase: str, step: int, time: int, notes: Optional[str]=None) -> None:
         
         self.profiler_history_dict['epoch'].append(epoch)
         self.profiler_history_dict['phase'].append(phase)
+        self.profiler_history_dict['step'].append(step)
         self.profiler_history_dict['time'].append(time)
         self.profiler_history_dict['mem_usage'].append(torch.cuda.memory_usage(self.device))
         self.profiler_history_dict['mem_alloc'].append(torch.cuda.memory_allocated(self.device))
@@ -313,6 +223,9 @@ class ProfilerHistory:
         self.profiler_history_dict['power_draw'].append(torch.cuda.power_draw(self.device))
         self.profiler_history_dict['gpu_util'].append(torch.cuda.utilization(self.device))
         self.profiler_history_dict['temperature'].append(torch.cuda.temperature(self.device))
+        
+        self.profiler_history_dict['notes'].append(notes if notes is not None else '')
+        
     
     def save(self, path: str) -> None:
         
