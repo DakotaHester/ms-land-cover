@@ -396,8 +396,8 @@ def main():
     cache_contents = []
     if 'simclr' in args.pretrain_scheme:
         cache_contents.append('z')
-    if 'hsv' in args.pretrain_scheme:
-        cache_contents.extend(['y', 'y_hat'])
+        if 'hsv' in args.pretrain_scheme:
+            cache_contents.extend(['y', 'y_hat'])
     
     history_dict = {
         'learning_rate': [],
@@ -467,12 +467,17 @@ def main():
                     elif args.pretrain_scheme == 'hsv':
                         X, y = batch
                         X, y = X.to(device), y.to(device)
-                        y_hat, closure = utils.cached_model_call(model, X)
                         
-                        cache[0]['y'].append(y)
-                        cache[0]['y_hat'].append(y_hat)
-                        closures[0].append(closure)
-                                           
+                        y_hat = model(X)
+                        reconstruction_loss = F.mse_loss(y_hat, y, reduction='sum')
+                        reconstruction_loss_values.append(reconstruction_loss.item())
+                        
+                        if phase == 'train':
+                            if args.use_amp:
+                                scaler.scale(reconstruction_loss).backward()
+                            else:
+                                reconstruction_loss.backward()
+                        
                     elif args.pretrain_scheme == 'hsv_simclr':
                         for view in range(n_views):
                             X, y = batch[view]
@@ -493,10 +498,11 @@ def main():
                         tqdm_postfix['NT-Xent Loss'] = f'{epoch_contrastive_loss:.2e}'
                     
                     if 'hsv' in args.pretrain_scheme:
-                        reconstruction_loss = torch.tensor(0.0, device=device)
-                        for view in range(n_views):
-                            reconstruction_loss += utils.cached_mse_loss_call(cache[view]['y_hat'], cache[view]['y'])
-                        reconstruction_loss_values.append(reconstruction_loss.item())
+                        if args.pretrain_scheme == 'hsv_simclr':
+                            reconstruction_loss = torch.tensor(0.0, device=device)
+                            for view in range(n_views):
+                                reconstruction_loss += utils.cached_mse_loss_call(cache[view]['y_hat'], cache[view]['y'])
+                            reconstruction_loss_values.append(reconstruction_loss.item())
                         epoch_reconstruction_loss = np.sum(reconstruction_loss_values) / ((step * args.mini_batch_size) + len(batch)) 
                         tqdm_postfix['MSE Loss'] = f'{epoch_reconstruction_loss:.2e}'
                     
@@ -518,14 +524,18 @@ def main():
                             grad_optimizer.step()
                             
                         elif args.use_amp:
-                            scaler.scale(loss).backward()
-                            utils.call_closures(cache, closures)
+                            if args.pretrain_scheme != 'hsv': # backward pass already done for hsv only loss
+                                scaler.scale(loss).backward()
+                            if 'simclr' in args.pretrain_scheme: 
+                                utils.call_closures(cache, closures)
                             scaler.step(optimizer)
                             scaler.update()
                             
                         else:
-                            loss.backward()
-                            utils.call_closures(cache, closures)
+                            if args.pretrain_scheme != 'hsv': # backward pass already done for hsv only loss
+                                loss.backward()
+                            if 'simclr' in args.pretrain_scheme: 
+                                utils.call_closures(cache, closures)
                             optimizer.step()
                             
                         optimizer.zero_grad()
