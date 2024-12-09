@@ -27,3 +27,4 @@ weights
 old_notebooks
 
 *.pth
+logs
