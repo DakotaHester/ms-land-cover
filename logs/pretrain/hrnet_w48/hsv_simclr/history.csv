@@ -1,0 +1,2 @@
+,learning_rate,train_total_loss,train_reconstruction_loss,train_contrastive_loss,val_total_loss,val_reconstruction_loss,val_contrastive_loss
+0,0.006,14.796282931763542,17.192984914637886,14.265049370122027,14.82550321080378,15.690546249452963,14.355866871434129

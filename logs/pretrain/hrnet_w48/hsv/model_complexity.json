@@ -1,0 +1,6 @@
+{
+    "flops": 42749826048,
+    "macs": 21321940992,
+    "total_parameters": 65327283,
+    "trainable_parameters": 65327283
+}

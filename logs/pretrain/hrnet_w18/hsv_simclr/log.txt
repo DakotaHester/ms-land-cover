@@ -1,0 +1,32 @@
+[2024-12-07 08:50:38Z] Configuration:
+pretrain_scheme: hsv_simclr
+model: hrnet_w18
+pretrain_hdf5_path: /scratch/dhester/mslc/pretrain.hdf5
+pretrain_hdf5_group: pretrain
+pretrain_val_hdf5_group: pretrain_val
+pretrain_data_dir: /scratch/dhester/mslc/pretrain/
+pretrain_val_data_dir: /scratch/dhester/mslc/pretrain_val/
+num_epochs: 100
+early_stopping_patience: 35
+reduce_lr_patience: 10
+learning_rate_factor: 0.1
+full_batch_size: 1024
+mini_batch_size: 32
+log_dir: ./logs/pretrain/
+weights_dir: ./weights/
+seed: 1701
+num_workers: 16
+image_size: 256
+visualize_augmentations_dir: None
+use_amp: True
+use_pcgrad: True
+debug: False
+====================
+[2024-12-07 08:50:38Z] Using device: cuda
+[2024-12-07 08:50:38Z] Training dataset size: 377913
+[2024-12-07 08:50:38Z] Validation dataset size: 94480
+[2024-12-07 08:50:38Z] Training dataset mean: tensor([0.7582, 0.4206, 0.4773])
+[2024-12-07 08:50:38Z] Training dataset std: tensor([0.1544, 0.1729, 0.1456])
+[2024-12-07 08:50:38Z] Full batch size: 1024, Mini batch size: 32, Grad cache steps: 32
+[2024-12-07 08:50:40Z] Model GFLOPs: 8.74 | GMACs: 4.34 | Total Parameters: 9,671,599 | Trainable Parameters: 9,671,599
+[2024-12-07 08:50:40Z] Starting training...

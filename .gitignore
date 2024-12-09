@@ -23,3 +23,5 @@ data/splits/val/masks
 data/splits/train/masks
 data/splits/test/masks
 data/splits/pretrain/masks
+weights
+old_notebooks
