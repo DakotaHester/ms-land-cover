@@ -5,6 +5,7 @@ from torch.nn import functional as F
 from torch.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import SequentialLR, ReduceLROnPlateau, CosineAnnealingLR, LambdaLR
+from torch.optim import Adam
 from calflops import calculate_flops
 import numpy as np
 from argparse import ArgumentParser
@@ -100,7 +101,7 @@ def parse_arguments():
     parser.add_argument(
         '--learning_rate_factor',
         type=float,
-        default=.1,
+        default=.01,
         help='The factor by which to reduce the learning rate after loading the imagenet weights.',
     )
     
@@ -114,7 +115,7 @@ def parse_arguments():
     parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=32,
+        default=16,
         help='The mini-batch size to use for gradient caching.',
     )
     
@@ -132,6 +133,13 @@ def parse_arguments():
         help='The directory from which model weights will be loaded and saved.' + \
             'The directory should have the following structure: ' + \
                 'output_dir/model_name/imagenet.pth'
+    )
+    
+    parser.add_argument(
+        '--use_imagenet_weights',
+        default=False,
+        action='store_true',
+        help='Use the pretrained weights from the ImageNet classification task.',
     )
     
     parser.add_argument(
@@ -306,7 +314,9 @@ def main():
         img_decoder_activation='sigmoid' # sigmoid for HSV task - not mathematically necessary but y_true is in [0, 1] so it makes sense
     )
     imagenet_weights = torch.load(os.path.join(out_dir, 'imagenet.pth'), weights_only=True)
-    model.load_encoder_weights(imagenet_weights)
+    if args.use_imagenet_weights:
+        model.load_encoder_weights(imagenet_weights)
+        args.learning_rate_factor *= 0.01 # reduce the learning rate as model is pretrained
     model.to(device)
     
     flops, macs, _ = calculate_flops(
@@ -340,10 +350,16 @@ def main():
         ).to(device)
         params.extend(list(loss_weighter.parameters()))
     
-    optimizer = LARS(
+    # optimizer = LARS(
+    #     params=params,
+    #     lr=learning_rate, # per original SimCLR implementation
+    #     weight_decay=1e-6,
+    # )
+    
+    optimizer = Adam(
         params=params,
-        lr=learning_rate, # per original SimCLR implementation
-        weight_decay=1e-6,
+        lr=learning_rate,
+        # weight_decay=1e-6,
     )
     
     warmup_epochs = 10
@@ -435,9 +451,6 @@ def main():
 
             cache, closures = utils.init_grad_cache_closure_dicts(n_views, cache_contents)
             
-            reconstruction_loss = torch.tensor(0.0, device=device)
-            optimizer.zero_grad()
-
             for step, batch in enumerate(loader):
                             
                 with autocast(device.type, enabled=args.use_amp):
@@ -551,9 +564,10 @@ def main():
         
         scheduler.step()
         if epoch >= warmup_epochs: # wait until after warmup to call ReduceLROnPlateau
+            old_lr = optimizer.param_groups[0]['lr']
             lr_reducer.step(history_dict['val_total_loss'][-1])
             new_lr = optimizer.param_groups[0]['lr']
-            if lr != new_lr:
+            if old_lr != new_lr:
                 logger.log(f'No improvement in validation loss for {args.reduce_lr_patience} epochs. Reducing learning rate from {lr:.2e} to {new_lr:.2e}.')
 
 
