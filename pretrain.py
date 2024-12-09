@@ -444,12 +444,16 @@ def main():
                     unit='batch',
                     postfix=tqdm_postfix,
                 )
-
-            contrastive_loss_values = []
-            reconstruction_loss_values = []
-            total_loss_values = [] # adaptive weighting of the losses changes actual loss values
-
-            cache, closures = utils.init_grad_cache_closure_dicts(n_views, cache_contents)
+            
+            if 'simclr' in args.pretrain_scheme:
+                cache, closures = utils.init_grad_cache_closure_dicts(n_views, cache_contents)
+                contrastive_loss_values = []
+            
+            if 'hsv' in args.pretrain_scheme:
+                reconstruction_loss_values = []
+            
+            if args.pretrain_scheme == 'hsv_simclr':
+                total_loss_values = []
             
             for step, batch in enumerate(loader):
                             
