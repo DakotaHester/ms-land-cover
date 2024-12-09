@@ -1,7 +1,15 @@
+from contextlib import nullcontext
 import os
 from zipfile import ZipFile
 from subprocess import Popen
 from warnings import warn
+from rasterio import mask
+import rasterio as rio
+import numpy as np
+import pandas as pd
+from threading import Lock
+from time import sleep
+
 from ..utils import raise_if_not_exists
 import h5py
 from .utils import read_images
@@ -234,6 +242,139 @@ def preprocess_file(
     
     if pbar:
         pbar.update(1)
+
+
+
+def extract_mask(
+    sample: pd.Series, 
+    raster_dataset: rio.DatasetReader, 
+    lock: Optional[Lock]=None, 
+    pbar: Optional[tqdm]=None,
+) -> None:
+    """
+    Extracts a mask from a raster dataset for a given sample.
+
+    Parameters
+    ----------
+    sample : pd.Series
+        A pandas Series containing the sample data. Should have the following
+        columns:
+            - 'geometry': the geometry of the sample
+            - 'split': the split of the sample.
+    raster_dataset : rio.io.DatasetReader
+        A rasterio dataset reader object for the raster file. Should be 3-band imagery.
+    lock : Optional[Lock], optional
+        A threading lock to ensure thread-safe operations, by default None.
+    pbar : Optional[tqdm], optional
+        A tqdm progress bar object to update progress, by default None.
+
+    Returns
+    -------
+    None
+    """
+    
+    max_tries = 5
+    for i in range(max_tries):
+        try:
+            out_image, out_transform = mask(raster_dataset, [sample['geometry']], crop=True, all_touched=True)
+                
+        except Exception as e:
+            print(f'EXCEPTION: type({e}) raised while extracting mask for sample {sample.name} in split {sample['split']}: {e}')
+            print(f'Continuing to the next sample...')
+            if pbar is not None:
+                pbar.update(1)
+            return
+        
+        except Warning: # catch warnings and retry just in case
+            print(f'WARNING: type({e}) raised while extracting mask for sample {sample.name} in split {sample['split']}')
+            if i < max_tries:
+                print(f'Retrying... ({i+1}/{max_tries})')
+                sleep(1)
+                continue
+            
+            else:
+                print(f'ERROR: Failed after {max_tries} tries, continuing to the next sample...')
+                if pbar is not None:
+                    pbar.update(1)
+                return
+    
+    out_meta = raster_dataset.meta.copy()
+
+    if out_image.shape[1] > 256 or out_image.shape[2] > 256:
+        # crop the image to 256x256
+        out_image = out_image[:, :256, :256]
+
+    filename = str(sample.name)
+    if out_image.shape != (3, 256, 256):\
+        return
+    
+    # image nodata values are set to 0, even though 0 is a valid value for the image
+    # in order to check, we assume that any image that has at least 5% of pixels 
+    # where all three bands are set to the nodata value is invalid 
+    nd_values = np.array([raster_dataset.nodata] * 3)
+    pixels_with_nd = np.equal(out_image.transpose(1, 2, 0).reshape(-1, 3), nd_values).all(axis=1)
+    if pixels_with_nd.sum() > 0.05 * len(pixels_with_nd):
+        return
+    
+    out_meta.update({
+        'driver': 'GTiff',
+        'height': out_image.shape[1],
+        'width': out_image.shape[2],
+        'transform': out_transform,
+    })
+    
+    # need to segment and convert imgery to polygons for annotation later,
+    # having Null nodata values makes this process easier
+    if sample['split'] in ('train', 'val', 'test'):
+        out_meta['nodata'] = None
+    
+    out_path = os.path.join('data', 'splits', sample['split'], filename + '.tif')
+    os.makedirs(os.path.dirname(out_path), exist_ok=True)
+    
+    if lock is None: # if no lock is provided, create an empty context manager 
+        lock = nullcontext()
+    
+    with lock:
+        if os.path.exists(out_path):
+            os.remove(out_path) # remove the file if it already exists - this is a workaround for a bug in rasterio
+            
+        with rio.open(out_path, 'w', **out_meta) as dst:
+            dst.write(out_image)
+    
+    if pbar is not None:
+        pbar.update(1)
+
+
+
+def extract_masks_from_raster(
+    samples_group: pd.DataFrame, 
+    lock: Optional[Lock]=None, 
+    pbar: Optional[tqdm]=None,
+) -> None:
+    """
+    Extracts masks from a raster dataset for a group of samples.
+
+    Parameters
+    ----------
+    samples_group : pd.DataFrame
+        A pandas DataFrame containing the group of samples. Should have the following 
+        columns:
+            - 'geometry': the geometry of the sample
+            - 'split': the split of the sample
+            - 'raster_path': the path to the raster file
+    lock : Optional[Lock], optional
+        A threading lock to ensure thread-safe operations, by default None.
+    pbar : Optional[tqdm], optional
+        A tqdm progress bar object to update progress, by default None.
+
+    Returns
+    -------
+    None
+    """
+    raster_path = samples_group[0]
+    with rio.open(raster_path) as raster_dataset:
+        samples_group[1].apply(lambda x: extract_mask(x, raster_dataset, lock=lock, pbar=pbar), axis=1)
+
 
 
 
