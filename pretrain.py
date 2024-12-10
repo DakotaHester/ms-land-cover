@@ -404,8 +404,9 @@ def main():
     }
     for phase in ['train', 'val']:
         history_dict[f'{phase}_total_loss'] = []
-        history_dict[f'{phase}_reconstruction_loss'] = []
-        history_dict[f'{phase}_contrastive_loss'] = []
+        if args.pretrain_scheme == 'hsv_simclr':
+            history_dict[f'{phase}_reconstruction_loss'] = []
+            history_dict[f'{phase}_contrastive_loss'] = []
     
     profiler = utils.ProfilerHistory(device)
     profiler.update(epoch=-1, phase='init', step=0, time=0)
@@ -556,6 +557,9 @@ def main():
                 history_dict[f'{phase}_reconstruction_loss'].append(epoch_reconstruction_loss)
                 history_dict[f'{phase}_contrastive_loss'].append(epoch_contrastive_loss)
             
+            logger.log(f'Epoch {epoch+1} {phase.capitalize()} Loss: {epoch_loss:.5f}')
+            for k, v in tqdm_postfix.items():
+                logger.log(f'{phase.capitalize()} {k}: {v}', prepend_timestamp=False)
             profiler.save(os.path.join(log_dir, 'profiler.csv'))
             
         if epoch_loss < best_val_loss:
@@ -565,10 +569,16 @@ def main():
             torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}.pth'))
             torch.save(optimizer.state_dict(), os.path.join(log_dir, 'optimizer.pth'))
             torch.save(scheduler.state_dict(), os.path.join(log_dir, 'scheduler.pth'))
-            torch.save(scaler.state_dict(), os.path.join(log_dir, 'scaler.pth'))
+            if args.use_amp:
+                torch.save(scaler.state_dict(), os.path.join(log_dir, 'scaler.pth'))
+            if args.use_pcgrad:
+                torch.save(grad_optimizer.state_dict(), os.path.join(log_dir, 'grad_optimizer.pth'))
+            # torch.save(scaler.state_dict(), os.path.join(log_dir, 'scaler.pth'))
             with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
                     f.write(str(best_epoch)) # just in case
         
+        for k, v in history_dict.items():
+            print(k, v, len(v))
         history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch+1)))
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
                 
