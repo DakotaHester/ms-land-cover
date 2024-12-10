@@ -646,8 +646,8 @@ class HRNetSegmentationModel(nn.Module):
         
         self.encoder = get_cls_net(config)
         
-        if not (img_decoder_head or aux_simclr_head):
-            raise ValueError('At least one of `img_decoder_head` or `aux_simclr_head` must be True.')
+        # if not (img_decoder_head or aux_simclr_head):
+            # raise ValueError('At least one of `img_decoder_head` or `aux_simclr_head` must be True.')
         
         self.decoder = None
         if img_decoder_head:
