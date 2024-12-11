@@ -87,21 +87,21 @@ def parse_arguments():
     parser.add_argument(
         '--early_stopping_patience',
         type=int,
-        default=35,
+        default=15,
         help='The number of epochs to wait for validation loss improvement before stopping training.',
     )
     
     parser.add_argument(
         '--reduce_lr_patience',
         type=int,
-        default=10,
+        default=5,
         help='The number of epochs to wait for validation loss improvement before reducing the learning rate.',
     )
     
     parser.add_argument(
         '--learning_rate_factor',
         type=float,
-        default=.01,
+        default=.0001,
         help='The factor by which to reduce the learning rate after loading the imagenet weights.',
     )
     

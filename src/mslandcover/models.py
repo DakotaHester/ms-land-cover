@@ -16,6 +16,8 @@ import torch.nn as nn
 import torch._utils
 import torch.nn.functional as F
 
+from torchvision.models import ConvNeXt_Tiny_Weights, convnext_tiny
+
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)
 
@@ -681,6 +683,68 @@ class HRNetSegmentationModel(nn.Module):
     def forward(self, x: torch.Tensor) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         
         h = self.encoder(x)
+        
+        returns = []
+        if self.decoder is not None:
+            y = self.decoder(h)
+            if self.img_decoder_activation is not None:
+                y = self.img_decoder_activation(y)
+            returns.append(y)
+        
+        if self.projection_head is not None:
+            returns.append(self.projection_head(h))
+        
+        if len(returns) == 1:
+            return returns[0]
+
+        return tuple(returns)
+
+
+
+class ConvNextTinyAutoencoder(nn.Module):
+    
+    def __init__(self, 
+        img_decoder_head: bool=True,
+        use_simple_decoder: bool=True, # if True, use SimpleImageDecoderHead, else use ImageDecoderHead with multiple blocks
+        img_decoder_activation: str='sigmoid',
+        num_classes: int=3, 
+        aux_simclr_head: bool=False,
+        pretrained: bool=True
+    ):
+        super(ConvNextTinyAutoencoder, self).__init__()
+        
+        weights = ConvNeXt_Tiny_Weights.IMAGENET1K_V1 if pretrained else None
+        self.encoder = convnext_tiny(weights=weights).features
+        
+        self.decoder = None
+        if img_decoder_head:
+            if use_simple_decoder:
+                self.decoder = SimpleImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes)
+            else:
+                self.decoder = ImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes, num_blocks=config['IMAGE_DECODER']['NUM_BLOCKS'])
+            
+            self.img_decoder_activation = None
+            if img_decoder_activation == 'sigmoid':
+                self.img_decoder_activation = nn.Sigmoid()
+            elif img_decoder_activation == 'softmax':
+                self.img_decoder_activation = nn.Softmax(dim=1)
+            else:
+                self.img_decoder_activation = None
+                    
+        self.projection_head = None
+        if aux_simclr_head:
+            self.projection_head = ProjectionHead(in_channels=self.encoder_output_channels)
+    
+    
+    def forward(self, x: torch.Tensor) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+        
+        reps = []
+        for i, layer in self.encoder:
+            x = layer(x)
+            if (i+1) % 2 == 0:
+                reps.append(F.interpolate(x, (x.shape[3], x.shape[4]), mode='bilinear', align_corners=True))
+        
+        h = torch.cat(reps, 1)
         
         returns = []
         if self.decoder is not None:
