@@ -205,7 +205,11 @@ def main():
     np.random.seed(args.seed)
     
     log_dir = os.path.join(args.log_dir, args.model, args.pretrain_scheme)
+    if not args.use_imagenet_weights:
+        log_dir += '_randinit'
     out_dir = os.path.join(args.weights_dir, args.model)
+    if not args.use_imagenet_weights:
+        out_dir += '_randinit'
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
     
