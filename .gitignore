@@ -28,3 +28,4 @@ old_notebooks
 
 *.pth
 logs
+/data/splits/pretrain.hdf5

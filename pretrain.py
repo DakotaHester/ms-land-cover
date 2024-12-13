@@ -577,8 +577,6 @@ def main():
             with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
                     f.write(str(best_epoch)) # just in case
         
-        for k, v in history_dict.items():
-            print(k, v, len(v))
         history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch+1)))
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
                 

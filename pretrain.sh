@@ -1,6 +1,6 @@
-for model in hrnet_w18 hrnet_w48
+for model in hrnet_w18
 do
-    for pretrain_scheme in hsv_simclr hsv simclr
+    for pretrain_scheme in hsv simclr
     do
         for weights in '--use_imagenet_weights' ''
         do
