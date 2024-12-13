@@ -205,7 +205,11 @@ def main():
     np.random.seed(args.seed)
     
     log_dir = os.path.join(args.log_dir, args.model, args.pretrain_scheme)
+    if not args.use_imagenet_weights:
+        log_dir += '_randinit'
     out_dir = os.path.join(args.weights_dir, args.model)
+    if not args.use_imagenet_weights:
+        out_dir += '_randinit'
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
     
@@ -577,8 +581,6 @@ def main():
             with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
                     f.write(str(best_epoch)) # just in case
         
-        for k, v in history_dict.items():
-            print(k, v, len(v))
         history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch+1)))
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
                 
