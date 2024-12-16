@@ -658,13 +658,13 @@ class HRNetSegmentationModel(nn.Module):
             else:
                 self.decoder = ImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes, num_blocks=config['IMAGE_DECODER']['NUM_BLOCKS'])
             
-            self.img_decoder_activation = None
+            # self.img_decoder_activation = nn.Identity()
             if img_decoder_activation == 'sigmoid':
                 self.img_decoder_activation = nn.Sigmoid()
             elif img_decoder_activation == 'softmax':
                 self.img_decoder_activation = nn.Softmax(dim=1)
             else:
-                self.img_decoder_activation = None
+                self.img_decoder_activation = nn.Identity()
                     
         self.projection_head = None
         if aux_simclr_head:
@@ -687,8 +687,7 @@ class HRNetSegmentationModel(nn.Module):
         returns = []
         if self.decoder is not None:
             y = self.decoder(h)
-            if self.img_decoder_activation is not None:
-                y = self.img_decoder_activation(y)
+            y = self.img_decoder_activation(y)
             returns.append(y)
         
         if self.projection_head is not None:

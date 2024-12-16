@@ -189,6 +189,24 @@ def hsv_to_rgb(hsv: torch.Tensor) -> torch.Tensor:
 
 
 
+def add_gaussian_noise(tensor: torch.Tensor, mean: float=0.0, std: float=0.1) -> torch.Tensor:
+    
+    return tensor + (torch.randn_like(tensor) * std + mean).to(tensor.device)
+
+
+
+def add_poisson_noise(tensor: torch.Tensor, lam: float=0.1) -> torch.Tensor:
+    
+    return tensor + torch.poisson(torch.ones_like(tensor) * lam).to(tensor.device)
+
+
+
+def add_noise(tensor: torch.Tensor, std: float=0.1, lam: float=0.1) -> torch.Tensor:
+    
+    return add_gaussian_noise(tensor, std=std) + add_poisson_noise(tensor, lam=lam) - tensor
+
+
+
 class SimCLRDataAugmentation:
     """
     Data Transformer for creating a pair of views from an image.
@@ -257,7 +275,8 @@ class StandardDataAugmentations:
 def visualize_transforms(
     out_dir: str,
     n_views: int, 
-    return_hsv: bool, 
+    return_hsv: bool,
+    noisy_input: bool,
     dataset: torch.utils.data.Dataset, 
     data_paths: List[str], 
     pretrain_schema: str,
@@ -303,7 +322,39 @@ def visualize_transforms(
                     hsv = (hsv * 255).astype(np.uint8)
                     hsv = cv.cvtColor(hsv, cv.COLOR_RGB2BGR)
                     cv.imwrite(os.path.join(out_path, f'{i}_view_{view}_hsv.png'), hsv)
-                    
+        
+        elif noisy_input:
+            if n_views == 1:
+                noisy_X, X = dataset[im_index]
+                X = X.permute(1, 2, 0)
+                X = ((X * std) + mean) * 255
+                X = X.int().cpu().numpy().astype(np.uint8)
+                X = cv.cvtColor(X, cv.COLOR_RGB2BGR)
+                cv.imwrite(os.path.join(out_path, f'{i}_view_0.png'), X)
+                
+                noisy_X = noisy_X.permute(1, 2, 0)
+                noisy_X = ((noisy_X * std) + mean) * 255
+                noisy_X = torch.clamp(noisy_X, min=0, max=255)
+                noisy_X = noisy_X.int().cpu().numpy().astype(np.uint8)
+                noisy_X = cv.cvtColor(noisy_X, cv.COLOR_RGB2BGR)
+                cv.imwrite(os.path.join(out_path, f'{i}_view_0_noisy.png'), noisy_X)
+            
+            else:
+                for view in range(n_views):
+                    noisy_X, X = dataset[im_index][view]
+                    X = X.permute(1, 2, 0)
+                    X = ((X * std) + mean) * 255
+                    X = X.int().cpu().numpy().astype(np.uint8)
+                    X = cv.cvtColor(X, cv.COLOR_RGB2BGR)
+                    cv.imwrite(os.path.join(out_path, f'{i}_view_{view}.png'), X)
+
+                    noisy_X = noisy_X.permute(1, 2, 0)
+                    noisy_X = ((noisy_X * std) + mean) * 255
+                    noisy_X = torch.clamp(noisy_X, min=0, max=255)
+                    noisy_X = noisy_X.int().cpu().numpy().astype(np.uint8)
+                    noisy_X = cv.cvtColor(noisy_X, cv.COLOR_RGB2BGR)
+                    cv.imwrite(os.path.join(out_path, f'{i}_view_{view}_noisy.png'), noisy_X)
+                
         else:
             if n_views == 1:
                 X= dataset[im_index]

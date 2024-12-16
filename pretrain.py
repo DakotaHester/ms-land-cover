@@ -30,9 +30,9 @@ def parse_arguments():
     parser.add_argument(
         '--pretrain_scheme',
         type=str,
-        default='hsv_simclr',
-        choices=['hsv', 'simclr', 'hsv_simclr'],
-        help='The pretraining scheme to use. One of ["hsv", "simclr", "hsv_simclr"].',
+        default='dae_simclr',
+        choices=['hsv', 'simclr', 'hsv_simclr', 'dae', 'dae_simclr'],
+        help='The pretraining scheme to use. One of ["hsv", "simclr", "hsv_simclr", "dae", "dae_simclr"].',
     )
     
     parser.add_argument(
@@ -220,6 +220,11 @@ def main():
         logger.log(f'{k}: {v}', prepend_timestamp=False)
     logger.log('='*20, prepend_timestamp=False)
     
+    is_contrastive = 'simclr' in args.pretrain_scheme
+    is_reconstruction = 'hsv' in args.pretrain_scheme or 'dae' in args.pretrain_scheme
+    is_multitask = is_contrastive and is_reconstruction
+        
+    
     device = utils.get_torch_device()
     logger.log(f'Using device: {device}')
     if device.type == 'cuda':
@@ -227,10 +232,11 @@ def main():
         torch.backends.cudnn.deterministic = True
         torch.cuda.manual_seed_all(args.seed)
     
-    transform = transforms.SimCLRDataAugmentation(size=args.image_size) if 'simclr' in args.pretrain_scheme \
+    transform = transforms.SimCLRDataAugmentation(size=args.image_size) if is_contrastive \
         else transforms.StandardDataAugmentations()
     return_hsv = 'hsv' in args.pretrain_scheme
-    n_views = 2 if 'simclr' in args.pretrain_scheme else 1
+    noisy_input = 'dae' in args.pretrain_scheme
+    n_views = 2 if is_contrastive else 1
     
     mean_path = os.path.join(args.weights_dir, 'pretrain_mean.pth')
     std_path = os.path.join(args.weights_dir, 'pretrain_std.pth')
@@ -246,6 +252,7 @@ def main():
         mean=mean,
         std=std,
         return_hsv=return_hsv,
+        noisy_input=noisy_input,
     )
     val_dataset = PreTrainDataset(
         hdf5_path=args.pretrain_hdf5_path,
@@ -255,6 +262,7 @@ def main():
         std=train_dataset.std,
         transform=None,
         return_hsv=return_hsv,
+        noisy_input=noisy_input,
     )
     
     if args.debug:
@@ -262,7 +270,7 @@ def main():
         val_dataset.ids_list = val_dataset.ids_list[:512]
         
         args.full_batch_size = 512
-        args.mini_batch_size = 32
+        args.mini_batch_size = 16
     
     logger.log(f'Training dataset size: {len(train_dataset)}')
     logger.log(f'Validation dataset size: {len(val_dataset)}')
@@ -302,6 +310,7 @@ def main():
             args.visualize_augmentations_dir,
             n_views,
             return_hsv,
+            noisy_input,
             train_dataset,
             glob(os.path.join(args.pretrain_data_dir, '*.tif')),
             args.pretrain_scheme,
@@ -313,12 +322,12 @@ def main():
     model_config = config.HRNET_W48_CONFIG if args.model == 'hrnet_w48' else config.HRNET_W18_CONFIG
     model = HRNetSegmentationModel(
         config=model_config,
-        img_decoder_head='hsv' in args.pretrain_scheme,
-        aux_simclr_head='simclr' in args.pretrain_scheme,
-        img_decoder_activation='sigmoid' # sigmoid for HSV task - not mathematically necessary but y_true is in [0, 1] so it makes sense
+        img_decoder_head=is_reconstruction,
+        aux_simclr_head=is_contrastive,
+        img_decoder_activation='sigmoid' if 'hsv' in args.pretrain_scheme else 'none',
     )
-    imagenet_weights = torch.load(os.path.join(out_dir, 'imagenet.pth'), weights_only=True)
     if args.use_imagenet_weights:
+        imagenet_weights = torch.load(os.path.join(out_dir, 'imagenet.pth'), weights_only=True)
         model.load_encoder_weights(imagenet_weights)
         args.learning_rate_factor *= 0.01 # reduce the learning rate as model is pretrained
     model.to(device)
@@ -348,7 +357,7 @@ def main():
     # note: uncertainty based loss weighting usedo for multi-task learning, params 
     # need to be included in the optimizer
     params = list(model.parameters())
-    if args.pretrain_scheme == 'hsv_simclr':
+    if is_multitask:
         loss_weighter = UncertainLossWeighter(
             num_tasks=2,
         ).to(device)
@@ -388,8 +397,8 @@ def main():
     if args.use_amp:
         scaler = GradScaler() # AMP for gradient scaling
     
-    args.use_pcgrad = args.use_pcgrad and (args.pretrain_scheme == 'hsv_simclr') # only use PCGrad for SimCLR + HSV task
-    # Gradient Surgery (projected conflicting gradients) - only used for SimCLR + HSV task as u
+    args.use_pcgrad = args.use_pcgrad and is_multitask 
+    # Gradient Surgery (projected conflicting gradients) - only used for multi-task learning
     if args.use_pcgrad:
         grad_optimizer = PCGradAMP(
             num_tasks=2,
@@ -398,9 +407,9 @@ def main():
         )
     
     cache_contents = []
-    if 'simclr' in args.pretrain_scheme:
+    if is_contrastive:
         cache_contents.append('z')
-        if 'hsv' in args.pretrain_scheme:
+        if 'hsv' in args.pretrain_scheme or 'dae' in args.pretrain_scheme:
             cache_contents.extend(['y', 'y_hat'])
     
     history_dict = {
@@ -408,7 +417,7 @@ def main():
     }
     for phase in ['train', 'val']:
         history_dict[f'{phase}_total_loss'] = []
-        if args.pretrain_scheme == 'hsv_simclr':
+        if args.pretrain_scheme == 'hsv_simclr' or args.pretrain_scheme == 'dae_simclr':
             history_dict[f'{phase}_reconstruction_loss'] = []
             history_dict[f'{phase}_contrastive_loss'] = []
     
@@ -450,21 +459,21 @@ def main():
                     postfix=tqdm_postfix,
                 )
             
-            if 'simclr' in args.pretrain_scheme:
+            if is_contrastive:
                 cache, closures = utils.init_grad_cache_closure_dicts(n_views, cache_contents)
                 contrastive_loss_values = []
             
-            if 'hsv' in args.pretrain_scheme:
+            if 'hsv' in args.pretrain_scheme or 'dae' in args.pretrain_scheme:
                 reconstruction_loss_values = []
             
-            if args.pretrain_scheme == 'hsv_simclr':
+            if args.pretrain_scheme == 'hsv_simclr' or args.pretrain_scheme == 'dae_simclr':
                 total_loss_values = []
             
             for step, batch in enumerate(loader):
                             
                 with autocast(device.type, enabled=args.use_amp):
                     
-                    if args.pretrain_scheme == 'simclr':
+                    if is_contrastive and not is_multitask:
                         for view in range(n_views):
                             X = batch[view]
                             X = X.to(device)
@@ -473,7 +482,7 @@ def main():
                             cache[view]['z'].append(z)
                             closures[view].append(closure)
                         
-                    elif args.pretrain_scheme == 'hsv':
+                    elif is_reconstruction and not is_multitask:
                         X, y = batch
                         X, y = X.to(device), y.to(device)
                         
@@ -487,7 +496,7 @@ def main():
                             else:
                                 reconstruction_loss.backward()
                         
-                    elif args.pretrain_scheme == 'hsv_simclr':
+                    elif is_multitask:
                         for view in range(n_views):
                             X, y = batch[view]
                             X, y = X.to(device), y.to(device)
@@ -500,14 +509,14 @@ def main():
                         
                 if (step + 1) % grad_accum_steps == 0:
                                                             
-                    if 'simclr' in args.pretrain_scheme:
+                    if is_contrastive:
                         contrastive_loss = utils.cached_contrastive_loss_call(cache[0]['z'], cache[1]['z'])
                         contrastive_loss_values.append(contrastive_loss.item())
                         epoch_contrastive_loss = np.sum(contrastive_loss_values) / ((step * args.mini_batch_size) + len(batch)) 
                         tqdm_postfix['NT-Xent Loss'] = f'{epoch_contrastive_loss:.2e}'
                     
-                    if 'hsv' in args.pretrain_scheme:
-                        if args.pretrain_scheme == 'hsv_simclr':
+                    if is_reconstruction:
+                        if is_multitask:
                             reconstruction_loss = torch.tensor(0.0, device=device)
                             for view in range(n_views):
                                 reconstruction_loss += utils.cached_mse_loss_call(cache[view]['y_hat'], cache[view]['y'])
@@ -515,7 +524,7 @@ def main():
                         epoch_reconstruction_loss = np.sum(reconstruction_loss_values) / ((step * args.mini_batch_size) + len(batch)) 
                         tqdm_postfix['MSE Loss'] = f'{epoch_reconstruction_loss:.2e}'
                     
-                    if args.pretrain_scheme == 'hsv_simclr':
+                    if is_multitask:
                         loss = [contrastive_loss, reconstruction_loss]
                         loss = loss_weighter(loss)
                         total_loss_values.append(sum([l.item() for l in loss]))
@@ -523,8 +532,8 @@ def main():
                         tqdm_postfix['Total Loss'] = f'{epoch_loss:.2e}'
                     
                     else:
-                        loss = contrastive_loss if 'simclr' in args.pretrain_scheme else reconstruction_loss
-                        epoch_loss = epoch_contrastive_loss if 'simclr' in args.pretrain_scheme else epoch_reconstruction_loss
+                        loss = contrastive_loss if is_contrastive else reconstruction_loss
+                        epoch_loss = epoch_contrastive_loss if is_contrastive else epoch_reconstruction_loss
                     
                     if phase == 'train':
                         if args.use_pcgrad:
@@ -533,17 +542,17 @@ def main():
                             grad_optimizer.step()
                             
                         elif args.use_amp:
-                            if args.pretrain_scheme != 'hsv': # backward pass already done for hsv only loss
+                            if not is_reconstruction: # backward pass already done for hsv only loss
                                 scaler.scale(loss).backward()
-                            if 'simclr' in args.pretrain_scheme: 
+                            if is_contrastive: 
                                 utils.call_closures(cache, closures)
                             scaler.step(optimizer)
                             scaler.update()
                             
                         else:
-                            if args.pretrain_scheme != 'hsv': # backward pass already done for hsv only loss
+                            if not is_reconstruction: # backward pass already done for hsv only loss
                                 loss.backward()
-                            if 'simclr' in args.pretrain_scheme: 
+                            if is_contrastive: 
                                 utils.call_closures(cache, closures)
                             optimizer.step()
                             

@@ -23,6 +23,7 @@ class PreTrainDataset(Dataset):
         std: Optional[np.ndarray]=None,
         transform: Optional[transforms.Compose]=T.SimCLRDataAugmentation(),
         return_hsv: bool=False,
+        noisy_input: bool=False,
         return_metadata: bool=False,
         device: torch.device=torch.device('cpu'),
         batch_size_for_stats: int=1024,
@@ -40,6 +41,9 @@ class PreTrainDataset(Dataset):
         
         if return_metadata and isinstance(transform, T.SimCLRDataAugmentation):
             raise ValueError('return_metadata=True is not supported when using SimCLRDataAugmentation.')
+
+        if return_hsv and noisy_input:
+            raise ValueError('Cannot return hsv and noisy input at the same time.')
         
         self.hdf5_path = hdf5_path
         self.hdf5_group = hdf5_group
@@ -47,6 +51,7 @@ class PreTrainDataset(Dataset):
         self.n_views = n_views
         self.transform = transform
         self.return_hsv = return_hsv
+        self.noisy_input = noisy_input
         self.return_metadata = return_metadata
         self.device = device
         
@@ -131,10 +136,18 @@ class PreTrainDataset(Dataset):
                 hsv = T.rgb_to_hsv(view)
                 view = T.normalize(view, mean=self.mean, std=self.std)
                 returns.append((view.to(self.device), hsv.to(self.device)))
-            else:
+            
+            elif self.noisy_input:
+                # randomly add gaussian noise and random noise to the input
+                # both std and lam are randomly sampled from a uniform distribution [0, 1)
                 view = T.normalize(view, mean=self.mean, std=self.std)
+                noisy_view = T.add_noise(view, std=torch.rand(1), lam=torch.rand(1))
+                returns.append((noisy_view.to(self.device), view.to(self.device)))
+            
+            else:
+                view = T.normalize(view, mean=self.mean, std=self.std)                
                 returns.append(view.to(self.device))
-        
+                
         if self.return_metadata:
             returns.append(meta)
         
