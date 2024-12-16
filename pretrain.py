@@ -223,7 +223,6 @@ def main():
     is_contrastive = 'simclr' in args.pretrain_scheme
     is_reconstruction = 'hsv' in args.pretrain_scheme or 'dae' in args.pretrain_scheme
     is_multitask = is_contrastive and is_reconstruction
-        
     
     device = utils.get_torch_device()
     logger.log(f'Using device: {device}')
@@ -409,7 +408,7 @@ def main():
     cache_contents = []
     if is_contrastive:
         cache_contents.append('z')
-        if 'hsv' in args.pretrain_scheme or 'dae' in args.pretrain_scheme:
+        if is_multitask:
             cache_contents.extend(['y', 'y_hat'])
     
     history_dict = {
@@ -417,7 +416,7 @@ def main():
     }
     for phase in ['train', 'val']:
         history_dict[f'{phase}_total_loss'] = []
-        if args.pretrain_scheme == 'hsv_simclr' or args.pretrain_scheme == 'dae_simclr':
+        if is_multitask:
             history_dict[f'{phase}_reconstruction_loss'] = []
             history_dict[f'{phase}_contrastive_loss'] = []
     
@@ -463,10 +462,10 @@ def main():
                 cache, closures = utils.init_grad_cache_closure_dicts(n_views, cache_contents)
                 contrastive_loss_values = []
             
-            if 'hsv' in args.pretrain_scheme or 'dae' in args.pretrain_scheme:
+            if is_reconstruction:
                 reconstruction_loss_values = []
             
-            if args.pretrain_scheme == 'hsv_simclr' or args.pretrain_scheme == 'dae_simclr':
+            if is_multitask:
                 total_loss_values = []
             
             for step, batch in enumerate(loader):
@@ -542,7 +541,7 @@ def main():
                             grad_optimizer.step()
                             
                         elif args.use_amp:
-                            if not is_reconstruction: # backward pass already done for hsv only loss
+                            if not is_reconstruction: # backward pass already done for reconstruction loss
                                 scaler.scale(loss).backward()
                             if is_contrastive: 
                                 utils.call_closures(cache, closures)
@@ -550,7 +549,7 @@ def main():
                             scaler.update()
                             
                         else:
-                            if not is_reconstruction: # backward pass already done for hsv only loss
+                            if not is_reconstruction: # backward pass already done for reconstruction loss
                                 loss.backward()
                             if is_contrastive: 
                                 utils.call_closures(cache, closures)
@@ -566,7 +565,7 @@ def main():
                 profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                                 
             history_dict[f'{phase}_total_loss'].append(epoch_loss)            
-            if args.pretrain_scheme == 'hsv_simclr':
+            if is_multitask:
                 history_dict[f'{phase}_reconstruction_loss'].append(epoch_reconstruction_loss)
                 history_dict[f'{phase}_contrastive_loss'].append(epoch_contrastive_loss)
             
