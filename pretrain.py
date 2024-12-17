@@ -136,10 +136,10 @@ def parse_arguments():
     )
     
     parser.add_argument(
-        '--use_imagenet_weights',
+        '--rand_init',
         default=False,
         action='store_true',
-        help='Use the pretrained weights from the ImageNet classification task.',
+        help='Use random initialization for the model instead of Imagenet weights.',
     )
     
     parser.add_argument(
@@ -205,10 +205,10 @@ def main():
     np.random.seed(args.seed)
     
     log_dir = os.path.join(args.log_dir, args.model, args.pretrain_scheme)
-    if not args.use_imagenet_weights:
+    if args.rand_init:
         log_dir += '_randinit'
     out_dir = os.path.join(args.weights_dir, args.model)
-    if not args.use_imagenet_weights:
+    if args.rand_init:
         out_dir += '_randinit'
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
@@ -325,7 +325,7 @@ def main():
         aux_simclr_head=is_contrastive,
         img_decoder_activation='sigmoid' if 'hsv' in args.pretrain_scheme else 'none',
     )
-    if args.use_imagenet_weights:
+    if not args.rand_init:
         imagenet_weights = torch.load(os.path.join(out_dir, 'imagenet.pth'), weights_only=True)
         model.load_encoder_weights(imagenet_weights)
         args.learning_rate_factor *= 0.01 # reduce the learning rate as model is pretrained
@@ -575,14 +575,16 @@ def main():
             logger.log(f'Validation loss improved from {best_val_loss:.5f} at epoch {best_epoch} to {epoch_loss:.5f} during epoch {epoch}. Saving model...')
             best_val_loss = epoch_loss
             best_epoch = epoch
+            checkpoint = {
+                'epoch': epoch,
+                'model': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'scheduler': scheduler.state_dict(),
+                'scaler': scaler.state_dict() if args.use_amp else None,
+                'grad_optimizer': grad_optimizer.state_dict() if args.use_pcgrad else None,
+            }
+            torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
             torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}.pth'))
-            torch.save(optimizer.state_dict(), os.path.join(log_dir, 'optimizer.pth'))
-            torch.save(scheduler.state_dict(), os.path.join(log_dir, 'scheduler.pth'))
-            if args.use_amp:
-                torch.save(scaler.state_dict(), os.path.join(log_dir, 'scaler.pth'))
-            if args.use_pcgrad:
-                torch.save(grad_optimizer.state_dict(), os.path.join(log_dir, 'grad_optimizer.pth'))
-            # torch.save(scaler.state_dict(), os.path.join(log_dir, 'scaler.pth'))
             with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
                     f.write(str(best_epoch)) # just in case
         
