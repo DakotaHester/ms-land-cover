@@ -569,9 +569,6 @@ def main():
                 history_dict[f'{phase}_reconstruction_loss'].append(epoch_reconstruction_loss)
                 history_dict[f'{phase}_contrastive_loss'].append(epoch_contrastive_loss)
             
-            logger.log(f'Epoch {epoch+1} {phase.capitalize()} Loss: {epoch_loss:.5f}')
-            for k, v in tqdm_postfix.items():
-                logger.log(f'{phase.capitalize()} {k}: {v}', prepend_timestamp=False)
             profiler.save(os.path.join(log_dir, 'profiler.csv'))
             
         if epoch_loss < best_val_loss:

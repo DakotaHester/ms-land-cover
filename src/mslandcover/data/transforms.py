@@ -190,19 +190,16 @@ def hsv_to_rgb(hsv: torch.Tensor) -> torch.Tensor:
 
 
 def add_gaussian_noise(tensor: torch.Tensor, mean: float=0.0, std: float=0.1) -> torch.Tensor:
-    
     return tensor + (torch.randn_like(tensor) * std + mean).to(tensor.device)
 
 
 
 def add_poisson_noise(tensor: torch.Tensor, lam: float=0.1) -> torch.Tensor:
-    
     return tensor + torch.poisson(torch.ones_like(tensor) * lam).to(tensor.device)
 
 
 
 def add_noise(tensor: torch.Tensor, std: float=0.1, lam: float=0.1) -> torch.Tensor:
-    
     return add_gaussian_noise(tensor, std=std) + add_poisson_noise(tensor, lam=lam) - tensor
 
 

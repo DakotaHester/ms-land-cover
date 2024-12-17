@@ -139,9 +139,13 @@ class PreTrainDataset(Dataset):
             
             elif self.noisy_input:
                 # randomly add gaussian noise and random noise to the input
-                # both std and lam are randomly sampled from a uniform distribution [0, 1)
+                # both std and lam are randomly sampled from a uniform distribution [0, 1/n_views)
+                # 1/n_views is used to ensure that the noise is not too strong for
+                # the model to learn the underlying structure of the data under
+                # a contrastive learning framework.
                 view = T.normalize(view, mean=self.mean, std=self.std)
-                noisy_view = T.add_noise(view, std=torch.rand(1), lam=torch.rand(1))
+                std, lam = torch.rand(1).item() / self.n_views, torch.rand(1).item() / self.n_views
+                noisy_view = T.add_noise(view, std=std, lam=lam)
                 returns.append((noisy_view.to(self.device), view.to(self.device)))
             
             else:
