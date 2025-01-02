@@ -205,12 +205,20 @@ class ProfilerHistory:
         self.profiler_history_dict['phase'].append(phase)
         self.profiler_history_dict['step'].append(step)
         self.profiler_history_dict['time'].append(time)
-        self.profiler_history_dict['mem_usage'].append(torch.cuda.memory_usage(self.device))
-        self.profiler_history_dict['mem_alloc'].append(torch.cuda.memory_allocated(self.device))
-        self.profiler_history_dict['mem_cache'].append(torch.cuda.memory_reserved(self.device))
-        self.profiler_history_dict['power_draw'].append(torch.cuda.power_draw(self.device))
-        self.profiler_history_dict['gpu_util'].append(torch.cuda.utilization(self.device))
-        self.profiler_history_dict['temperature'].append(torch.cuda.temperature(self.device))
+        
+        for key, func in [
+            ('mem_usage', torch.cuda.memory_usage),
+            ('mem_alloc', torch.cuda.memory_allocated),
+            ('mem_cache', torch.cuda.memory_reserved),
+            ('power_draw', torch.cuda.power_draw),
+            ('gpu_util', torch.cuda.utilization),
+            ('temperature', torch.cuda.temperature),
+        ]:
+            try:
+                self.profiler_history_dict[key].append(func(self.device))
+            except:
+                self.profiler_history_dict[key].append(-1)
+        
         
         self.profiler_history_dict['notes'].append(notes if notes is not None else '')
         
