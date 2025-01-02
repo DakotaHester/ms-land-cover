@@ -31,8 +31,8 @@ def parse_arguments():
         '--pretrain_scheme',
         type=str,
         default='dae_simclr',
-        choices=['hsv', 'simclr', 'hsv_simclr', 'dae', 'dae_simclr', 'dae_hsv', 'dae_hsv_simclr'],
-        help='The pretraining scheme to use. One of ()"hsv", "simclr", "hsv_simclr", "dae", "dae_simclr", "dae_hsv", "dae_hsv_simclr").',
+        choices=['ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr'],
+        help='The pretraining scheme to use. One of [ae, dae, hsv, dae_hsv, simclr, ae_simclr, dae_simclr, hsv_simclr, dae_hsv_simclr].',
     )
     
     parser.add_argument(
@@ -214,7 +214,7 @@ def main():
     logger.log('='*20, prepend_timestamp=False)
     
     is_contrastive = 'simclr' in args.pretrain_scheme
-    is_reconstruction = 'hsv' in args.pretrain_scheme or 'dae' in args.pretrain_scheme
+    is_reconstruction = 'hsv' in args.pretrain_scheme or 'dae' in args.pretrain_scheme or 'ae' in args.pretrain_scheme
     is_multitask = is_contrastive and is_reconstruction
     
     device = utils.get_torch_device()

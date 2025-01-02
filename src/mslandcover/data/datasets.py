@@ -145,9 +145,9 @@ class PreTrainDataset(Dataset):
                     returns.append((norm_view.to(self.device), hsv.to(self.device)))
             else:
                 if self.noisy_input:
-                    returns.append(noisy_view.to(self.device), norm_view.to(self.device))
+                    returns.append((noisy_view.to(self.device), norm_view.to(self.device)))
                 else:
-                    returns.append(norm_view.to(self.device))
+                    returns.append((norm_view.to(self.device), norm_view.to(self.device)))
                 
         if self.return_metadata:
             returns.append(meta)
