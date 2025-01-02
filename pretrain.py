@@ -94,7 +94,7 @@ def parse_arguments():
     parser.add_argument(
         '--learning_rate_factor',
         type=float,
-        default=.001,
+        default=.0001,
         help='The factor by which to reduce the learning rate after loading the imagenet weights.',
     )
     
