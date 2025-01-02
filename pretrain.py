@@ -31,8 +31,8 @@ def parse_arguments():
         '--pretrain_scheme',
         type=str,
         default='dae_simclr',
-        choices=['hsv', 'simclr', 'hsv_simclr', 'dae', 'dae_simclr', 'dae_hsv_simclr'],
-        help='The pretraining scheme to use. One of ()"hsv", "simclr", "hsv_simclr", "dae", "dae_simclr", "dae_hsv_simclr").',
+        choices=['hsv', 'simclr', 'hsv_simclr', 'dae', 'dae_simclr', 'dae_hsv', 'dae_hsv_simclr'],
+        help='The pretraining scheme to use. One of ()"hsv", "simclr", "hsv_simclr", "dae", "dae_simclr", "dae_hsv", "dae_hsv_simclr").',
     )
     
     parser.add_argument(
@@ -92,16 +92,9 @@ def parse_arguments():
     )
     
     parser.add_argument(
-        '--reduce_lr_patience',
-        type=int,
-        default=5,
-        help='The number of epochs to wait for validation loss improvement before reducing the learning rate.',
-    )
-    
-    parser.add_argument(
         '--learning_rate_factor',
         type=float,
-        default=.0001,
+        default=.001,
         help='The factor by which to reduce the learning rate after loading the imagenet weights.',
     )
     
@@ -328,7 +321,7 @@ def main():
     if not args.rand_init:
         imagenet_weights = torch.load(os.path.join(out_dir, 'imagenet.pth'), weights_only=True)
         model.load_encoder_weights(imagenet_weights)
-        args.learning_rate_factor *= 0.01 # reduce the learning rate as model is pretrained
+    
     model.to(device)
     
     flops, macs, _ = calculate_flops(
@@ -351,7 +344,8 @@ def main():
     
     # define optimizer and scheduler - the specifics are taken from the original SimCLR implementation
     learning_rate = 0.3 * args.full_batch_size / 256 # per original SimCLR implementation
-    learning_rate *= args.learning_rate_factor # reduce the learning rate as model is pretrained
+    if not args.rand_init:
+        learning_rate *= args.learning_rate_factor # reduce the learning rate as model is pretrained
     
     # note: uncertainty based loss weighting usedo for multi-task learning, params 
     # need to be included in the optimizer
@@ -362,16 +356,10 @@ def main():
         ).to(device)
         params.extend(list(loss_weighter.parameters()))
     
-    # optimizer = LARS(
-    #     params=params,
-    #     lr=learning_rate, # per original SimCLR implementation
-    #     weight_decay=1e-6,
-    # )
-    
-    optimizer = Adam(
+    optimizer = LARS(
         params=params,
-        lr=learning_rate,
-        # weight_decay=1e-6,
+        lr=learning_rate, # per original SimCLR implementation
+        weight_decay=1e-6,
     )
     
     warmup_epochs = 10
@@ -389,15 +377,11 @@ def main():
         ],
         milestones=[warmup_epochs], # step after warmup
     )
-    lr_reducer = ReduceLROnPlateau(
-        optimizer=optimizer,
-        patience=args.reduce_lr_patience,
-    )
     if args.use_amp:
         scaler = GradScaler() # AMP for gradient scaling
     
-    args.use_pcgrad = args.use_pcgrad and is_multitask 
     # Gradient Surgery (projected conflicting gradients) - only used for multi-task learning
+    args.use_pcgrad = args.use_pcgrad and is_multitask 
     if args.use_pcgrad:
         grad_optimizer = PCGradAMP(
             num_tasks=2,
@@ -596,12 +580,6 @@ def main():
             break
         
         scheduler.step()
-        if epoch >= warmup_epochs: # wait until after warmup to call ReduceLROnPlateau
-            old_lr = optimizer.param_groups[0]['lr']
-            lr_reducer.step(history_dict['val_total_loss'][-1])
-            new_lr = optimizer.param_groups[0]['lr']
-            if old_lr != new_lr:
-                logger.log(f'No improvement in validation loss for {args.reduce_lr_patience} epochs. Reducing learning rate from {lr:.2e} to {new_lr:.2e}.')
 
 
 
