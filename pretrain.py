@@ -458,7 +458,7 @@ def main():
                     
                     if is_contrastive and not is_multitask:
                         for view in range(n_views):
-                            X = batch[view]
+                            X, _ = batch[view] # only need the first element of the tuple - the "target" is irrelevant here
                             X = X.to(device)
                             z, closure = utils.cached_model_call(model, X)
                             
