@@ -31,8 +31,8 @@ def parse_arguments():
         '--pretrain_scheme',
         type=str,
         default='dae_simclr',
-        choices=['hsv', 'simclr', 'hsv_simclr', 'dae', 'dae_simclr'],
-        help='The pretraining scheme to use. One of ["hsv", "simclr", "hsv_simclr", "dae", "dae_simclr"].',
+        choices=['hsv', 'simclr', 'hsv_simclr', 'dae', 'dae_simclr', 'dae_hsv_simclr'],
+        help='The pretraining scheme to use. One of ()"hsv", "simclr", "hsv_simclr", "dae", "dae_simclr", "dae_hsv_simclr").',
     )
     
     parser.add_argument(

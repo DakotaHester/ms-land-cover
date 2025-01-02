@@ -1,6 +1,6 @@
+
 $models = @("hrnet_w18")
-$schemes = @("simclr", "dae", "simclr_dae")
-# $weights = @("--use_imagenet_weights", "")
+$schemes = @("simclr", "dae_simclr", "hsv_simclr", "dae_hsv_simclr")
 
 foreach ($model in $models) {
     foreach ($scheme in $schemes) {

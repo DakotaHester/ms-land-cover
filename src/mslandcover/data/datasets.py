@@ -42,8 +42,8 @@ class PreTrainDataset(Dataset):
         if return_metadata and isinstance(transform, T.SimCLRDataAugmentation):
             raise ValueError('return_metadata=True is not supported when using SimCLRDataAugmentation.')
 
-        if return_hsv and noisy_input:
-            raise ValueError('Cannot return hsv and noisy input at the same time.')
+        # if return_hsv and noisy_input:
+            # raise ValueError('Cannot return hsv and noisy input at the same time.')
         
         self.hdf5_path = hdf5_path
         self.hdf5_group = hdf5_group
@@ -131,26 +131,23 @@ class PreTrainDataset(Dataset):
         returns = []
         for _ in range(self.n_views): 
             view = self.transform(img) if self.transform is not None else img
+            norm_view = T.normalize(view, mean=self.mean, std=self.std)
             
-            if self.return_hsv: 
-                hsv = T.rgb_to_hsv(view)
-                view = T.normalize(view, mean=self.mean, std=self.std)
-                returns.append((view.to(self.device), hsv.to(self.device)))
-            
-            elif self.noisy_input:
-                # randomly add gaussian noise and random noise to the input
-                # both std and lam are randomly sampled from a uniform distribution [0, 1/n_views)
-                # 1/n_views is used to ensure that the noise is not too strong for
-                # the model to learn the underlying structure of the data under
-                # a contrastive learning framework.
-                view = T.normalize(view, mean=self.mean, std=self.std)
+            if self.noisy_input:
                 std, lam = torch.rand(1).item() / self.n_views, torch.rand(1).item() / self.n_views
-                noisy_view = T.add_noise(view, std=std, lam=lam)
-                returns.append((noisy_view.to(self.device), view.to(self.device)))
-            
+                noisy_view = T.add_noise(norm_view, std=std, lam=lam)
+                
+            if self.return_hsv:
+                hsv = T.rgb_to_hsv(norm_view)
+                if self.noisy_input:
+                    returns.append((noisy_view.to(self.device), hsv.to(self.device)))
+                else:
+                    returns.append((norm_view.to(self.device), hsv.to(self.device)))
             else:
-                view = T.normalize(view, mean=self.mean, std=self.std)                
-                returns.append(view.to(self.device))
+                if self.noisy_input:
+                    returns.append(noisy_view.to(self.device), norm_view.to(self.device))
+                else:
+                    returns.append(norm_view.to(self.device))
                 
         if self.return_metadata:
             returns.append(meta)

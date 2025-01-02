@@ -67,70 +67,57 @@ def hex_to_rgb(hex_color: str) -> Tuple[int, int, int]:
     return tuple(int(hex_color[i:i+2], 16) for i in (0, 2, 4))
 
 
-class NTXentLoss(nn.Module):
-    """
-    Normalized temperature-scaled cross entropy loss for self-supervised learning.
-    Code adapted from: https://github.com/dhruvbird/ml-notebooks/blob/main/nt-xent-loss/NT-Xent%20Loss.ipynb
-    """
-    
-    def __init__(self, temperature: float=0.5):
-        super(NTXentLoss, self).__init__()
-        self.temperature = temperature
-    
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        
-        assert len(x.size()) == 2
-        
-        # Cosine similarity
-        xcs = F.cosine_similarity(x[None,:,:], x[:,None,:], dim=-1)
-        xcs[torch.eye(x.size(0)).bool()] = float("-inf")
-        
-        # Ground truth labels
-        target = torch.arange(8)
-        target[0::2] += 1
-        target[1::2] -= 1
-        
-        # Standard cross entropy loss
-        return F.cross_entropy(xcs / self.temperature, target, reduction="mean")
 
-
-
-def nt_xent_loss(x: torch.Tensor, temperature: float=0.5) -> torch.Tensor:
+def nt_xent_loss(z_0: torch.Tensor, z_1: torch.Tensor, temperature: float=0.5, reduction='sum') -> torch.Tensor:
     """
     Functional implementation of the normalized temperature-scaled cross entropy loss.
-    
+
     Parameters
     ----------
-    x : torch.Tensor
-        The input tensor.
+    z_0 : torch.Tensor
+        The embeddings for the first view of the batch.
+    z_1 : torch.Tensor
+        The embeddings for the second view of the batch.
     temperature : float
         The temperature scaling factor.
-    
+    reduction : str
+        Specifies the reduction to apply to the output: 'none' | 'mean' | 'sum'.
+
     Returns
     -------
     torch.Tensor
         The loss value.
-    
+
     Raises
     ------
     ValueError
-        If the input tensor is not of rank 2.
+        If the input tensors are not of rank 2 or have mismatched sizes.
     """
-    
-    if len(x.size()) != 2:
-        raise ValueError(f'Expected input tensor of rank 2, got tensor of rank {len(x.size())}.')
-    
+    if len(z_0.size()) != 2 or len(z_1.size()) != 2:
+        raise ValueError("Input tensors must be of rank 2.")
+    if z_0.size() != z_1.size():
+        raise ValueError("Input tensors must have the same shape.")
+
+    # Concatenate embeddings along the batch dimension
+    x = torch.cat([z_0, z_1], dim=0)
+
+    # L2 normalize the input tensor
+    x = F.normalize(x, p=2, dim=1)
+
     # Cosine similarity
-    xcs = F.cosine_similarity(x[None,:,:], x[:,None,:], dim=-1)
+    xcs = F.cosine_similarity(x[None, :, :], x[:, None, :], dim=-1)
     xcs[torch.eye(x.size(0), device=x.device).bool()] = float("-inf")
-    
+
     # Ground truth labels
-    target = torch.arange(len(x), device=x.device) # len(X) to match batch size of input
-    target[0::2] += 1
-    target[1::2] -= 1
-        
+    batch_size = z_0.size(0)
+    target = torch.arange(2 * batch_size, device=x.device)
+    target[:batch_size] += batch_size  # Map view 1 to view 2
+    target[batch_size:] -= batch_size  # Map view 2 to view 1
+
     # Standard cross entropy loss
-    return F.cross_entropy(xcs / temperature, target, reduction='sum')
+    return F.cross_entropy(xcs / temperature, target, reduction=reduction)
+
+
 
 # NOTE: Due to the size of the inputs passed to MSE for reconstruction compared to
 # NT-Xent for cotnrastive learning, the magnitude of the loss will vary significantly.
@@ -157,7 +144,8 @@ def cached_model_call(model: nn.Module, X: torch.Tensor) -> torch.Tensor:
 @cat_input_tensor
 @autocast(get_torch_device().type)
 def cached_contrastive_loss_call(z_0: torch.Tensor, z_1: torch.Tensor) -> torch.Tensor:
-    return nt_xent_loss(torch.cat([z_0, z_1], dim=0)).to(z_0.device)
+    return nt_xent_loss(z_0, z_1).to(z_0.device)
+
 
 
 @cat_input_tensor
