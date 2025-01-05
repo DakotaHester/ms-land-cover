@@ -2,10 +2,7 @@ from multiprocessing import get_context
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-try:
-    from torch.amp import autocast, GradScaler
-except:
-    from torch.cuda.amp import autocast, GradScaler
+from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import SequentialLR, ReduceLROnPlateau, CosineAnnealingLR, LambdaLR
 from torch.optim import Adam
@@ -187,6 +184,13 @@ def parse_arguments():
         default=False,
         action='store_true',
         help='Run the script in debug mode - reduce amount of training data used.',
+    )
+    
+    parser.add_argument(
+        '--load_checkpoint',
+        default=False,
+        action='store_true',
+        help='Load a checkpoint from the log directory and resume training.',
     )
     
     return parser.parse_args()
@@ -413,6 +417,22 @@ def main():
     best_val_loss = np.inf
     best_epoch = -1
     logger.log(f'Starting training...')
+    
+    if args.load_checkpoint:
+        checkpoint = torch.load(os.path.join(log_dir, 'checkpoint.pth'))
+        model.load_state_dict(checkpoint['model'])
+        optimizer.load_state_dict(checkpoint['optimizer'])
+        scheduler.load_state_dict(checkpoint['scheduler'])
+        if args.use_amp:
+            scaler.load_state_dict(checkpoint['scaler'])
+        if args.use_pcgrad:
+            grad_optimizer.load_state_dict(checkpoint['grad_optimizer'])
+        best_epoch = checkpoint['epoch']
+        history_df = pd.read_csv(os.path.join(log_dir, 'history.csv'))
+        # only retain history up to best_epoch
+        history_df = history_df.loc[history_df
+        logger.log(f'Loaded checkpoint from epoch {best_epoch}')
+    
     for epoch in range(args.num_epochs):
         
         lr = optimizer.param_groups[0]['lr']
