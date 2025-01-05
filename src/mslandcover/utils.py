@@ -206,21 +206,25 @@ class ProfilerHistory:
         self.profiler_history_dict['step'].append(step)
         self.profiler_history_dict['time'].append(time)
         
-        for key, func in [
-            ('mem_usage', torch.cuda.memory_usage),
-            ('mem_alloc', torch.cuda.memory_allocated),
-            ('mem_cache', torch.cuda.memory_reserved),
-            ('power_draw', torch.cuda.power_draw),
-            ('gpu_util', torch.cuda.utilization),
-            ('temperature', torch.cuda.temperature),
-        ]:
-            try:
-                self.profiler_history_dict[key].append(func(self.device))
-            except:
+        try:
+            for key, func in [
+                ('mem_usage', torch.cuda.memory_usage),
+                ('mem_alloc', torch.cuda.memory_allocated),
+                ('mem_cache', torch.cuda.memory_reserved),
+                ('power_draw', torch.cuda.power_draw),
+                ('gpu_util', torch.cuda.utilization),
+                ('temperature', torch.cuda.temperature),
+            ]:
+                try:
+                    self.profiler_history_dict[key].append(func(self.device))
+                except:
+                    self.profiler_history_dict[key].append(-1)
+        except:
+            for key in ['mem_usage', 'mem_alloc', 'mem_cache', 'power_draw', 'gpu_util', 'temperature']:
                 self.profiler_history_dict[key].append(-1)
         
         
-        self.profiler_history_dict['notes'].append(notes if notes is not None else '')
+            self.profiler_history_dict['notes'].append(notes if notes is not None else '')
         
     
     def save(self, path: str) -> None:

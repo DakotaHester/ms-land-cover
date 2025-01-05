@@ -2,7 +2,10 @@ from multiprocessing import get_context
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
-from torch.amp import autocast, GradScaler
+try:
+    from torch.amp import autocast, GradScaler
+except:
+    from torch.cuda.amp import autocast, GradScaler
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import SequentialLR, ReduceLROnPlateau, CosineAnnealingLR, LambdaLR
 from torch.optim import Adam
@@ -233,8 +236,8 @@ def main():
     mean_path = os.path.join(args.weights_dir, 'pretrain_mean.pth')
     std_path = os.path.join(args.weights_dir, 'pretrain_std.pth')
     
-    mean = torch.load(mean_path, weights_only=True) if os.path.exists(mean_path) else None
-    std = torch.load(std_path, weights_only=True) if os.path.exists(std_path) else None
+    mean = torch.load(mean_path) if os.path.exists(mean_path) else None
+    std = torch.load(std_path) if os.path.exists(std_path) else None
     
     train_dataset = PreTrainDataset(
         hdf5_path=args.pretrain_hdf5_path,
@@ -319,7 +322,7 @@ def main():
         img_decoder_activation='sigmoid' if 'hsv' in args.pretrain_scheme else 'none',
     )
     if not args.rand_init:
-        imagenet_weights = torch.load(os.path.join(out_dir, 'imagenet.pth'), weights_only=True)
+        imagenet_weights = torch.load(os.path.join(out_dir, 'imagenet.pth'))
         model.load_encoder_weights(imagenet_weights)
     
     model.to(device)
@@ -454,7 +457,7 @@ def main():
             
             for step, batch in enumerate(loader):
                             
-                with autocast(device.type, enabled=args.use_amp):
+                with autocast(enabled=args.use_amp):
                     
                     if is_contrastive and not is_multitask:
                         for view in range(n_views):

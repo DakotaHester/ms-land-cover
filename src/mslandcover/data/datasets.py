@@ -138,7 +138,7 @@ class PreTrainDataset(Dataset):
                 noisy_view = T.add_noise(norm_view, std=std, lam=lam)
                 
             if self.return_hsv:
-                hsv = T.rgb_to_hsv(norm_view)
+                hsv = T.rgb_to_hsv(view)
                 if self.noisy_input:
                     returns.append((noisy_view.to(self.device), hsv.to(self.device)))
                 else:
