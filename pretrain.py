@@ -434,7 +434,7 @@ def main():
         history_dict = checkpoint['history']
         profiler.profiler_history_dict = checkpoint['profiler']
         # history_dict = pd.read_csv(os.path.join(log_dir, 'history.csv')).to_dict(orient='list')
-        best_epoch = int(open(os.path.join(log_dir, 'best_epoch.txt')).read())
+        best_epoch = checkpoint['best_epoch']
     
     for epoch in range(args.num_epochs):
         
@@ -602,6 +602,7 @@ def main():
             'grad_optimizer': grad_optimizer.state_dict() if args.use_pcgrad else None,
             'history': history_dict,
             'profiler': profiler.profiler_history_dict,
+            'best_epoch': best_epoch,
         }
         torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
         
