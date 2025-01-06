@@ -1,3 +1,7 @@
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
+
+from tqdm import tqdm
 import torch
 import rasterio as rio
 import numpy as np
@@ -28,6 +32,7 @@ class PreTrainDataset(Dataset):
         device: torch.device=torch.device('cpu'),
         batch_size_for_stats: int=1024,
         n_threads_for_stats: int=os.cpu_count() // 4,
+        preload: bool=False,
     ):
         
         if (hdf5_path is not None and hdf5_group is None) or (hdf5_path is None and hdf5_group is not None):
@@ -54,6 +59,7 @@ class PreTrainDataset(Dataset):
         self.noisy_input = noisy_input
         self.return_metadata = return_metadata
         self.device = device
+        self.preload = preload
         
         if mean is not None:
             if isinstance(mean, np.ndarray):
@@ -94,10 +100,22 @@ class PreTrainDataset(Dataset):
                 device=device,
             )
         
+        self.data = None
         if self.hdf5_path is not None:
             self.ids_list = list(h5py.File(self.hdf5_path, 'r')[self.hdf5_group].keys()    )
+            if self.preload:
+                self.data = [torch.from_numpy(h5py.File(self.hdf5_path, 'r')[self.hdf5_group][key][()]) for key in self.ids_list]
         else:
             self.ids_list = [os.path.basename(path).replace('.tif', '') for path in self.data_paths]
+            if self.preload:
+                worker = partial(utils.read_image, as_float=True, as_tensor=True, device=device)
+                pbar = tqdm(total=len(self.data_paths), desc='Preloading data', unit='images')
+                with ThreadPoolExecutor(max_workers=n_threads_for_stats) as executor:
+                    results = executor.map(worker, self.data_paths)
+                    for _ in results:
+                        pbar.update(1)
+                self.data = list(results)
+            
     
     
     
@@ -114,10 +132,13 @@ class PreTrainDataset(Dataset):
         Tuple[Tuple[torch.Tensor, torch.Tensor], dict],                             # (image, hsv) tensors and metadata dict
         Tuple[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor]] # multiple views of (image, hsv) tensors (n_views=2)
     ]:
-        
-        if self.hdf5_path is not None:
+        if self.preload:
+            img = self.data[idx]
+            
+        elif self.hdf5_path is not None:
             key = self.ids_list[idx]
             img = torch.from_numpy(h5py.File(self.hdf5_path, 'r')[self.hdf5_group][key][()])
+            
         else:
             path = self.data_paths[idx]
             img, meta = utils.read_image(

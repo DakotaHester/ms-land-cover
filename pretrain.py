@@ -200,6 +200,13 @@ def parse_arguments():
         help='Load a checkpoint from the log directory and resume training.',
     )
     
+    parser.add_argument(
+        '--preload_data',
+        default=False,
+        action='store_true',
+        help='Preload the entire dataset into memory for faster training. NOTE: This will use a lot of memory.',
+    )
+    
     return parser.parse_args()
 
 
@@ -259,6 +266,7 @@ def main():
         std=std,
         return_hsv=return_hsv,
         noisy_input=noisy_input,
+        preload=args.preload_data,
     )
     val_dataset = PreTrainDataset(
         hdf5_path=args.pretrain_hdf5_path,
@@ -269,6 +277,7 @@ def main():
         transform=None,
         return_hsv=return_hsv,
         noisy_input=noisy_input,
+        preload=args.preload_data,
     )
     
     if args.debug:
