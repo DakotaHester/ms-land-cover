@@ -428,7 +428,6 @@ def main():
     starting_epoch = 0
     best_val_loss = np.inf
     best_epoch = -1
-    logger.log(f'Starting training...')
     
     if args.load_checkpoint:
         checkpoint = torch.load(os.path.join(log_dir, 'checkpoint.pth'))
@@ -442,12 +441,15 @@ def main():
         if args.use_pcgrad:
             grad_optimizer.load_state_dict(checkpoint['grad_optimizer'])
         starting_epoch = checkpoint['epoch'] + 1 # start from the next epoch (checkpoints are saved at the end of the epoch)
+        best_val_loss = checkpoint['best_val_loss']
         best_epoch = checkpoint['best_epoch']
         
         history_dict = checkpoint['history']
         profiler.profiler_history_dict = checkpoint['profiler']
         
-        logger.log(f'Loaded checkpoint from epoch {best_epoch}')
+        logger.log(f'Loaded checkpoint from epoch {starting_epoch-1}.')
+    
+    logger.log(f'Starting training...')
     
     for epoch in range(starting_epoch, args.num_epochs):
         
@@ -614,6 +616,7 @@ def main():
             'history': history_dict,
             'profiler': profiler.profiler_history_dict,
             'best_epoch': best_epoch,
+            'best_val_loss': best_val_loss,
         }
         torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
         with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
