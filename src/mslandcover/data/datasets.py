@@ -104,7 +104,8 @@ class PreTrainDataset(Dataset):
         if self.hdf5_path is not None:
             with h5py.File(self.hdf5_path, 'r') as f:
                 self.ids_list = list(f[self.hdf5_group].keys())
-                worker = partial(torch.from_numpy, device=device)
+                def worker(key):
+                    return torch.from_numpy(f[self.hdf5_group][key][()])
                 pbar = tqdm(total=len(self.ids_list), desc='Preloading data', unit='images')
                 self.data = []
                 with ThreadPoolExecutor(max_workers=n_threads_for_stats) as executor:
