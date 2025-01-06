@@ -92,9 +92,16 @@ def parse_arguments():
     )
     
     parser.add_argument(
+        '--reduce_lr_patience',
+        type=int,
+        default=5,
+        help='The number of epochs to wait for validation loss improvement before reducing the learning rate.',
+    )
+    
+    parser.add_argument(
         '--learning_rate_factor',
         type=float,
-        default=.0001,
+        default=1,
         help='The factor by which to reduce the learning rate after loading the imagenet weights.',
     )
     
@@ -370,20 +377,15 @@ def main():
     )
     
     warmup_epochs = 10
-    scheduler = SequentialLR(
+    warmup_scheduler = LambdaLR(
         optimizer=optimizer,
-        schedulers=[
-            LambdaLR( # linear warmup for 10 epochs
-                optimizer=optimizer,
-                lr_lambda=lambda epoch: min(1, (epoch+1) / warmup_epochs),
-            ),
-            CosineAnnealingLR( # cosine annealing with no restarts
-                optimizer=optimizer,
-                T_max=args.num_epochs-warmup_epochs,
-            ),
-        ],
-        milestones=[warmup_epochs], # step after warmup
+        lr_lambda=lambda epoch: min(1, (epoch+1) / warmup_epochs),
     )
+    reduce_lr_on_plateau = ReduceLROnPlateau(
+        optimizer=optimizer,
+        patience=args.reduce_lr_patience,
+    )
+    
     if args.use_amp:
         scaler = GradScaler() # AMP for gradient scaling
     
@@ -422,15 +424,18 @@ def main():
         checkpoint = torch.load(os.path.join(log_dir, 'checkpoint.pth'))
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
-        scheduler.load_state_dict(checkpoint['scheduler'])
+        warmup_scheduler.load_state_dict(checkpoint['warmup_scheduler'])
+        reduce_lr_on_plateau.load_state_dict(checkpoint['reduce_lr_on_plateau'])
+        
         if args.use_amp:
             scaler.load_state_dict(checkpoint['scaler'])
         if args.use_pcgrad:
             grad_optimizer.load_state_dict(checkpoint['grad_optimizer'])
         best_epoch = checkpoint['epoch']
-        history_df = pd.read_csv(os.path.join(log_dir, 'history.csv'))
-        # only retain history up to best_epoch
-        history_df = history_df.loc[history_df
+        
+        history_dict = checkpoint['history']
+        profiler.profiler_history_dict = checkpoint['profiler']
+        
         logger.log(f'Loaded checkpoint from epoch {best_epoch}')
     
     for epoch in range(args.num_epochs):
@@ -582,18 +587,25 @@ def main():
             logger.log(f'Validation loss improved from {best_val_loss:.5f} at epoch {best_epoch} to {epoch_loss:.5f} during epoch {epoch}. Saving model...')
             best_val_loss = epoch_loss
             best_epoch = epoch
-            checkpoint = {
-                'epoch': epoch,
-                'model': model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'scheduler': scheduler.state_dict(),
-                'scaler': scaler.state_dict() if args.use_amp else None,
-                'grad_optimizer': grad_optimizer.state_dict() if args.use_pcgrad else None,
-            }
-            torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
             torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}.pth'))
-            with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
-                    f.write(str(best_epoch)) # just in case
+        
+        warmup_scheduler.step()
+        reduce_lr_on_plateau.step(epoch_loss)
+        checkpoint = {
+            'epoch': epoch,
+            'model': model.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'warmup_scheduler': warmup_scheduler.state_dict(),
+            'reduce_lr_on_plateau': reduce_lr_on_plateau.state_dict(),
+            # 'scheduler': scheduler.state_dict(),
+            'scaler': scaler.state_dict() if args.use_amp else None,
+            'grad_optimizer': grad_optimizer.state_dict() if args.use_pcgrad else None,
+            'history': history_dict,
+            'profiler': profiler.profiler_history_dict,
+        }
+        torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
+        with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
+            f.write(str(best_epoch)) # just in case
         
         history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch+1)))
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
@@ -601,8 +613,6 @@ def main():
         if epoch - best_epoch > args.early_stopping_patience:
             logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
             break
-        
-        scheduler.step()
 
 
 

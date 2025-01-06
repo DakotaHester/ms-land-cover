@@ -2,7 +2,6 @@ import rasterio as rio
 import numpy as np
 import torch
 from math import ceil
-import torch
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 import h5py
