@@ -102,9 +102,10 @@ class PreTrainDataset(Dataset):
         
         self.data = None
         if self.hdf5_path is not None:
-            self.ids_list = list(h5py.File(self.hdf5_path, 'r')[self.hdf5_group].keys()    )
-            if self.preload:
-                self.data = [torch.from_numpy(h5py.File(self.hdf5_path, 'r')[self.hdf5_group][key][()]) for key in self.ids_list]
+            with h5py.File(self.hdf5_path, 'r') as f:
+                self.ids_list = list(f[self.hdf5_group].keys())
+                if self.preload:
+                    self.data = [torch.from_numpy(f[self.hdf5_group][key][()]) for key in self.ids_list]
         else:
             self.ids_list = [os.path.basename(path).replace('.tif', '') for path in self.data_paths]
             if self.preload:
@@ -115,7 +116,6 @@ class PreTrainDataset(Dataset):
                     for _ in results:
                         pbar.update(1)
                 self.data = list(results)
-            
     
     
     
