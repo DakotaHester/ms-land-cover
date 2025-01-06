@@ -373,10 +373,7 @@ def main():
     # need to be included in the optimizer
     params = list(model.parameters())
     if is_multitask:
-        loss_weighter = UncertainLossWeighter(
-            num_tasks=2,
-        ).to(device)
-        params.extend(list(loss_weighter.parameters()))
+        reconstruction_loss_weight = 128 / (2 * 3 * args.image_size**2)
     
     optimizer = LARS(
         params=params,
@@ -548,9 +545,8 @@ def main():
                         tqdm_postfix['MSE Loss'] = f'{epoch_reconstruction_loss:.2e}'
                     
                     if is_multitask:
-                        loss = [contrastive_loss, reconstruction_loss]
-                        loss = loss_weighter(loss)
-                        total_loss_values.append(sum([l.item() for l in loss]))
+                        loss = reconstruction_loss_weight * reconstruction_loss + contrastive_loss
+                        total_loss_values.append(loss)
                         epoch_loss = np.sum(total_loss_values) / ((step * args.mini_batch_size) + len(batch))
                         tqdm_postfix['Total Loss'] = f'{epoch_loss:.2e}'
                     
