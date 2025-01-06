@@ -104,15 +104,16 @@ class PreTrainDataset(Dataset):
         if self.hdf5_path is not None:
             with h5py.File(self.hdf5_path, 'r') as f:
                 self.ids_list = list(f[self.hdf5_group].keys())
-                worker = partial(torch.from_numpy, device=device)
-                pbar = tqdm(total=len(self.ids_list), desc='Preloading data', unit='images')
-                self.data = []
-                with ThreadPoolExecutor(max_workers=n_threads_for_stats) as executor:
-                    results = executor.map(worker, [f[self.hdf5_group][key][()] for key in self.ids_list])
-                    for res in results:
-                        self.data.append(res)
-                        pbar.update(1)
-                pbar.close()
+                if self.preload:
+                    worker = lambda key: torch.from_numpy(f[self.hdf5_group][key][()])
+                    pbar = tqdm(total=len(self.ids_list), desc='Preloading data', unit='images')
+                    self.data = []
+                    with ThreadPoolExecutor(max_workers=n_threads_for_stats) as executor:
+                        results = executor.map(worker, self.ids_list)
+                        for res in results:
+                            self.data.append(res)
+                            pbar.update(1)
+                    pbar.close()
                         
         else:
             self.ids_list = [os.path.basename(path).replace('.tif', '') for path in self.data_paths]
