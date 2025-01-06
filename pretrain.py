@@ -427,7 +427,6 @@ def main():
     starting_epoch = 0
     best_val_loss = np.inf
     best_epoch = -1
-    logger.log(f'Starting training...')
     
     if args.load_checkpoint:
         checkpoint = torch.load(os.path.join(log_dir, 'checkpoint.pth'))
@@ -444,9 +443,11 @@ def main():
         history_dict = checkpoint['history']
         profiler.profiler_history_dict = checkpoint['profiler']
         # history_dict = pd.read_csv(os.path.join(log_dir, 'history.csv')).to_dict(orient='list')
-        starting_epoch = checkpoint['epoch']
+        starting_epoch = checkpoint['epoch'] + 1
         best_epoch = checkpoint['best_epoch']
+        logger.log(f'Loaded checkpoint from epoch {starting_epoch - 1}.')
     
+    logger.log(f'Starting training...')
     for epoch in range(starting_epoch, args.num_epochs):
         
         lr = optimizer.param_groups[0]['lr']
