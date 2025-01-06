@@ -431,11 +431,10 @@ def main():
         if args.use_pcgrad:
             grad_optimizer.load_state_dict(checkpoint['grad_optimizer'])
         
-        history_dict = pd.read_csv('./test_history.csv', index_col='Unnamed: 0').reset_index(drop=True).to_dict(orient='list')
+        history_dict = checkpoint['history']
+        profiler.profiler_history_dict = checkpoint['profiler']
         # history_dict = pd.read_csv(os.path.join(log_dir, 'history.csv')).to_dict(orient='list')
         best_epoch = int(open(os.path.join(log_dir, 'best_epoch.txt')).read())
-        
-        profiler.load(os.path.join(log_dir, 'profiler.csv'))
     
     for epoch in range(args.num_epochs):
         
@@ -586,9 +585,7 @@ def main():
             logger.log(f'Validation loss improved from {best_val_loss:.5f} at epoch {best_epoch} to {epoch_loss:.5f} during epoch {epoch}. Saving model...')
             best_val_loss = epoch_loss
             best_epoch = epoch
-        
-        history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch+1)))
-        history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
+            torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}.pth'))
         
         warmup_scheduler.step()
         reduce_lr_on_plateau.step(epoch_loss)
@@ -603,11 +600,16 @@ def main():
             # 'scheduler': scheduler.state_dict(),
             'scaler': scaler.state_dict() if args.use_amp else None,
             'grad_optimizer': grad_optimizer.state_dict() if args.use_pcgrad else None,
+            'history': history_dict,
+            'profiler': profiler.profiler_history_dict,
         }
         torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
-        torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}.pth'))
+        
         with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
             f.write(str(best_epoch)) # just in case
+        
+        history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch+1)))
+        history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
                 
         if epoch - best_epoch > args.early_stopping_patience:
             logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
