@@ -415,6 +415,7 @@ def main():
     profiler = utils.ProfilerHistory(device)
     profiler.update(epoch=-1, phase='init', step=0, time=0)
     
+    starting_epoch = 0
     best_val_loss = np.inf
     best_epoch = -1
     logger.log(f'Starting training...')
@@ -434,9 +435,10 @@ def main():
         history_dict = checkpoint['history']
         profiler.profiler_history_dict = checkpoint['profiler']
         # history_dict = pd.read_csv(os.path.join(log_dir, 'history.csv')).to_dict(orient='list')
+        starting_epoch = checkpoint['epoch']
         best_epoch = checkpoint['best_epoch']
     
-    for epoch in range(args.num_epochs):
+    for epoch in range(starting_epoch, args.num_epochs):
         
         lr = optimizer.param_groups[0]['lr']
         history_dict['learning_rate'].append(lr)
