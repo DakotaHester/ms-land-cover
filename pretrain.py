@@ -374,7 +374,7 @@ def main():
     # need to be included in the optimizer
     params = list(model.parameters())
     if is_multitask:
-        reconstruction_loss_weight = 128 / 2 * (256 * 256 * 3) # match the scale of the contrastive loss
+        reconstruction_loss_weight = 128 / (2 * 3 * (args.image_size ** 2)) # match the scale of the contrastive loss
         # 128 (dim of the latent space) / 2 (2 views) * (256 * 256 * 3) (image size)
     
     optimizer = LARS(
