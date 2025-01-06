@@ -546,11 +546,8 @@ def main():
                         tqdm_postfix['MSE Loss'] = f'{epoch_reconstruction_loss:.2e}'
                     
                     if is_multitask:
-                        print(reconstruction_loss, reconstruction_loss.shape)
-                        print(contrastive_loss, contrastive_loss.shape)
-                        loss = (reconstruction_loss_weight * reconstruction_loss) + contrastive_loss
-                        print(loss, loss.shape)
-                        total_loss_values.append(loss.item())
+                        loss = [reconstruction_loss_weight * reconstruction_loss, contrastive_loss]
+                        total_loss_values.append(sum([l.item() for l in loss]))
                         epoch_loss = np.sum(total_loss_values) / ((step * args.mini_batch_size) + len(batch))
                         tqdm_postfix['Total Loss'] = f'{epoch_loss:.2e}'
                     
