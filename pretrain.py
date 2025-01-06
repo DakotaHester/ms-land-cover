@@ -430,22 +430,24 @@ def main():
     
     if args.load_checkpoint:
         checkpoint = torch.load(os.path.join(log_dir, 'checkpoint.pth'))
-        
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         warmup_scheduler.load_state_dict(checkpoint['warmup_scheduler'])
         reduce_lr_on_plateau.load_state_dict(checkpoint['reduce_lr_on_plateau'])
+        
         if args.use_amp:
             scaler.load_state_dict(checkpoint['scaler'])
         if args.use_pcgrad:
             grad_optimizer.load_state_dict(checkpoint['grad_optimizer'])
         
+        starting_epoch = checkpoint['epoch'] + 1 # start from the next epoch (checkpoints are saved at the end of the epoch)
+        best_val_loss = checkpoint['best_val_loss']
+        best_epoch = checkpoint['best_epoch']
+        
         history_dict = checkpoint['history']
         profiler.profiler_history_dict = checkpoint['profiler']
-        # history_dict = pd.read_csv(os.path.join(log_dir, 'history.csv')).to_dict(orient='list')
-        starting_epoch = checkpoint['epoch'] + 1
-        best_epoch = checkpoint['best_epoch']
-        logger.log(f'Loaded checkpoint from epoch {starting_epoch - 1}.')
+        
+        logger.log(f'Loaded checkpoint from epoch {starting_epoch-1}.')
     
     logger.log(f'Starting training...')
     for epoch in range(starting_epoch, args.num_epochs):
@@ -615,6 +617,7 @@ def main():
             'history': history_dict,
             'profiler': profiler.profiler_history_dict,
             'best_epoch': best_epoch,
+            'best_val_loss': best_val_loss,
         }
         torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
         
