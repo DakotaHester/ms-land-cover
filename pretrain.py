@@ -373,7 +373,8 @@ def main():
     # need to be included in the optimizer
     params = list(model.parameters())
     if is_multitask:
-        reconstruction_loss_weight = 128 / (2 * 3 * args.image_size**2)
+        reconstruction_loss_weight = 128 / (2 * 3 * (args.image_size ** 2)) # match the scale of the contrastive loss
+        # 128 (dim of the latent space) / 2 (2 views) * (256 * 256 * 3) (image size)
     
     optimizer = LARS(
         params=params,
@@ -546,7 +547,7 @@ def main():
                     
                     if is_multitask:
                         loss = reconstruction_loss_weight * reconstruction_loss + contrastive_loss
-                        total_loss_values.append(loss)
+                        total_loss_values.append(loss.item())
                         epoch_loss = np.sum(total_loss_values) / ((step * args.mini_batch_size) + len(batch))
                         tqdm_postfix['Total Loss'] = f'{epoch_loss:.2e}'
                     
