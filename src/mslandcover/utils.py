@@ -228,6 +228,12 @@ class ProfilerHistory:
         n_rows = len(self.profiler_history_dict['epoch'])
         df = pd.DataFrame(self.profiler_history_dict, index=list(range(n_rows)))
         df.to_csv(path, index=False)
+    
+    
+    def load(self, path: str) -> None:
+        
+        df = pd.read_csv(path)
+        self.profiler_history_dict = df.to_dict()
 
 
 
