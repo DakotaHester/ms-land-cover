@@ -425,6 +425,7 @@ def main():
     profiler = utils.ProfilerHistory(device)
     profiler.update(epoch=-1, phase='init', step=0, time=0)
     
+    starting_epoch = 0
     best_val_loss = np.inf
     best_epoch = -1
     logger.log(f'Starting training...')
@@ -440,7 +441,7 @@ def main():
             scaler.load_state_dict(checkpoint['scaler'])
         if args.use_pcgrad:
             grad_optimizer.load_state_dict(checkpoint['grad_optimizer'])
-        epoch = checkpoint['epoch']
+        starting_epoch = checkpoint['epoch'] + 1 # start from the next epoch (checkpoints are saved at the end of the epoch)
         best_epoch = checkpoint['best_epoch']
         
         history_dict = checkpoint['history']
@@ -448,7 +449,7 @@ def main():
         
         logger.log(f'Loaded checkpoint from epoch {best_epoch}')
     
-    for epoch in range(args.num_epochs):
+    for epoch in range(starting_epoch, args.num_epochs):
         
         lr = optimizer.param_groups[0]['lr']
         history_dict['learning_rate'].append(lr)
