@@ -5,11 +5,6 @@ Layer-wise Adaptive Rate Scaling (LARS) optimizer for training models with large
 batch sizes. 
 
 """
-
-
-
-
-
 import copy
 import random
 import numpy as np
