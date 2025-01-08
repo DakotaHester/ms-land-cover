@@ -1,6 +1,7 @@
 import argparse
 from glob import glob
 import os
+from time import time
 import numpy as np
 import pandas as pd
 import torch
@@ -8,8 +9,8 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
 
-from src.mslandcover import utils
-from src.mslandcover import config
+from src.mslandcover.utils import Logger, get_torch_device, ProfilerHistory
+from src.mslandcover.config import HRNET_W18_CONFIG, HRNET_W48_CONFIG
 from src.mslandcover.data.datasets import FineTuneDataset
 from src.mslandcover.data.transforms import StandardDataAugmentations
 from src.mslandcover.models import HRNetSegmentationModel
@@ -173,13 +174,13 @@ def main() -> None:
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
     
-    logger = utils.Logger(os.path.join(log_dir, 'log.txt'))
+    logger = Logger(os.path.join(log_dir, 'log.txt'))
     logger.log(f'Configuration:')
     for k, v in vars(args).items():
         logger.log(f'{k}: {v}', prepend_timestamp=False)
     logger.log('='*20, prepend_timestamp=False)
     
-    device = utils.get_torch_device()
+    device = get_torch_device()
     logger.loog(f'Using device: {device}')
     if device.type == 'cuda':
         torch.backends.cudnn.benchmark = True
@@ -229,7 +230,7 @@ def main() -> None:
         pin_memory=True,
     )
     
-    model_config = config.HRNET_w48_CONFIG if args.model == 'hrnet_w48' else config.HRNET_W18_CONFIG
+    model_config = HRNET_W48_CONFIG if args.model == 'hrnet_w48' else HRNET_W18_CONFIG
     model = HRNetSegmentationModel(
         config=model_config,
         img_decoder_head=True,
@@ -306,6 +307,8 @@ def main() -> None:
     starting_epoch = 0
     best_epoch = -1
     best_val_loss = float('inf')
+    profiler = ProfilerHistory(device)
+    profiler.update(-1, 'init', 0, 0)
     
     if args.load_checkpoint:
         checkpoint_path = os.path.join(log_dir, 'checkpoint.pth')
@@ -318,6 +321,7 @@ def main() -> None:
             best_epoch = checkpoint['best_epoch']
             best_val_loss = checkpoint['best_val_loss']
             history_dict = checkpoint['history_dict']
+            profiler_dict = checkpoint['profiler_dict']
             logger.log(f'Loaded checkpoint from {checkpoint_path}')
         else:
             logger.log(f'No checkpoint found at {checkpoint_path}')
@@ -331,6 +335,7 @@ def main() -> None:
         
         for phase in ['train', 'val']:
             
+            phase_start_time = time()
             phase_stats = {'loss': []}
             for metric_fn in metric_fns:
                 phase_stats[metric_fn.__name__] = []
@@ -352,14 +357,14 @@ def main() -> None:
                 postfix={'lr': lr}, 
                 unit='batch'
             ) as tloader:
-                for i, (X, y) in enumerate(tloader):
+                for step, (X, y) in enumerate(tloader):
                     X, y = X.to(device), y.to(device)
                     y_hat = model(X)
                     loss = criterion(y_hat, y)
                     
                     phase_stats['loss'].append(loss.item())
                     for metric_fn in metric_fns:
-                        phase_stats[metric_fn.__name__].append(metric_fn(y_hat, y) * len(X))
+                        phase_stats[metric_fn.__name__].append(metric_fn(y_hat, y) * len(X)) # multiple by samples seen to get true average later
                     
                     if phase == 'train':
                         loss.backward()
@@ -367,10 +372,10 @@ def main() -> None:
                         optimizer.zero_grad()
                     
                     running_metrics = {
-                        'loss': sum(phase_stats['loss']) / ((i * loader.batch_size) + len(X)),
+                        'loss': sum(phase_stats['loss']) / ((step * loader.batch_size) + len(X)),
                     }
                     for metric_fn in metric_fns:
-                        running_metrics[metric_fn.__name__] = sum(phase_stats[metric_fn.__name__]) / ((i * loader.batch_size) + len(X))
+                        running_metrics[metric_fn.__name__] = sum(phase_stats[metric_fn.__name__]) / ((step * loader.batch_size) + len(X))
                     
                     tqdm_postfix = {
                         'lr': lr,
@@ -379,6 +384,7 @@ def main() -> None:
                         'macro_f1': running_metrics['macro_f1_score'],
                     }
                     tloader.set_postfix(tqdm_postfix)
+                    profiler.update(epoch, phase, step, time() - phase_start_time)
                 
             history_dict[f'{phase}_loss'].append(running_metrics['loss'])
             for metric_fn in metric_fns:
@@ -404,11 +410,13 @@ def main() -> None:
             'best_epoch': best_epoch,
             'best_val_loss': best_val_loss,
             'history_dict': history_dict,
+            'profiler_dict': profiler.profiler_history_dict,
         }
         torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
         
         history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch+1)))
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
+        profiler.save(os.path.join(log_dir, 'profiler.csv'))
         
         if epoch - best_epoch > args.early_stopping_patience:
             logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
