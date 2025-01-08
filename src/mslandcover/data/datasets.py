@@ -334,11 +334,14 @@ class FineTuneDataset(Dataset):
         if self.target_paths is None:
             raise ValueError('get_class_distribution() is only supported when target_paths are provided.')
         if not self.preload:
-            warn('get_class_distribution() is only supported when preload=True. Returning a constant array')
-            return np.ones(8) / 8
+            # warn('get_class_distribution() is only supported when preload=True. Returning a constant array')
+            # return np.ones(8) / 8
             # raise ValueError('get_class_distribution() is only supported when preload=True.')
+            targets_arr = np.concatenate([utils.read_image(path, as_float=False, as_tensor=False) for path in self.target_paths], axis=0).flatten() - 1
+            targets_arr = torch.from_numpy(targets_arr)
+        else:
+            targets_arr = torch.cat(self.targets, dim=0).flatten()
         
-        targets_arr = torch.cat(self.targets, dim=0).flatten()
         class_counts = torch.bincount(targets_arr, minlength=targets_arr.max() + 1)
         return class_counts.float() / class_counts.sum()
         
