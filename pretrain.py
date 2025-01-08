@@ -449,17 +449,17 @@ def main():
         if args.use_pcgrad:
             grad_optimizer.load_state_dict(checkpoint['grad_optimizer'])
         
-        starting_epoch = checkpoint['epoch'] + 1 # start from the next epoch (checkpoints are saved at the end of the epoch)
+        starting_epoch = checkpoint['epoch']  # start from the next epoch (checkpoints are saved at the end of the epoch)
         best_val_loss = checkpoint['best_val_loss']
         best_epoch = checkpoint['best_epoch']
         
         history_dict = checkpoint['history']
         profiler.profiler_history_dict = checkpoint['profiler']
         
-        logger.log(f'Loaded checkpoint from epoch {starting_epoch-1}.')
+        logger.log(f'Loaded checkpoint from epoch {starting_epoch}.')
     
-    logger.log(f'Starting training...')
-    for epoch in range(starting_epoch, args.num_epochs):
+    logger.log(f'Starting training at epoch {starting_epoch+1}...')
+    for epoch in range(starting_epoch+1, args.num_epochs+1):
         
         lr = optimizer.param_groups[0]['lr']
         history_dict['learning_rate'].append(lr)
@@ -474,7 +474,7 @@ def main():
                 model.train()
                 loader = train_loader 
                 pbar = tqdm(
-                    desc=f'Epoch {epoch+1}/{args.num_epochs} Training', 
+                    desc=f'Epoch {epoch}/{args.num_epochs} Training', 
                     total=math.ceil(len(train_loader) / grad_accum_steps),
                     unit='batch',
                     postfix=tqdm_postfix,
@@ -485,7 +485,7 @@ def main():
                 model.eval()
                 loader = val_loader
                 pbar = tqdm(
-                    desc=f'Epoch {epoch+1}/{args.num_epochs} Validation', 
+                    desc=f'Epoch {epoch}/{args.num_epochs} Validation', 
                     total=math.ceil(len(val_loader) / grad_accum_steps),
                     unit='batch',
                     postfix=tqdm_postfix,
@@ -629,7 +629,7 @@ def main():
         with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
             f.write(str(best_epoch)) # just in case
         
-        history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch+1)))
+        history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch)))
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
                 
         if epoch - best_epoch > args.early_stopping_patience:
