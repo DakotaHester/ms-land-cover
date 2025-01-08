@@ -153,11 +153,11 @@ def parse_arguments() -> argparse.Namespace:
     # check to see if script is being run as a job array on a cluster (using SLURM or PBS) and set the random seed accordingly
     job_array_id = None
     if os.getenv('SLURM_ARRAY_TASK_ID') is not None:
-        job_array_id = int(os.getenv['SLURM_ARRAY_TASK_ID'])
+        job_array_id = int(os.getenv('SLURM_ARRAY_TASK_ID'))
     elif os.getenv('PBS_ARRAY_INDEX') is not None:
-        job_array_id = int(os.getenv['PBS_ARRAY_INDEX'])
+        job_array_id = int(os.getenv('PBS_ARRAY_INDEX'))
     elif os.getenv('TASK_ARRAY_ID') is not None:
-        job_array_id = int(os.getenv['TASK_ARRAY_ID'])
+        job_array_id = int(os.getenv('TASK_ARRAY_ID'))
     
     if job_array_id is not None:
         print(f'Running as a job array with ID {job_array_id}. Disregarding '\
