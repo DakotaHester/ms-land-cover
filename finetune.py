@@ -32,15 +32,15 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--weights',
         type=str,
-        default='imagenet',
-        choices=['none', 'imagenet', 'ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr'],
+        default=None,
+        choices=['imagenet', 'ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr'],
         help='The weights to use for the model',
     )
     
     parser.add_argument(
         '--weights_dir',
         type=str,
-        default='./weights/',
+        default='./weights/hrnet_w18/20250108',
         help='The directory containing the weights',
     )
     
@@ -75,7 +75,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--batch_size',
         type=int,
-        default=16,
+        default=8,
         help='The batch size to use for training',
     )
     
@@ -96,14 +96,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--early_stopping_patience',
         type=int,
-        default=15,
+        default=20,
         help='The number of epochs to wait before early stopping',
     )
     
     parser.add_argument(
         '--reduce_lr_patience',
         type=int,
-        default=5,
+        default=3,
         help='The number of epochs to wait before reducing the learning rate',
     )
     
@@ -149,8 +149,25 @@ def parse_arguments() -> argparse.Namespace:
     
     args = parser.parse_args()
     
+    # check to see if script is being run as a job array on a cluster (using SLURM or PBS) and set the random seed accordingly
+    job_array_id = None
+    if os.environ('SLURM_ARRAY_TASK_ID') is not None:
+        job_array_id = int(os.environ['SLURM_ARRAY_TASK_ID'])
+    elif os.environ('PBS_ARRAY_INDEX') is not None:
+        job_array_id = int(os.environ['PBS_ARRAY_INDEX'])
+    if job_array_id is not None:
+        print(f'Running as a job array with ID {job_array_id}. Disregarding '\
+            '`weights` and `n_layers_unfrozen` arguments and substituting with '\
+            'predefined values based on the job array ID.')
+        possible_weights = [None, 'imagenet', 'ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr']
+        possible_n_layers_unfrozen = range(1, 15)
+        
+        args.weights = possible_weights[(job_array_id) % len(possible_weights)]
+        args.n_layers_unfrozen = possible_n_layers_unfrozen[(job_array_id) // len(possible_weights)]
+        print(f'Using weights: {args.weights} and n_layers_unfrozen: {args.n_layers_unfrozen}')
+    
     if args.n_layers_unfrozen < 1:
-        parser.error('--n-layers-unfrozen must be greater than or equal to 1')
+        parser.error('--n_layers_unfrozen must be greater than or equal to 1')
     
     if args.lr <= 0:
         parser.error('--lr must be greater than 0')
@@ -159,10 +176,10 @@ def parse_arguments() -> argparse.Namespace:
         parser.error('--n-epochs must be greater than or equal to 1')
         
     if args.early_stopping_patience < 1:
-        parser.error('--early-stopping-patience must be greater than or equal to 1')
+        parser.error('--early_stopping_patience must be greater than or equal to 1')
         
     if args.reduce_lr_patience < 1:
-        parser.error('--lr-reduce-patience must be greater than or equal to 1')
+        parser.error('--lr_reduce_patience must be greater than or equal to 1')
     
     return args
 
@@ -249,6 +266,11 @@ def main() -> None:
         num_classes=8,
     ).to(device)
     
+    if args.weights is not None:
+        weights_state_dict = load_pth(os.path.join(args.weights_dir, f'{args.weights}.pth'))
+        model.load_encoder_weights(weights_state_dict)
+        logger.log(f'Loaded {args.weights} weights from {args.weights_dir}')
+    
     trainable_stages = [
         'decoder',
         'encoder.stage4.2',
@@ -292,7 +314,12 @@ def main() -> None:
         patience=args.reduce_lr_patience,
     )
     
-    criterion = FocalLoss()
+    class_dist = train_dataset.get_class_distribution()
+    logger.log(f'Class distribution: {class_dist}')
+    alpha = (1 - class_dist) ** 2
+    alpha = alpha / alpha.mean()
+    logger.log(f'Class weights: {alpha}')
+    criterion = FocalLoss(alpha=alpha).to(device)
     
     metric_fns = [
         metrics.accuracy,
@@ -325,20 +352,21 @@ def main() -> None:
         if os.path.exists(checkpoint_path):
             checkpoint = load_pth(checkpoint_path)
             model.load_state_dict(checkpoint['model'])
+            criterion.load_state_dict(checkpoint['criterion'])
             optimizer.load_state_dict(checkpoint['optimizer'])
             scheduler.load_state_dict(checkpoint['scheduler'])
-            starting_epoch = checkpoint['epoch'] + 1
+            starting_epoch = checkpoint['epoch'] 
             best_epoch = checkpoint['best_epoch']
             best_val_loss = checkpoint['best_val_loss']
             history_dict = checkpoint['history_dict']
             profiler.profiler_history_dict = checkpoint['profiler_dict']
-            logger.log(f'Loaded checkpoint from {checkpoint_path}')
+            logger.log(f'Loaded checkpoint from {checkpoint_path} at epoch {starting_epoch}')
         else:
             logger.log(f'No checkpoint found at {checkpoint_path}')
     
-    logger.log(f'Starting training from epoch {starting_epoch}...')
+    logger.log(f'Starting training from epoch {starting_epoch+1}...')
     
-    for epoch in range(starting_epoch, args.num_epochs):
+    for epoch in range(starting_epoch+1, args.num_epochs+1):
         
         lr = optimizer.param_groups[0]['lr']
         history_dict['learning_rate'].append(lr)
@@ -363,7 +391,7 @@ def main() -> None:
             
             with tqdm(
                 loader, 
-                desc=f'Epoch {epoch+1}/{args.num_epochs} {phase.capitalize()}', 
+                desc=f'Epoch {epoch}/{args.num_epochs} {phase.capitalize()}', 
                 postfix={'lr': lr}, 
                 unit='batch'
             ) as tloader:
@@ -389,10 +417,10 @@ def main() -> None:
                         running_metrics[metric_fn.__name__] = sum(phase_stats[metric_fn.__name__]) / ((step * loader.batch_size) + len(X))
                     
                     tqdm_postfix = {
-                        'lr': lr,
-                        'loss': running_metrics['loss'],
-                        'f1': running_metrics['f1_score'],
-                        'macro_f1': running_metrics['macro_f1_score'],
+                        'lr': f'{lr:.0e}',
+                        'loss': f'{running_metrics['loss']:.3e}',
+                        'f1': f'{running_metrics['f1_score']:.3f}',
+                        'macro_f1': f'{running_metrics['macro_f1_score']:.3f}',
                     }
                     tloader.set_postfix(tqdm_postfix)
                     profiler.update(epoch, phase, step, time() - phase_start_time)
@@ -417,6 +445,7 @@ def main() -> None:
             'model': model.state_dict(),
             'optimizer': optimizer.state_dict(),
             'scheduler': scheduler.state_dict(),
+            'criterion': criterion.state_dict(),
             'epoch': epoch,
             'best_epoch': best_epoch,
             'best_val_loss': best_val_loss,
@@ -425,7 +454,7 @@ def main() -> None:
         }
         torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
         
-        history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch+1)))
+        history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch)))
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
         profiler.save(os.path.join(log_dir, 'profiler.csv'))
         
@@ -433,7 +462,7 @@ def main() -> None:
             logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
             break
     
-    logger.log(f'Finished training after {epoch+1} epochs.')
+    logger.log(f'Finished training after {epoch} epochs.')
     
     test_dataset = FineTuneDataset(
         data_paths=glob(os.path.join(args.test_dir, 'input', '*.tif')),
@@ -477,11 +506,11 @@ def main() -> None:
                 phase_metrics[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X))
                 test_metrics[metric_fn.__name__] = sum(phase_metrics[metric_fn.__name__]) / ((step * test_loader.batch_size) + len(X))
             
-            tloader.set_postfix({
-                'loss': test_metrics['loss'],
-                'f1': test_metrics['f1_score'],
-                'macro_f1': test_metrics['macro_f1_score'],
-            })
+                tqdm_postfix = {
+                    'loss': f'{test_metrics['loss']:.3e}',
+                    'f1': f'{test_metrics['f1_score']:.3f}',
+                    'macro_f1': f'{test_metrics['macro_f1_score']:.3f}',
+                }
     
     logger.log(f'Test loss: {test_metrics["loss"]:.5f}')
     for metric_fn in metric_fns:

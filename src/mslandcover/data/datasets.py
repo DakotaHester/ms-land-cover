@@ -14,6 +14,7 @@ import os
 from time import time
 
 from typing import Iterable, Optional, Union, Tuple
+from warnings import warn
 
 
 class PreTrainDataset(Dataset):
@@ -304,6 +305,8 @@ class FineTuneDataset(Dataset):
                     as_tensor=True,
                     device=self.device,
                 )
+                if 0 in target:
+                    raise ValueError(f'Target image {target_path} contains 0 values. This is not supported.')
                 target = target.unsqueeze(0) if len(target.shape) == 2 else target
                 target = target - 1
 
@@ -322,3 +325,20 @@ class FineTuneDataset(Dataset):
             return returns[0]
         
         return tuple(returns)
+    
+    
+    
+    def get_class_distribution(self):
+        
+        
+        if self.target_paths is None:
+            raise ValueError('get_class_distribution() is only supported when target_paths are provided.')
+        if not self.preload:
+            warn('get_class_distribution() is only supported when preload=True. Returning a constant array')
+            return np.ones(8) / 8
+            # raise ValueError('get_class_distribution() is only supported when preload=True.')
+        
+        targets_arr = torch.cat(self.targets, dim=0).flatten()
+        class_counts = torch.bincount(targets_arr, minlength=targets_arr.max() + 1)
+        return class_counts.float() / class_counts.sum()
+        
