@@ -17,6 +17,7 @@ import torch._utils
 import torch.nn.functional as F
 
 from torchvision.models import ConvNeXt_Tiny_Weights, convnext_tiny
+from .utils import load_pth
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)
@@ -500,7 +501,7 @@ class HighResolutionNet(nn.Module):
                 nn.init.constant_(m.weight, 1)
                 nn.init.constant_(m.bias, 0)
         if os.path.isfile(pretrained):
-            pretrained_dict = torch.load(pretrained)
+            pretrained_dict = load_pth(pretrained)
             logger.info('=> loading pretrained model {}'.format(pretrained))
             model_dict = self.state_dict()
             pretrained_dict = {k: v for k, v in pretrained_dict.items()
@@ -575,7 +576,7 @@ class ImageDecoderHead(nn.Module):
 # z_i = W^{(2)} \sigma(W^{(1)} h_i)
 class ProjectionHead(nn.Module):
     
-    def __init__(self, in_channels: int=720, num_hiddens: int=1, embedding_dim: int=128):
+    def __init__(self, in_channels: int=720, num_hiddens: int=3, embedding_dim: int=128):
         super(ProjectionHead, self).__init__()
         
         self.gap = nn.AdaptiveAvgPool2d((1, 1))
@@ -598,7 +599,7 @@ class ProjectionHead(nn.Module):
         x = self.gap(x).view(x.size(0), -1) # reshape to (batch_size, num_channels)
         
         for hidden_layer in self.hiddens:
-            x = hidden_layer(x)
+            x = hidden_layer(x) + x
 
         return self.output(x)
 

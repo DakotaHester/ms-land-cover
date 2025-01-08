@@ -11,11 +11,18 @@ For more information, see the paper: https://arxiv.org/abs/2101.06983
 '''
 
 from functools import wraps
-from typing import Callable, Union, Tuple, Any
+from typing import Callable, Dict, List, Union, Tuple, Any
 
 import torch
 from torch.utils.checkpoint import get_device_states, set_device_states
 from torch import Tensor, distributed
+
+from .utils import get_torch_device
+
+try:
+    from torch.amp import autocast
+except ImportError:
+    from torch.cuda.amp import autocast
 
 
 class RandContext:
@@ -139,3 +146,35 @@ def gather_input_tensor(func: Callable[..., Tensor], axis=0):
         kwargs_gathered = dict((k, _maybe_gather_tensor(v, axis=axis)) for k, v in kwargs.values())
         return func(*args_gathered, **kwargs_gathered)
     return f
+
+
+
+@cached
+@autocast(get_torch_device().type)
+def cached_model_call(model: torch.nn.Module, X: torch.Tensor) -> torch.Tensor:
+    return model(X)
+
+
+
+def init_grad_cache_closure_dicts(n_views: int=2, cache_contents: str=['z', 'y', 'y_hat']) -> Tuple[List[Dict[str, List]], List[List]]:
+    cache = [{content: [] for content in cache_contents} for _ in range(n_views)]
+    closures = [[] for _ in range(n_views)] # only one closure foe each view
+    
+    return cache, closures
+
+
+
+def call_closures(
+    cache: List[Dict[str, List[torch.Tensor]]],
+    closures: List[Callable[[torch.Tensor], None]],
+    ignore_keys: List[str]=['y'], # ignore the y key in the cache - no gradients to compute 
+) -> None:
+    if len(cache) != len(closures):
+        raise ValueError('The number number of elements in both cache and closures must be the same - check to make sure the views are consistent.')
+    n_views = len(cache)
+    for i in range(n_views):
+        for closure_fn in closures[i]:
+            for key in cache[i].keys():
+                if key in ignore_keys:
+                    continue
+                closure_fn(cache[i][key])

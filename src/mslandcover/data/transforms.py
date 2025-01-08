@@ -243,7 +243,7 @@ class SimCLRDataAugmentation:
 class StandardDataAugmentations:
     '''
     Simple data augmentations for training a segmentation model. Includes random 
-    flips and color distortions. No rotation or scaling is applied for simplicity
+    flips and color distortions.
     '''
     
     def __init__(self):
@@ -261,6 +261,11 @@ class StandardDataAugmentations:
             X = F.vflip(X)
             if y is not None:
                 y = F.vflip(y)
+        
+        rot_angle = torch.randint(0, 4, (1,)).item()
+        X = F.rotate(X, rot_angle * 90)
+        if y is not None:
+            y = F.rotate(y, rot_angle * 90)
         
         X = self.color_transforms(X)
         
