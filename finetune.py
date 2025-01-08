@@ -9,7 +9,7 @@ from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
 
-from src.mslandcover.utils import Logger, get_torch_device, ProfilerHistory
+from src.mslandcover.utils import Logger, get_torch_device, ProfilerHistory, load_pth
 from src.mslandcover.config import HRNET_W18_CONFIG, HRNET_W48_CONFIG
 from src.mslandcover.data.datasets import FineTuneDataset
 from src.mslandcover.data.transforms import StandardDataAugmentations
@@ -190,8 +190,8 @@ def main() -> None:
     mean_path = os.path.join(args.weights_dir, 'pretrain_mean.pth')
     std_path = os.path.join(args.weights_dir, 'pretrain_std.pth')
     
-    mean = torch.load(mean_path) if os.path.exists(mean_path) else None
-    std = torch.load(std_path) if os.path.exists(std_path) else None
+    mean = load_pth(mean_path) if os.path.exists(mean_path) else None
+    std = load_pth(std_path) if os.path.exists(std_path) else None
     
     train_dataset = FineTuneDataset(
         data_paths=glob(os.path.join(args.train_dir, 'input', '*.tif')),
@@ -313,7 +313,7 @@ def main() -> None:
     if args.load_checkpoint:
         checkpoint_path = os.path.join(log_dir, 'checkpoint.pth')
         if os.path.exists(checkpoint_path):
-            checkpoint = torch.load(checkpoint_path)
+            checkpoint = load_pth(checkpoint_path)
             model.load_state_dict(checkpoint['model'])
             optimizer.load_state_dict(checkpoint['optimizer'])
             scheduler.load_state_dict(checkpoint['scheduler'])
@@ -321,7 +321,7 @@ def main() -> None:
             best_epoch = checkpoint['best_epoch']
             best_val_loss = checkpoint['best_val_loss']
             history_dict = checkpoint['history_dict']
-            profiler_dict = checkpoint['profiler_dict']
+            profiler.profiler_history_dict = checkpoint['profiler_dict']
             logger.log(f'Loaded checkpoint from {checkpoint_path}')
         else:
             logger.log(f'No checkpoint found at {checkpoint_path}')
@@ -445,7 +445,7 @@ def main() -> None:
         phase_metrics[metric_fn.__name__] = []
     test_metrics = {}
     
-    model.load_state_dict(torch.load(os.path.join(out_dir, 'best_model.pth')))
+    model.load_state_dict(load_pth(os.path.join(out_dir, 'best_model.pth')))
     with tqdm(test_loader, desc='Testing', unit='batch') as tloader:
         model.eval()
         for i, (X, y) in enumerate(tloader):

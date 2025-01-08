@@ -1,6 +1,9 @@
 import torch
 from torch.nn import functional as F
-from torch.cuda.amp import autocast, GradScaler
+try:
+    from torch.amp import autocast, GradScaler
+except ImportError:
+    from torch.cuda.amp import autocast, GradScaler
 from torch.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau, LambdaLR
 from calflops import calculate_flops
@@ -20,7 +23,7 @@ from src.mslandcover.models import HRNetSegmentationModel
 from src.mslandcover.optim import LARS, PCGradAMP
 from src.mslandcover.loss import cached_mse_loss_call, cached_contrastive_loss_call
 from src.mslandcover.gradcaching import cached_model_call, init_grad_cache_closure_dicts, call_closures
-from src.mslandcover.utils import Logger, ProfilerHistory, get_torch_device
+from src.mslandcover.utils import Logger, ProfilerHistory, get_torch_device, load_pth
 from src.mslandcover.config import HRNET_W48_CONFIG, HRNET_W18_CONFIG
 
 
@@ -255,8 +258,8 @@ def main():
     mean_path = os.path.join(args.weights_dir, 'pretrain_mean.pth')
     std_path = os.path.join(args.weights_dir, 'pretrain_std.pth')
     
-    mean = torch.load(mean_path) if os.path.exists(mean_path) else None
-    std = torch.load(std_path) if os.path.exists(std_path) else None
+    mean = load_pth(mean_path) if os.path.exists(mean_path) else None
+    std = load_pth(std_path) if os.path.exists(std_path) else None
     
     train_dataset = PreTrainDataset(
         hdf5_path=args.pretrain_hdf5_path,
@@ -343,7 +346,7 @@ def main():
         img_decoder_activation='sigmoid' if 'hsv' in args.pretrain_scheme else 'none',
     )
     if not args.rand_init:
-        imagenet_weights = torch.load(os.path.join(out_dir, 'imagenet.pth'))
+        imagenet_weights = load_pth(os.path.join(out_dir, 'imagenet.pth'))
         model.load_encoder_weights(imagenet_weights)
     
     model.to(device)
@@ -390,6 +393,12 @@ def main():
     if args.use_amp:
         scaler = GradScaler() # AMP for gradient scaling
     
+    # new pytorch version requires device_type argument, old one assumes CUDA and has no device_type argument
+    try:
+        autocast_context_manager = autocast(device_type=device.type, enabled=args.use_amp)
+    except TypeError: # multiple values for argument `enabled`
+        autocast_context_manager = autocast(enabled=args.use_amp)
+    
     # Gradient Surgery (projected conflicting gradients) - only used for multi-task learning
     args.use_pcgrad = args.use_pcgrad and is_multitask 
     if args.use_pcgrad:
@@ -422,7 +431,7 @@ def main():
     best_epoch = -1
     
     if args.load_checkpoint:
-        checkpoint = torch.load(os.path.join(log_dir, 'checkpoint.pth'))
+        checkpoint = load_pth(os.path.join(log_dir, 'checkpoint.pth'))
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         warmup_scheduler.load_state_dict(checkpoint['warmup_scheduler'])
@@ -486,8 +495,8 @@ def main():
                 total_loss_values = []
             
             for step, batch in enumerate(loader):
-                            
-                with autocast(enabled=args.use_amp):
+                
+                with autocast_context_manager:
                     
                     if is_contrastive and not is_multitask:
                         for view in range(n_views):

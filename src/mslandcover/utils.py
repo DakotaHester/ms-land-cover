@@ -4,10 +4,6 @@ import pandas as pd
 from torch.nn import functional as F
 import torch
 import torch.nn as nn
-try:
-    from torch.amp import autocast
-except ImportError:
-    from torch.cuda.amp import autocast
 from .gradcaching import cached, cat_input_tensor
 import datetime
 
@@ -158,3 +154,27 @@ class Logger:
         if echo: 
             print(message)
         self.write(message)
+
+
+
+def load_pth(path: str, **kwargs):
+    '''
+    Load a .pth file. Older versions of PyTorch do not support the
+    `weight_only` parameter in `torch.load`. This function is a workaround.
+    
+    Parameters
+    ----------
+    path : str
+        The path to the .pth file.
+    
+    Returns
+    -------
+    Dict
+        The loaded dictionary.
+    '''
+    try:
+        return torch.load(path, weights_only=True, **kwargs)
+    except TypeError:
+        if 'weights_only' in kwargs:
+            del kwargs['weights_only']
+        return torch.load(path, **kwargs)
