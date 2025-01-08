@@ -38,6 +38,13 @@ def parse_arguments() -> argparse.Namespace:
     )
     
     parser.add_argument(
+        '--weights_dir',
+        type=str,
+        default='./weights/',
+        help='The directory containing the weights',
+    )
+    
+    parser.add_argument(
         '--train_dir',
         type=str,
         default='./data/splits/train',
@@ -148,7 +155,7 @@ def parse_arguments() -> argparse.Namespace:
     if args.lr <= 0:
         parser.error('--lr must be greater than 0')
         
-    if args.n_epochs < 1:
+    if args.num_epochs < 1:
         parser.error('--n-epochs must be greater than or equal to 1')
         
     if args.early_stopping_patience < 1:
@@ -168,8 +175,8 @@ def main() -> None:
     torch.random.manual_seed(args.seed)
     np.random.seed(args.seed)
     
-    log_dir = os.path.join(args.log_dir, args.model, args.weights, args.n_layers_unfrozen)
-    out_dir = os.path.join(args.output_dir, args.model, args.weights, args.n_layers_unfrozen)
+    log_dir = os.path.join(args.log_dir, args.model, args.weights, str(args.n_layers_unfrozen))
+    out_dir = os.path.join(args.output_dir, args.model, args.weights, str(args.n_layers_unfrozen))
     
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
@@ -181,7 +188,7 @@ def main() -> None:
     logger.log('='*20, prepend_timestamp=False)
     
     device = get_torch_device()
-    logger.loog(f'Using device: {device}')
+    logger.log(f'Using device: {device}')
     if device.type == 'cuda':
         torch.backends.cudnn.benchmark = True
         torch.backends.cudnn.deteministic = True
@@ -212,7 +219,6 @@ def main() -> None:
     
     logger.log(f'Training dataset: {len(train_dataset)} samples')
     logger.log(f'Validation dataset: {len(val_dataset)} samples')
-    logger.log(f'Test dataset: {len(test_dataset)} samples')
     
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
@@ -432,6 +438,8 @@ def main() -> None:
         transform=None,
         preload=not args.load_data_from_disk,
     )
+    logger.log(f'Test dataset: {len(test_dataset)} samples')
+
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=args.batch_size,

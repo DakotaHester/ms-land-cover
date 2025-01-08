@@ -17,12 +17,26 @@ import torch
 from torch.utils.checkpoint import get_device_states, set_device_states
 from torch import Tensor, distributed
 
-from .utils import get_torch_device
-
 try:
     from torch.amp import autocast
 except ImportError:
     from torch.cuda.amp import autocast
+
+# from .utils import get_torch_device
+def get_torch_device() -> torch.device:
+    '''
+    Get the torch device to use for training.
+    
+    Returns
+    -------
+    torch.device
+        The torch device.
+    '''
+    if torch.cuda.is_available():
+        return torch.device('cuda')
+    if torch.backends.mps.is_available():
+        return torch.device('mps')
+    return torch.device('cpu')
 
 
 class RandContext:
