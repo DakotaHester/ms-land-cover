@@ -205,12 +205,20 @@ class FineTuneDataset(Dataset):
         preload: bool=True,
     ):
         
-        self.data_paths = data_paths
-        self.target_paths = target_paths
         self.transform = transform
         self.return_metadata = return_metadata
         self.device = device
         self.preload = preload
+        
+        # remove files from data paths that do not exist in target paths
+        data_path_basenames = [os.path.basename(path) for path in data_paths]
+        if target_paths is not None:
+            target_path_basenames = [os.path.basename(path) for path in target_paths]
+            self.data_paths = [path for path, basename in zip(data_paths, data_path_basenames) if basename in target_path_basenames]
+            self.target_paths = [path for path, basename in zip(target_paths, target_path_basenames) if basename in data_path_basenames] 
+        else:
+            self.data_paths = data_paths
+            self.target_paths = None
         
         if mean is not None:
             if isinstance(mean, np.ndarray):

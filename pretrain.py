@@ -4,7 +4,7 @@ try:
     from torch.amp import autocast, GradScaler
 except ImportError:
     from torch.cuda.amp import autocast, GradScaler
-from torch.data import DataLoader
+from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau, LambdaLR
 from calflops import calculate_flops
 import numpy as np
@@ -103,16 +103,8 @@ def parse_arguments():
     )
     
     parser.add_argument(
-        '--reduce_lr_patience',
-        type=int,
-        default=5,
-        help='The number of epochs to wait for validation loss improvement before reducing the learning rate.',
-    )
-    
-    parser.add_argument(
         '--learning_rate_factor',
         type=float,
-        default=1,
         default=1,
         help='The factor by which to reduce the learning rate after loading the imagenet weights.',
     )
