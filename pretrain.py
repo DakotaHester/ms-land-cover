@@ -103,8 +103,16 @@ def parse_arguments():
     )
     
     parser.add_argument(
+        '--reduce_lr_patience',
+        type=int,
+        default=5,
+        help='The number of epochs to wait for validation loss improvement before reducing the learning rate.',
+    )
+    
+    parser.add_argument(
         '--learning_rate_factor',
         type=float,
+        default=1,
         default=1,
         help='The factor by which to reduce the learning rate after loading the imagenet weights.',
     )
@@ -208,11 +216,10 @@ def parse_arguments():
         '--preload_data',
         default=False,
         action='store_true',
-        help='Preload the entire dataset into memory for faster training. NOTE: This will use a lot of memory.',
+        help='Preload the entire dataset into memory. NOTE: This will use a lot of memory.',
     )
     
     return parser.parse_args()
-
 
 
 def main():
@@ -281,7 +288,7 @@ def main():
         transform=None,
         return_hsv=return_hsv,
         noisy_input=noisy_input,
-        preload=args.preload_data,
+        preload=args.preload_data
     )
     
     if args.debug:
@@ -375,7 +382,7 @@ def main():
         learning_rate *= args.learning_rate_factor # reduce the learning rate as model is pretrained
     
     optimizer = LARS(
-        params=list(model.parameters()),
+        params=model.parameters(),
         lr=learning_rate, # per original SimCLR implementation
         weight_decay=1e-6,
     )
@@ -431,7 +438,7 @@ def main():
     best_epoch = -1
     
     if args.load_checkpoint:
-        checkpoint = load_pth(os.path.join(log_dir, 'checkpoint.pth'))
+        checkpoint = torch.load(os.path.join(log_dir, 'checkpoint.pth'))
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         warmup_scheduler.load_state_dict(checkpoint['warmup_scheduler'])
@@ -441,6 +448,7 @@ def main():
             scaler.load_state_dict(checkpoint['scaler'])
         if args.use_pcgrad:
             grad_optimizer.load_state_dict(checkpoint['grad_optimizer'])
+        
         starting_epoch = checkpoint['epoch'] + 1 # start from the next epoch (checkpoints are saved at the end of the epoch)
         best_val_loss = checkpoint['best_val_loss']
         best_epoch = checkpoint['best_epoch']
@@ -451,7 +459,6 @@ def main():
         logger.log(f'Loaded checkpoint from epoch {starting_epoch-1}.')
     
     logger.log(f'Starting training...')
-    
     for epoch in range(starting_epoch, args.num_epochs):
         
         lr = optimizer.param_groups[0]['lr']

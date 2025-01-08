@@ -143,6 +143,7 @@ class PreTrainDataset(Dataset):
         Tuple[Tuple[torch.Tensor, torch.Tensor], dict],                             # (image, hsv) tensors and metadata dict
         Tuple[Tuple[torch.Tensor, torch.Tensor], Tuple[torch.Tensor, torch.Tensor]] # multiple views of (image, hsv) tensors (n_views=2)
     ]:
+        
         if self.preload:
             img = self.data[idx]
             
