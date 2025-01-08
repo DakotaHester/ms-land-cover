@@ -106,12 +106,45 @@ class ProfilerHistory:
                     self.profiler_history_dict[key].append(func(self.device))
                 except:
                     self.profiler_history_dict[key].append(-1)
-        except:
-            for key in ['mem_usage', 'mem_alloc', 'mem_cache', 'power_draw', 'gpu_util', 'temperature']:
-                self.profiler_history_dict[key].append(-1)
+        except: # caompatibility with older CUDA versions
+            try:
+                try:
+                    self.profiler_history_dict['mem_usage'].append(torch.cuda.memory_usage(self.device))
+                except:
+                    self.profiler_history_dict['mem_usage'].append(-1)\
+                    
+                try:
+                    self.profiler_history_dict['mem_alloc'].append(torch.cuda.memory_allocated(self.device))
+                except:
+                    self.profiler_history_dict['mem_alloc'].append(-1)
+                    
+                # continue the pattern
+                try:
+                    self.profiler_history_dict['mem_cache'].append(torch.cuda.memory_reserved(self.device))
+                except:
+                    self.profiler_history_dict['mem_cache'].append(-1)
+                    
+                try:
+                    self.profiler_history_dict['power_draw'].append(torch.cuda.power_draw(self.device))
+                except:
+                    self.profiler_history_dict['power_draw'].append(-1)
+                
+                try:
+                    self.profiler_history_dict['gpu_util'].append(torch.cuda.utilization(self.device))
+                except:
+                    self.profiler_history_dict['gpu_util'].append(-1)
+                
+                try:
+                    self.profiler_history_dict['temperature'].append(torch.cuda.temperature(self.device))
+                except:
+                    self.profiler_history_dict['temperature'].append(-1)
+            
+            except:
+                for key in ['mem_usage', 'mem_alloc', 'mem_cache', 'power_draw', 'gpu_util', 'temperature']:
+                    self.profiler_history_dict[key].append(-1)
+            
         
-        
-            self.profiler_history_dict['notes'].append(notes if notes is not None else '')
+        self.profiler_history_dict['notes'].append(notes if notes is not None else '')
         
     
     def save(self, path: str) -> None:

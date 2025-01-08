@@ -111,13 +111,19 @@ class FocalLoss(torch.nn.Module):
 
     def forward(self, x, y):
         
+        print(x.shape, y.shape)
+        print(x.min(), x.max(), y.min(), y.max())
+        
         if x.ndim > 2:
             # (N, C, d1, d2, ..., dK) --> (N * d1 * ... * dK, C)
             c = x.shape[1]
             x = x.permute(0, *range(2, x.ndim), 1).reshape(-1, c)
             # (N, d1, d2, ..., dK) --> (N * d1 * ... * dK,)
             y = y.view(-1)
+        
+        print(x.shape, y.shape)
 
+        
         unignored_mask = y != self.ignore_index
         y = y[unignored_mask]
         if len(y) == 0: return torch.tensor(0.)
