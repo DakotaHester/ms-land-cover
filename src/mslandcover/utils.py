@@ -4,7 +4,10 @@ import pandas as pd
 from torch.nn import functional as F
 import torch
 import torch.nn as nn
-from torch.amp import autocast
+try:
+    from torch.amp import autocast
+except ImportError:
+    from torch.cuda.amp import autocast
 from .gradcaching import cached, cat_input_tensor
 import datetime
 
