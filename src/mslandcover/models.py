@@ -675,8 +675,12 @@ class HRNetSegmentationModel(nn.Module):
     
     def load_encoder_weights(self, state_dict: dict):
         for key in list(state_dict.keys()):
+            if key.split('.')[0] == 'encoder':
+                new_key = '.'.join(key.split('.')[1:])
+                state_dict[new_key] = state_dict.pop(key)
+                key = new_key
             # remove keys that are not in the encoder
-            if key.split('.')[0] in ['incre_modules', 'downsamp_modules', 'final_layer', 'classifier']:
+            if key.split('.')[0] in ['incre_modules', 'downsamp_modules', 'final_layer', 'classifier', 'decoder', 'projection_head']:
                 del state_dict[key]
         self.encoder.load_state_dict(state_dict)
         
