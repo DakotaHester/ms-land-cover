@@ -537,7 +537,7 @@ def main() -> None:
     cm_df.to_csv(os.path.join(log_dir, 'confusion_matrix.csv'), index=True)
     
     cr = classification_report(y_trues, y_preds, target_names=class_names_list, output_dict=True, zero_division=0)
-    print(cr)
+    
     cr_df = pd.DataFrame(cr).transpose()
     cr_df.to_csv(os.path.join(log_dir, 'classification_report.csv'), index=True)
 if __name__ == '__main__':
