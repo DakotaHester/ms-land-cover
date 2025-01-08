@@ -8,9 +8,10 @@ import torch
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
+from sklearn.metrics import confusion_matrix, classification_report
 
 from src.mslandcover.utils import Logger, get_torch_device, ProfilerHistory, load_pth
-from src.mslandcover.config import HRNET_W18_CONFIG, HRNET_W48_CONFIG
+from src.mslandcover.config import HRNET_W18_CONFIG, HRNET_W48_CONFIG, LEGEND_CLASSES
 from src.mslandcover.data.datasets import FineTuneDataset
 from src.mslandcover.data.transforms import StandardDataAugmentations
 from src.mslandcover.models import HRNetSegmentationModel
@@ -82,7 +83,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--lr',
         type=float,
-        default=1e-3,
+        default=1e-4,
         help='The learning rate to use for training',
     )
     
@@ -151,10 +152,10 @@ def parse_arguments() -> argparse.Namespace:
     
     # check to see if script is being run as a job array on a cluster (using SLURM or PBS) and set the random seed accordingly
     job_array_id = None
-    if os.environ('SLURM_ARRAY_TASK_ID') is not None:
-        job_array_id = int(os.environ['SLURM_ARRAY_TASK_ID'])
-    elif os.environ('PBS_ARRAY_INDEX') is not None:
-        job_array_id = int(os.environ['PBS_ARRAY_INDEX'])
+    if os.getenv('SLURM_ARRAY_TASK_ID') is not None:
+        job_array_id = int(os.getenv['SLURM_ARRAY_TASK_ID'])
+    elif os.getenv('PBS_ARRAY_INDEX') is not None:
+        job_array_id = int(os.getenv['PBS_ARRAY_INDEX'])
     if job_array_id is not None:
         print(f'Running as a job array with ID {job_array_id}. Disregarding '\
             '`weights` and `n_layers_unfrozen` arguments and substituting with '\
@@ -316,7 +317,7 @@ def main() -> None:
     
     class_dist = train_dataset.get_class_distribution()
     logger.log(f'Class distribution: {class_dist}')
-    alpha = (1 - class_dist) ** 2
+    alpha = (1 - class_dist) ** 3
     alpha = alpha / alpha.mean()
     logger.log(f'Class weights: {alpha}')
     criterion = FocalLoss(alpha=alpha).to(device)
@@ -492,6 +493,8 @@ def main() -> None:
     model.load_state_dict(load_pth(os.path.join(out_dir, 'best_model.pth')))
     model.eval()
     torch.set_grad_enabled(False)
+    y_preds = []
+    y_trues = []
     
     with tqdm(test_loader, desc='Testing', unit='batch') as tloader:
         for step, (X, y) in enumerate(tloader):
@@ -505,12 +508,15 @@ def main() -> None:
             for metric_fn in metric_fns:
                 phase_metrics[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X))
                 test_metrics[metric_fn.__name__] = sum(phase_metrics[metric_fn.__name__]) / ((step * test_loader.batch_size) + len(X))
-            
-                tqdm_postfix = {
-                    'loss': f'{test_metrics['loss']:.3e}',
-                    'f1': f'{test_metrics['f1_score']:.3f}',
-                    'macro_f1': f'{test_metrics['macro_f1_score']:.3f}',
-                }
+                
+            y_preds.append(y_hat.argmax(axis=1).cpu().numpy().flatten())
+            y_trues.append(y.cpu().numpy().flatten())
+        
+            tqdm_postfix = {
+                'loss': f'{test_metrics['loss']:.3e}',
+                'f1': f'{test_metrics['f1_score']:.3f}',
+                'macro_f1': f'{test_metrics['macro_f1_score']:.3f}',
+            }
     
     logger.log(f'Test loss: {test_metrics["loss"]:.5f}')
     for metric_fn in metric_fns:
@@ -518,6 +524,22 @@ def main() -> None:
     
     test_metrics_df = pd.DataFrame(test_metrics, index=[0])
     test_metrics_df.to_csv(os.path.join(log_dir, 'test_metrics.csv'), index=False)
+    
+    y_preds = np.concatenate(y_preds)
+    y_trues = np.concatenate(y_trues)
+    
+    y_trues_class_names = [LEGEND_CLASSES[i+1] for i in y_trues]
+    y_preds_class_names = [LEGEND_CLASSES[i+1] for i in y_preds]
+    class_names_list = [LEGEND_CLASSES[i+1] for i in range(8)]
 
+    cm = confusion_matrix(y_trues_class_names, y_preds_class_names, labels=class_names_list)
+    cm_df = pd.DataFrame(cm, index=class_names_list, columns=class_names_list)
+    cm_df.to_csv(os.path.join(log_dir, 'confusion_matrix.csv'), index=True)
+    
+    cr = classification_report(y_trues, y_preds, target_names=class_names_list, output_dict=True, zero_division=0)
+    print(cr)
+    cr_df = pd.DataFrame(cr).transpose()
+    cr_df.to_csv(os.path.join(log_dir, 'classification_report.csv'), index=True)
 if __name__ == '__main__':
+
     main()
