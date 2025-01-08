@@ -75,7 +75,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--batch_size',
         type=int,
-        default=32,
+        default=16,
         help='The batch size to use for training',
     )
     
@@ -130,7 +130,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--num_workers',
         type=int,
-        default=8,
+        default=1,
         help='The number of workers to use for data loading',
     )
     
@@ -207,6 +207,7 @@ def main() -> None:
         std=std,
         transform=StandardDataAugmentations(),
         preload=not args.load_data_from_disk,
+        n_threads=args.num_workers,
     )
     val_dataset = FineTuneDataset(
         data_paths=glob(os.path.join(args.val_dir, 'input', '*.tif')),
@@ -215,6 +216,7 @@ def main() -> None:
         std=std,
         transform=None,
         preload=not args.load_data_from_disk,
+        n_threads=args.num_workers,
     )
     
     logger.log(f'Training dataset: {len(train_dataset)} samples')
@@ -224,16 +226,18 @@ def main() -> None:
         train_dataset,
         batch_size=args.batch_size,
         shuffle=True,
-        num_workers=args.num_workers,
-        pin_memory=True,
         drop_last=True,
+        # num_workers=args.num_workers,
+        # pin_memory=True,
+        # prefetch_factor=4,
     )
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
         batch_size=args.batch_size,
         shuffle=False,
-        num_workers=args.num_workers,
-        pin_memory=True,
+        # num_workers=args.num_workers,
+        # pin_memory=True,
+        # prefetch_factor=4,
     )
     
     model_config = HRNET_W48_CONFIG if args.model == 'hrnet_w48' else HRNET_W18_CONFIG
@@ -242,7 +246,7 @@ def main() -> None:
         img_decoder_head=True,
         aux_simclr_head=False,
         img_decoder_activation='softmax',
-        num_classes=7,
+        num_classes=8,
     ).to(device)
     
     trainable_stages = [
@@ -271,7 +275,7 @@ def main() -> None:
     for param in model.named_parameters():
         for stage in trainable_stages:
             if param[0].startswith(stage):
-                trainable_params += param.numel()
+                trainable_params += param[1].numel()
                 param[1].requires_grad = True
     
     logger.log(f'Total parameters: {total_params}')
@@ -365,12 +369,13 @@ def main() -> None:
             ) as tloader:
                 for step, (X, y) in enumerate(tloader):
                     X, y = X.to(device), y.to(device)
+            
                     y_hat = model(X)
                     loss = criterion(y_hat, y)
                     
                     phase_stats['loss'].append(loss.item())
                     for metric_fn in metric_fns:
-                        phase_stats[metric_fn.__name__].append(metric_fn(y_hat, y) * len(X)) # multiple by samples seen to get true average later
+                        phase_stats[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X)) # multiple by samples seen to get true average later
                     
                     if phase == 'train':
                         loss.backward()
@@ -437,6 +442,7 @@ def main() -> None:
         std=std,
         transform=None,
         preload=not args.load_data_from_disk,
+        n_threads=args.num_workers,
     )
     logger.log(f'Test dataset: {len(test_dataset)} samples')
 
@@ -444,8 +450,9 @@ def main() -> None:
         test_dataset,
         batch_size=args.batch_size,
         shuffle=False,
-        num_workers=args.num_workers,
-        pin_memory=True,
+        # num_workers=args.num_workers,
+        # pin_memory=True,
+        # prefetch_factor=4,
     )
     
     phase_metrics = {'loss': []}
@@ -454,19 +461,21 @@ def main() -> None:
     test_metrics = {}
     
     model.load_state_dict(load_pth(os.path.join(out_dir, 'best_model.pth')))
+    model.eval()
+    torch.set_grad_enabled(False)
+    
     with tqdm(test_loader, desc='Testing', unit='batch') as tloader:
-        model.eval()
-        for i, (X, y) in enumerate(tloader):
+        for step, (X, y) in enumerate(tloader):
             X, y = X.to(device), y.to(device)
             y_hat = model(X)
             
             loss = criterion(y_hat, y)
             phase_metrics['loss'].append(loss.item())
-            test_metrics['loss'] = sum(phase_metrics['loss']) / ((i * test_loader.batch_size) + len(X))
+            test_metrics['loss'] = sum(phase_metrics['loss']) / ((step * test_loader.batch_size) + len(X))
             
             for metric_fn in metric_fns:
-                phase_metrics[metric_fn.__name__].append(metric_fn(y_hat, y) * len(X))
-                test_metrics[metric_fn.__name__] = sum(phase_metrics[metric_fn.__name__]) / ((i * test_loader.batch_size) + len(X))
+                phase_metrics[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X))
+                test_metrics[metric_fn.__name__] = sum(phase_metrics[metric_fn.__name__]) / ((step * test_loader.batch_size) + len(X))
             
             tloader.set_postfix({
                 'loss': test_metrics['loss'],

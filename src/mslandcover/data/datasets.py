@@ -203,6 +203,7 @@ class FineTuneDataset(Dataset):
         return_metadata: bool=False,
         device: torch.device=torch.device('cpu'),
         preload: bool=True,
+        n_threads: int=os.cpu_count()
     ):
         
         self.transform = transform
@@ -219,6 +220,10 @@ class FineTuneDataset(Dataset):
         else:
             self.data_paths = data_paths
             self.target_paths = None
+        
+        self.data_paths = sorted(self.data_paths) # sort to ensure that data and target paths match up correctly
+        if self.target_paths is not None:
+            self.target_paths = sorted(self.target_paths)
         
         if mean is not None:
             if isinstance(mean, np.ndarray):
@@ -244,7 +249,7 @@ class FineTuneDataset(Dataset):
             worker = partial(utils.read_image, as_float=True, as_tensor=True, device=device)
             pbar = tqdm(total=len(self.data_paths), desc='Preloading data', unit='images')
             self.data = []
-            with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+            with ThreadPoolExecutor(max_workers=n_threads) as executor:
                 results = executor.map(worker, self.data_paths)
                 for res in results:
                     self.data.append(res)
@@ -252,14 +257,16 @@ class FineTuneDataset(Dataset):
             pbar.close()
             
             if self.target_paths is not None:
-                worker = partial(utils.read_image, as_float=True, as_tensor=True, device=device)
+                worker = partial(utils.read_image, as_float=False, as_tensor=True, device=device)
                 pbar = tqdm(total=len(self.target_paths), desc='Preloading targets', unit='images')
                 self.targets = []
-                with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+                with ThreadPoolExecutor(max_workers=n_threads) as executor:
                     results = executor.map(worker, self.target_paths)
-                    for res in results:
+                    for i, res in enumerate(results):
                         res = res.unsqueeze(0) if len(res.shape) == 2 else res
-                        self.targets.append(res)
+                        if 0 in res:
+                            raise ValueError(f'Target image {self.target_paths[i]} contains 0 values. This is not supported.')
+                        self.targets.append(res - 1)
                         pbar.update(1)
                 pbar.close()    
     
@@ -293,11 +300,12 @@ class FineTuneDataset(Dataset):
                 target_path = self.target_paths[idx]
                 target = utils.read_image(
                     target_path, 
-                    as_float=True, 
+                    as_float=False, 
                     as_tensor=True,
                     device=self.device,
                 )
                 target = target.unsqueeze(0) if len(target.shape) == 2 else target
+                target = target - 1
 
         if self.transform is not None: # color transform expects data in [0, 1] range
             img, target = self.transform(img, target)
@@ -305,7 +313,7 @@ class FineTuneDataset(Dataset):
         returns = [img]
         
         if self.target_paths is not None:
-            returns.append(target)
+            returns.append(target.squeeze())
         
         if self.return_metadata:
             returns.append(meta)
