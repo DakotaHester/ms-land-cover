@@ -320,7 +320,7 @@ def main() -> None:
     alpha = (1 - class_dist) ** 3
     alpha = alpha / alpha.mean()
     logger.log(f'Class weights: {alpha}')
-    criterion = FocalLoss(alpha=alpha).to(device)
+    criterion = FocalLoss(alpha=alpha, gamma=5.0).to(device)
     
     metric_fns = [
         metrics.accuracy,
