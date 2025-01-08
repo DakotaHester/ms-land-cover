@@ -1,11 +1,8 @@
-from multiprocessing import get_context
 import torch
-import torch.nn as nn
 from torch.nn import functional as F
 from torch.cuda.amp import autocast, GradScaler
-from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import SequentialLR, ReduceLROnPlateau, CosineAnnealingLR, LambdaLR
-from torch.optim import Adam
+from torch.data import DataLoader
+from torch.optim.lr_scheduler import ReduceLROnPlateau, LambdaLR
 from calflops import calculate_flops
 import numpy as np
 from argparse import ArgumentParser
@@ -20,9 +17,13 @@ import math
 from src.mslandcover.data.datasets import PreTrainDataset
 from src.mslandcover.data import transforms
 from src.mslandcover.models import HRNetSegmentationModel
-from src.mslandcover.optim import LARS, PCGradAMP, UncertainLossWeighter
-from src.mslandcover import config
-from src.mslandcover import utils
+from src.mslandcover.optim import LARS, PCGradAMP
+from src.mslandcover.loss import cached_mse_loss_call, cached_contrastive_loss_call
+from src.mslandcover.gradcaching import cached_model_call, init_grad_cache_closure_dicts, call_closures
+from src.mslandcover.utils import Logger, ProfilerHistory, get_torch_device
+from src.mslandcover.config import HRNET_W48_CONFIG, HRNET_W18_CONFIG
+
+
 
 def parse_arguments():
     parser = ArgumentParser()
@@ -227,7 +228,7 @@ def main():
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
     
-    logger = utils.Logger(os.path.join(log_dir, 'log.txt'))
+    logger = Logger(os.path.join(log_dir, 'log.txt'))
     
     logger.log(f'Configuration:')
     for k, v in vars(args).items():
@@ -238,7 +239,7 @@ def main():
     is_reconstruction = 'hsv' in args.pretrain_scheme or 'dae' in args.pretrain_scheme or 'ae' in args.pretrain_scheme
     is_multitask = is_contrastive and is_reconstruction
     
-    device = utils.get_torch_device()
+    device = get_torch_device()
     logger.log(f'Using device: {device}')
     if device.type == 'cuda':
         torch.backends.cudnn.benchmark = True
@@ -334,7 +335,7 @@ def main():
         )
         return
 
-    model_config = config.HRNET_W48_CONFIG if args.model == 'hrnet_w48' else config.HRNET_W18_CONFIG
+    model_config = HRNET_W48_CONFIG if args.model == 'hrnet_w48' else HRNET_W18_CONFIG
     model = HRNetSegmentationModel(
         config=model_config,
         img_decoder_head=is_reconstruction,
@@ -413,7 +414,7 @@ def main():
             history_dict[f'{phase}_reconstruction_loss'] = []
             history_dict[f'{phase}_contrastive_loss'] = []
     
-    profiler = utils.ProfilerHistory(device)
+    profiler = ProfilerHistory(device)
     profiler.update(epoch=-1, phase='init', step=0, time=0)
     
     starting_epoch = 0
@@ -475,7 +476,7 @@ def main():
                 )
             
             if is_contrastive:
-                cache, closures = utils.init_grad_cache_closure_dicts(n_views, cache_contents)
+                cache, closures = init_grad_cache_closure_dicts(n_views, cache_contents)
                 contrastive_loss_values = []
             
             if is_reconstruction:
@@ -492,7 +493,7 @@ def main():
                         for view in range(n_views):
                             X, _ = batch[view] # only need the first element of the tuple - the "target" is irrelevant here
                             X = X.to(device)
-                            z, closure = utils.cached_model_call(model, X)
+                            z, closure = cached_model_call(model, X)
                             
                             cache[view]['z'].append(z)
                             closures[view].append(closure)
@@ -515,7 +516,7 @@ def main():
                         for view in range(n_views):
                             X, y = batch[view]
                             X, y = X.to(device), y.to(device)
-                            y_hat, z, closure = utils.cached_model_call(model, X) 
+                            y_hat, z, closure = cached_model_call(model, X) 
                             
                             cache[view]['y'].append(y)
                             cache[view]['y_hat'].append(y_hat)
@@ -525,7 +526,7 @@ def main():
                 if (step + 1) % grad_accum_steps == 0:
                                                             
                     if is_contrastive:
-                        contrastive_loss = utils.cached_contrastive_loss_call(cache[0]['z'], cache[1]['z'])
+                        contrastive_loss = cached_contrastive_loss_call(cache[0]['z'], cache[1]['z'])
                         contrastive_loss_values.append(contrastive_loss.item())
                         epoch_contrastive_loss = np.sum(contrastive_loss_values) / ((step * args.mini_batch_size) + len(batch)) 
                         tqdm_postfix['NT-Xent Loss'] = f'{epoch_contrastive_loss:.2e}'
@@ -534,7 +535,7 @@ def main():
                         if is_multitask:
                             reconstruction_loss = torch.tensor(0.0, device=device)
                             for view in range(n_views):
-                                reconstruction_loss += utils.cached_mse_loss_call(cache[view]['y_hat'], cache[view]['y'])
+                                reconstruction_loss += cached_mse_loss_call(cache[view]['y_hat'], cache[view]['y'])
                             reconstruction_loss_values.append(reconstruction_loss.item())
                         epoch_reconstruction_loss = np.sum(reconstruction_loss_values) / ((step * args.mini_batch_size) + len(batch)) 
                         tqdm_postfix['MSE Loss'] = f'{epoch_reconstruction_loss:.2e}'
@@ -552,14 +553,14 @@ def main():
                     if phase == 'train':
                         if args.use_pcgrad:
                             grad_optimizer.backward(loss) 
-                            utils.call_closures(cache, closures) 
+                            call_closures(cache, closures) 
                             grad_optimizer.step()
                             
                         elif args.use_amp:
                             if not is_reconstruction: # backward pass already done for reconstruction loss
                                 scaler.scale(loss).backward()
                             if is_contrastive: 
-                                utils.call_closures(cache, closures)
+                                call_closures(cache, closures)
                             scaler.step(optimizer)
                             scaler.update()
                             
@@ -567,12 +568,12 @@ def main():
                             if not is_reconstruction: # backward pass already done for reconstruction loss
                                 loss.backward()
                             if is_contrastive: 
-                                utils.call_closures(cache, closures)
+                                call_closures(cache, closures)
                             optimizer.step()
                             
                         optimizer.zero_grad()
                     
-                    cache, closures = utils.init_grad_cache_closure_dicts(n_views, cache_contents)
+                    cache, closures = init_grad_cache_closure_dicts(n_views, cache_contents)
                     
                     pbar.set_postfix(tqdm_postfix)
                     pbar.update(1)

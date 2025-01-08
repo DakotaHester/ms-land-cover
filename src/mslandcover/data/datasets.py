@@ -201,6 +201,7 @@ class FineTuneDataset(Dataset):
         transform: Optional[transforms.Compose]=T.StandardDataAugmentations(),
         return_metadata: bool=False,
         device: torch.device=torch.device('cpu'),
+        preload: bool=True,
     ):
         
         self.data_paths = data_paths
@@ -208,6 +209,7 @@ class FineTuneDataset(Dataset):
         self.transform = transform
         self.return_metadata = return_metadata
         self.device = device
+        self.preload = preload
         
         if mean is not None:
             if isinstance(mean, np.ndarray):
@@ -228,6 +230,29 @@ class FineTuneDataset(Dataset):
                 raise ValueError(f'std must be a numpy array or a torch tensor, got {type(std)}.')
         else:
             self.std = utils.batched_std(data_paths, mean=self.mean, as_tensor=True, device=device)
+        
+        if self.preload:
+            worker = partial(utils.read_image, as_float=True, as_tensor=True, device=device)
+            pbar = tqdm(total=len(self.data_paths), desc='Preloading data', unit='images')
+            self.data = []
+            with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+                results = executor.map(worker, self.data_paths)
+                for res in results:
+                    self.data.append(res)
+                    pbar.update(1)
+            pbar.close()
+            
+            if self.target_paths is not None:
+                worker = partial(utils.read_image, as_float=True, as_tensor=True, device=device)
+                pbar = tqdm(total=len(self.target_paths), desc='Preloading targets', unit='images')
+                self.targets = []
+                with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+                    results = executor.map(worker, self.target_paths)
+                    for res in results:
+                        res = res.unsqueeze(0) if len(res.shape) == 2 else res
+                        self.targets.append(res)
+                        pbar.update(1)
+                pbar.close()    
     
     
     def __len__(self) -> int:
@@ -242,28 +267,32 @@ class FineTuneDataset(Dataset):
         Tuple[torch.Tensor, torch.Tensor, dict]     # image, target tensors, and metadata dict
     ]:
         
-        path = self.data_paths[idx]
-        img, meta = utils.read_image(
-            path, 
-            as_float=True, 
-            as_tensor=True,
-            return_metadata=True, 
-            device=self.device,
-        )
-        if self.target_paths is not None:
-            target_path = self.target_paths[idx]
-            target = utils.read_image(
-                target_path, 
+        if self.preload:
+            img = self.data[idx]
+            if self.target_paths is not None:
+                target = self.targets[idx]
+        else:
+            path = self.data_paths[idx]
+            img, meta = utils.read_image(
+                path, 
                 as_float=True, 
                 as_tensor=True,
+                return_metadata=True, 
                 device=self.device,
             )
-            target = target.unsqueeze(0) if len(target.shape) == 2 else target
-        
-        if self.target_paths is not None:
-            img, target = self.transform(img, target)
+            if self.target_paths is not None:
+                target_path = self.target_paths[idx]
+                target = utils.read_image(
+                    target_path, 
+                    as_float=True, 
+                    as_tensor=True,
+                    device=self.device,
+                )
+                target = target.unsqueeze(0) if len(target.shape) == 2 else target
 
-        img = T.normalize(img, mean=self.mean, std=self.std)
+        if self.transform is not None: # color transform expects data in [0, 1] range
+            img, target = self.transform(img, target)
+        img = T.normalize(img, mean=self.mean, std=self.std) 
         returns = [img]
         
         if self.target_paths is not None:

@@ -5,6 +5,7 @@ from math import ceil
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 import h5py
+import torch.nn.functional as F
 
 from typing import Iterable, Union, Tuple
 
@@ -270,3 +271,5 @@ def batched_min_max(
             torch.tensor(max_val, device=device, dtype=torch.float32)
     
     return min_val, max_val
+
+
