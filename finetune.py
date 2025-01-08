@@ -33,8 +33,8 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--weights',
         type=str,
-        default=None,
-        choices=['imagenet', 'ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr'],
+        default='randinit',
+        choices=['randinit', 'imagenet', 'ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr'],
         help='The weights to use for the model',
     )
     
@@ -156,11 +156,14 @@ def parse_arguments() -> argparse.Namespace:
         job_array_id = int(os.getenv['SLURM_ARRAY_TASK_ID'])
     elif os.getenv('PBS_ARRAY_INDEX') is not None:
         job_array_id = int(os.getenv['PBS_ARRAY_INDEX'])
+    elif os.getenv('TASK_ARRAY_ID') is not None:
+        job_array_id = int(os.getenv['TASK_ARRAY_ID'])
+    
     if job_array_id is not None:
         print(f'Running as a job array with ID {job_array_id}. Disregarding '\
             '`weights` and `n_layers_unfrozen` arguments and substituting with '\
             'predefined values based on the job array ID.')
-        possible_weights = [None, 'imagenet', 'ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr']
+        possible_weights = ['randinit', 'imagenet', 'ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr']
         possible_n_layers_unfrozen = range(1, 15)
         
         args.weights = possible_weights[(job_array_id) % len(possible_weights)]
@@ -267,7 +270,7 @@ def main() -> None:
         num_classes=8,
     ).to(device)
     
-    if args.weights is not None:
+    if args.weights != 'randinit':
         weights_state_dict = load_pth(os.path.join(args.weights_dir, f'{args.weights}.pth'))
         model.load_encoder_weights(weights_state_dict)
         logger.log(f'Loaded {args.weights} weights from {args.weights_dir}')
