@@ -7,7 +7,7 @@ from __future__ import print_function
 import os
 import logging
 import functools
-from typing import List, Union, Tuple
+from typing import Dict, List, Union, Tuple
 
 import numpy as np
 
@@ -252,8 +252,10 @@ blocks_dict = {
 
 class HighResolutionNet(nn.Module):
 
-    def __init__(self, cfg, **kwargs):
+    def __init__(self, cfg: dict, **kwargs):
         super(HighResolutionNet, self).__init__()
+        
+        self.output_each_stage = cfg.get('OUTPUT_EACH_STAGE', False)
 
         self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1,
                                bias=False)
@@ -441,6 +443,10 @@ class HighResolutionNet(nn.Module):
         return nn.Sequential(*modules), num_inchannels
 
     def forward(self, x):
+        
+        if self.output_each_stage:
+            out_list = []
+        
         x = self.conv1(x)
         x = self.bn1(x)
         x = self.relu(x)
@@ -448,6 +454,9 @@ class HighResolutionNet(nn.Module):
         x = self.bn2(x)
         x = self.relu(x)
         x = self.layer1(x)
+        
+        if self.output_each_stage:
+            out_list.append(x)
 
         x_list = []
         for i in range(self.stage2_cfg['NUM_BRANCHES']):
@@ -456,6 +465,9 @@ class HighResolutionNet(nn.Module):
             else:
                 x_list.append(x)
         y_list = self.stage2(x_list)
+        
+        if self.output_each_stage:
+            out_list.extend(y_list)
 
         x_list = []
         for i in range(self.stage3_cfg['NUM_BRANCHES']):
@@ -464,6 +476,9 @@ class HighResolutionNet(nn.Module):
             else:
                 x_list.append(y_list[i])
         y_list = self.stage3(x_list)
+        
+        if self.output_each_stage:
+            out_list.extend(y_list)
 
         x_list = []
         for i in range(self.stage4_cfg['NUM_BRANCHES']):
@@ -475,10 +490,15 @@ class HighResolutionNet(nn.Module):
         
         out_shape = y_list[0].shape[-2:]
         
-        y_list_interpolated = []
+        if self.output_each_stage:
+            out_list.extend(y_list)
+        else:
+            out_list = y_list
+        
+        out_list_interpolated = []
         # return y_list
-        for y in y_list:
-            y_list_interpolated.append(
+        for y in out_list:
+            out_list_interpolated.append(
                 F.interpolate(
                     y, 
                     size=out_shape, 
@@ -487,9 +507,7 @@ class HighResolutionNet(nn.Module):
                 )
             )
         
-        y = torch.cat(y_list_interpolated, 1)
-        
-        return y
+        return torch.cat(out_list_interpolated, 1)
 
     def init_weights(self, pretrained='',):
         logger.info('=> init weights from normal distribution')
@@ -625,7 +643,60 @@ class SimpleImageDecoderHead(nn.Module):
     
     def reinit_classifier(self, num_classes: int=3):
         self.classifier = nn.Conv2d(self.in_channels, num_classes, kernel_size=1)
-        return self     
+        return self
+
+
+
+class SEBlock(nn.Module):
+    
+    def __init__(self, channels: int, reduction_factor: int=16):
+        super(SEBlock, self).__init__()
+        
+        self.avg_pool = nn.AdaptiveAvgPool2d(1)
+        self.fc = nn.Sequential(
+            nn.Linear(channels, reduction_factor),
+            nn.ReLU(inplace=True),
+            nn.Linear(reduction_factor, channels),
+            nn.Sigmoid()
+        )
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        
+        b, c, _, _ = x.size()
+        y = self.avg_pool(x).view(b, c)
+        y = self.fc(y).view(b, c, 1, 1)
+        return x * y.expand_as(x)
+
+
+class SEImageDecoderHead(nn.Module):
+    
+    def __init__(self, in_channels: int=720, num_classes: int=3, hidden_dim: int=128, num_hiddens: int=2):
+        super(SEImageDecoderHead, self).__init__()
+
+        self.conv = nn.Sequential(
+            nn.Conv2d(in_channels, hidden_dim, kernel_size=1),
+            nn.BatchNorm2d(hidden_dim),
+            nn.ReLU(inplace=True),
+            SEBlock(hidden_dim),
+        )
+        self.hiddens = nn.ModuleList([])
+        for _ in range(num_hiddens):
+            self.hiddens.append(nn.Sequential(
+                nn.Conv2d(hidden_dim, hidden_dim, kernel_size=1),
+                nn.BatchNorm2d(hidden_dim),
+                nn.ReLU(inplace=True),
+                SEBlock(hidden_dim),
+            ))
+        self.classifer = nn.Conv2d(hidden_dim, num_classes, kernel_size=1)
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        
+        x = self.conv(x)
+        x = F.interpolate(x, scale_factor=4, mode='bilinear', align_corners=True)
+        for hidden_layer in self.hiddens:
+            x = hidden_layer(x) + x
+        
+        return self.classifer(x)
 
 
 class HRNetSegmentationModel(nn.Module):
@@ -634,9 +705,11 @@ class HRNetSegmentationModel(nn.Module):
         config: dict, 
         img_decoder_head: bool=True,
         use_simple_decoder: bool=True, # if True, use SimpleImageDecoderHead, else use ImageDecoderHead with multiple blocks
+        use_se_decoder: bool=False,
         img_decoder_activation: str='sigmoid',
         num_classes: int=3, 
-        aux_simclr_head: bool=False
+        aux_simclr_head: bool=False,
+        unet_like_decoder: bool=False,
     ):
         
         if img_decoder_activation not in ['sigmoid', 'softmax', 'none', None]:
@@ -644,11 +717,19 @@ class HRNetSegmentationModel(nn.Module):
 
         super(HRNetSegmentationModel, self).__init__()
         
+        if unet_like_decoder:
+            self.encoder_output_channels = sum([sum(config['STAGE{}'.format(i)]['NUM_CHANNELS']) for i in range(2, 5)]) + 256 # + 256 to account for stem in HRNET_W18, may be different for HRNET_248
+            config['OUTPUT_EACH_STAGE'] = True
+        else:
+            self.encoder_output_channels = sum(config['STAGE4']['NUM_CHANNELS'])
+            config['OUTPUT_EACH_STAGE'] = False
+        
         self.num_classes = num_classes
         self.config = config
-        self.encoder_output_channels = sum(config['STAGE4']['NUM_CHANNELS'])
         
         self.encoder = get_cls_net(config)
+        
+        
         
         # if not (img_decoder_head or aux_simclr_head):
             # raise ValueError('At least one of `img_decoder_head` or `aux_simclr_head` must be True.')
@@ -657,6 +738,8 @@ class HRNetSegmentationModel(nn.Module):
         if img_decoder_head:
             if use_simple_decoder:
                 self.decoder = SimpleImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes)
+            elif use_se_decoder:
+                self.decoder = SEImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes)
             else:
                 self.decoder = ImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes, num_blocks=config['IMAGE_DECODER']['NUM_BLOCKS'])
             

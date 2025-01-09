@@ -9,6 +9,8 @@ except ImportError:
 from .gradcaching import cat_input_tensor
 from .utils import get_torch_device
 
+from typing import Optional, Union, List, Literal
+
 def nt_xent_loss(z_0: torch.Tensor, z_1: torch.Tensor, temperature: float=0.5, reduction='sum') -> torch.Tensor:
     """
     Functional implementation of the normalized temperature-scaled cross entropy loss.
@@ -147,3 +149,383 @@ class FocalLoss(torch.nn.Module):
             return loss.mean()
         else:
             return loss
+
+class SegmentationLoss(nn.Module):
+    """Base class for segmentation loss functions.
+    
+    Parameters
+    ----------
+    alpha : Optional[Union[float, List[float], torch.Tensor]]
+        Class weights for handling class imbalance. Can be a float, list of floats, 
+        or tensor of shape (C,) where C is the number of classes. If None, classes 
+        are weighted equally.
+    reduction : str
+        Specifies the reduction to apply to the output:
+        ``'none'`` | ``'mean'`` | ``'sum'``. ``'none'``: no reduction will be applied,
+        ``'mean'``: the sum of the output will be divided by the number of
+        elements in the output, ``'sum'``: the output will be summed.
+    """
+    
+    def __init__(
+        self, 
+        alpha: Optional[Union[float, List[float], torch.Tensor]] = None,
+        reduction: Literal['none', 'mean', 'sum'] = 'mean'
+    ) -> None:
+        super().__init__()
+        self.reduction = reduction
+        self.alpha = alpha
+        
+    def _handle_weights(self, num_classes: int) -> Optional[Tensor]:
+        """Processes class weights into appropriate tensor format.
+        
+        Parameters
+        ----------
+        num_classes : int
+            Number of classes in the segmentation task.
+            
+        Returns
+        -------
+        Optional[Tensor]
+            Processed weights tensor of shape (C,) or None if no weights specified.
+        """
+        if self.alpha is None:
+            return None
+            
+        if isinstance(self.alpha, (float, int)):
+            weights = torch.full((num_classes,), self.alpha)
+        elif isinstance(self.alpha, list):
+            weights = torch.tensor(self.alpha)
+        else:
+            weights = self.alpha
+            
+        return weights.float()
+    
+    def _reduce(self, loss: torch.Tensor) -> torch.Tensor:
+        """Applies reduction method to loss tensor.
+        
+        Parameters
+        ----------
+        loss : torch.Tensor
+            Loss tensor to be reduced.
+            
+        Returns
+        -------
+        torch.Tensor
+            Reduced loss value.
+        """
+        if self.reduction == 'none':
+            return loss
+        elif self.reduction == 'mean':
+            return loss.mean()
+        else:  # sum
+            return loss.sum()
+
+
+class DiceLoss(SegmentationLoss):
+    """Dice loss for multi-class semantic segmentation.
+    
+    Parameters
+    ----------
+    alpha : Optional[Union[float, List[float], torch.Tensor]]
+        Class weights for handling class imbalance.
+    delta : float
+        Controls weight given to false positive and false negatives.
+        Must be in [0, 1].
+    smooth : float
+        Smoothing constant to prevent division by zero.
+    reduction : str
+        Reduction method to apply to the loss.
+    """
+    
+    def __init__(
+        self,
+        alpha: Optional[Union[float, List[float], torch.Tensor]] = None,
+        delta: float = 0.5,
+        smooth: float = 1e-6,
+        reduction: Literal['none', 'mean', 'sum'] = 'mean'
+    ) -> None:
+        super().__init__(alpha=alpha, reduction=reduction)
+        self.delta = delta
+        self.smooth = smooth
+        
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        Parameters
+        ----------
+        input : torch.Tensor
+            Predicted probabilities of shape (N, C, H, W)
+        target : torch.Tensor
+            Ground truth labels of shape (N, H, W) with values in [0, C-1]
+            
+        Returns
+        -------
+        torch.Tensor
+            Computed loss value.
+        """
+        n_classes = input.shape[1]
+        weights = self._handle_weights(n_classes)
+        
+        # Convert target to one-hot encoding
+        target_onehot = F.one_hot(target, n_classes).permute(0, 3, 1, 2).float()
+        
+        # Calculate true positives, false negatives and false positives
+        tp = torch.sum(target_onehot * input, dim=(2, 3))
+        fn = torch.sum(target_onehot * (1 - input), dim=(2, 3))
+        fp = torch.sum((1 - target_onehot) * input, dim=(2, 3))
+        
+        # Calculate Dice score for each class
+        dice_score = (tp + self.smooth) / (tp + self.delta * fn + (1 - self.delta) * fp + self.smooth)
+        
+        if weights is not None:
+            dice_score = weights.to(dice_score.device) * dice_score
+            
+        # Calculate loss
+        loss = 1 - dice_score
+        
+        # Apply reduction
+        if self.reduction == 'none':
+            return loss
+        else:
+            return self._reduce(loss)
+
+
+class TverskyLoss(SegmentationLoss):
+    """Tversky loss for multi-class semantic segmentation.
+    
+    Parameters
+    ----------
+    alpha : Optional[Union[float, List[float], torch.Tensor]]
+        Class weights for handling class imbalance.
+    delta : float
+        Controls weight given to false positive and false negatives.
+        Must be in [0, 1].
+    smooth : float
+        Smoothing constant to prevent division by zero.
+    reduction : str
+        Reduction method to apply to the loss.
+    """
+    
+    def __init__(
+        self,
+        alpha: Optional[Union[float, List[float], torch.Tensor]] = None,
+        delta: float = 0.7,
+        smooth: float = 1e-6,
+        reduction: Literal['none', 'mean', 'sum'] = 'mean'
+    ) -> None:
+        super().__init__(alpha=alpha, reduction=reduction)
+        self.delta = delta
+        self.smooth = smooth
+        
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        Parameters
+        ----------
+        input : torch.Tensor
+            Predicted probabilities of shape (N, C, H, W)
+        target : torch.Tensor
+            Ground truth labels of shape (N, H, W) with values in [0, C-1]
+            
+        Returns
+        -------
+        torch.Tensor
+            Computed loss value.
+        """
+        n_classes = input.shape[1]
+        weights = self._handle_weights(n_classes)
+        
+        # Convert target to one-hot encoding
+        target_onehot = F.one_hot(target, n_classes).permute(0, 3, 1, 2).float()
+        
+        # Calculate true positives, false negatives and false positives
+        tp = torch.sum(target_onehot * input, dim=(2, 3))
+        fn = torch.sum(target_onehot * (1 - input), dim=(2, 3))
+        fp = torch.sum((1 - target_onehot) * input, dim=(2, 3))
+        
+        # Calculate Tversky index for each class
+        tversky_score = (tp + self.smooth) / (tp + self.delta * fn + (1 - self.delta) * fp + self.smooth)
+        
+        if weights is not None:
+            tversky_score = weights.to(tversky_score.device) * tversky_score
+            
+        # Calculate loss
+        loss = 1 - tversky_score
+        
+        return self._reduce(loss)
+
+
+class FocalLoss(SegmentationLoss):
+    """Focal loss for multi-class semantic segmentation.
+    
+    Parameters
+    ----------
+    alpha : Optional[Union[float, List[float], torch.Tensor]]
+        Class weights for handling class imbalance.
+    gamma : float
+        Focal parameter controls degree of down-weighting easy examples.
+    reduction : str
+        Reduction method to apply to the loss.
+    """
+    
+    def __init__(
+        self,
+        alpha: Optional[Union[float, List[float], torch.Tensor]] = None,
+        gamma: float = 2.0,
+        reduction: Literal['none', 'mean', 'sum'] = 'mean'
+    ) -> None:
+        super().__init__(alpha=alpha, reduction=reduction)
+        self.gamma = gamma
+        
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        Parameters
+        ----------
+        input : torch.Tensor
+            Predicted probabilities of shape (N, C, H, W)
+        target : torch.Tensor
+            Ground truth labels of shape (N, H, W) with values in [0, C-1]
+            
+        Returns
+        -------
+        torch.Tensor
+            Computed loss value.
+        """
+        n_classes = input.shape[1]
+        weights = self._handle_weights(n_classes)
+        
+        # Convert target to one-hot encoding
+        target_onehot = F.one_hot(target, n_classes).permute(0, 3, 1, 2).float()
+        
+        # Compute focal loss
+        ce_loss = -target_onehot * torch.log(input + 1e-6)
+        focal_weight = torch.pow(1 - input, self.gamma)
+        focal_loss = focal_weight * ce_loss
+        
+        # Sum over spatial dimensions
+        focal_loss = torch.sum(focal_loss, dim=(2, 3))
+        
+        if weights is not None:
+            focal_loss = weights.to(focal_loss.device) * focal_loss
+            
+        return self._reduce(focal_loss)
+
+
+class ComboLoss(SegmentationLoss):
+    """Combination of Dice and Focal loss for multi-class semantic segmentation.
+    
+    Parameters
+    ----------
+    alpha : Optional[Union[float, List[float], torch.Tensor]]
+        Class weights for handling class imbalance.
+    weight : float
+        Weight factor between Dice and Focal loss. Must be in [0, 1].
+    gamma : float
+        Focal parameter for the Focal loss component.
+    delta : float
+        Delta parameter for the Dice loss component.
+    smooth : float
+        Smoothing constant to prevent division by zero.
+    reduction : str
+        Reduction method to apply to the loss.
+    """
+    
+    def __init__(
+        self,
+        alpha: Optional[Union[float, List[float], torch.Tensor]] = None,
+        weight: float = 0.5,
+        gamma: float = 2.0,
+        delta: float = 0.5,
+        smooth: float = 1e-6,
+        reduction: Literal['none', 'mean', 'sum'] = 'mean'
+    ) -> None:
+        super().__init__(alpha=alpha, reduction=reduction)
+        self.weight = weight
+        self.dice_loss = DiceLoss(alpha=alpha, delta=delta, smooth=smooth, reduction='none')
+        self.focal_loss = FocalLoss(alpha=alpha, gamma=gamma, reduction='none')
+        
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        Parameters
+        ----------
+        input : torch.Tensor
+            Predicted probabilities of shape (N, C, H, W)
+        target : torch.Tensor
+            Ground truth labels of shape (N, H, W) with values in [0, C-1]
+            
+        Returns
+        -------
+        torch.Tensor
+            Computed loss value.
+        """
+        dice_loss = self.dice_loss(input, target)
+        focal_loss = self.focal_loss(input, target)
+        
+        combo_loss = self.weight * dice_loss + (1 - self.weight) * focal_loss
+        
+        return self._reduce(combo_loss)
+
+
+class FocalTverskyLoss(SegmentationLoss):
+    """Focal Tversky loss for multi-class semantic segmentation.
+    
+    Parameters
+    ----------
+    alpha : Optional[Union[float, List[float], torch.Tensor]]
+        Class weights for handling class imbalance.
+    delta : float
+        Controls weight given to false positive and false negatives.
+    gamma : float
+        Focal parameter controls degree of down-weighting easy examples.
+    smooth : float
+        Smoothing constant to prevent division by zero.
+    reduction : str
+        Reduction method to apply to the loss.
+    """
+    
+    def __init__(
+        self,
+        alpha: Optional[Union[float, List[float], torch.Tensor]] = None,
+        delta: float = 0.7,
+        gamma: float = 0.75,
+        smooth: float = 1e-6,
+        reduction: Literal['none', 'mean', 'sum'] = 'mean'
+    ) -> None:
+        super().__init__(alpha=alpha, reduction=reduction)
+        self.delta = delta
+        self.gamma = gamma
+        self.smooth = smooth
+        
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        Parameters
+        ----------
+        input : torch.Tensor
+            Predicted probabilities of shape (N, C, H, W)
+        target : torch.Tensor
+            Ground truth labels of shape (N, H, W) with values in [0, C-1]
+            
+        Returns
+        -------
+        torch.Tensor
+            Computed loss value.
+        """
+        n_classes = input.shape[1]
+        weights = self._handle_weights(n_classes)
+        
+        # Convert target to one-hot encoding
+        target_onehot = F.one_hot(target, n_classes).permute(0, 3, 1, 2).float()
+        
+        # Calculate true positives, false negatives and false positives
+        tp = torch.sum(target_onehot * input, dim=(2, 3))
+        fn = torch.sum(target_onehot * (1 - input), dim=(2, 3))
+        fp = torch.sum((1 - target_onehot) * input, dim=(2, 3))
+        
+        # Calculate Tversky index for each class
+        tversky_score = (tp + self.smooth) / (tp + self.delta * fn + (1 - self.delta) * fp + self.smooth)
+        
+        # Apply focal weighting
+        focal_tversky_loss = torch.pow(1 - tversky_score, self.gamma)
+        
+        if weights is not None:
+            focal_tversky_loss = weights.to(focal_tversky_loss.device) * focal_tversky_loss
+            
+        return self._reduce(focal_tversky_loss)
