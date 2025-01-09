@@ -28,19 +28,22 @@ def main():
 
     # if multipolygon, convert to a list of polygons
     if isinstance(starville_msu_geom, shapely.MultiPolygon):
-        starville_msu_geom = [geom for geom in starville_msu_geom.geoms]
+        starville_msu_geom = [shapely.Polygon(geom.exterior) for geom in starville_msu_geom.geoms]
     else:
-        starville_msu_geom = [starville_msu_geom]
+        starville_msu_geom = [shapely.Polygon(starville_msu_geom)]
     
     logger.log('Loading model...')
     model = HRNetSegmentationModel(
         config=HRNET_W18_CONFIG,
         num_classes=8,
         img_decoder_head=True,
+        use_simple_decoder=False,
+        use_se_decoder=True,
+        unet_like_decoder=True,
         img_decoder_activation='softmax',
     )
     logger.log('Loading model weights...')
-    model.load_state_dict(load_pth('./weights/finetuned/hrnet_w18/dae_simclr/14/best_model.pth', map_location=torch.device('cpu')))
+    model.load_state_dict(load_pth('./weights/finetuned_unetlike/hrnet_w18/dae_hsv_simclr/14/best_model.pth', map_location=torch.device('cpu')))
     model.eval()
     model.to(get_torch_device())
     
@@ -51,7 +54,7 @@ def main():
         output_path='./data/inference_results/starkville_msu_2023_LC.tif',
         bounding_polygons=starville_msu_geom,
         tile_size=256,
-        stride=128,
+        stride=64,
         gaussian_sigma=192,
         batch_size=32,
         mean=load_pth('./weights/pretrain_mean.pth'),

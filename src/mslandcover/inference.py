@@ -312,7 +312,7 @@ class GPURasterProcessor:
         if logger:
             logger.log('Weight matrix created and moved to GPU.')
 
-    def preload_batches(self, queue: Queue):
+    def generate_tile_batches(self):
         height, width = self.raster_data.shape[1:]
         batch_tiles = []
         batch_coords = []
@@ -331,34 +331,12 @@ class GPURasterProcessor:
                 batch_coords.append((y, x))
 
                 if len(batch_tiles) == self.batch_size:
-                    queue.put((torch.from_numpy(np.stack(batch_tiles)), batch_coords))
+                    yield (torch.from_numpy(np.stack(batch_tiles)), batch_coords)
                     batch_tiles = []
                     batch_coords = []
-
-        if batch_tiles:
-            queue.put((torch.from_numpy(np.stack(batch_tiles)), batch_coords))
-        queue.put(None)  # Signal that loading is done
-
-    def generate_tile_batches(self):
-        """Generate batches of tiles with their corresponding coordinates.
         
-        Yields
-        -------
-        Tuple[torch.Tensor, List[Tuple[int, int]]]
-            Tuple containing:
-            - Batch of tiles as torch.Tensor of shape (B, C, H, W)
-            - List of (y, x) coordinates for each tile in the batch
-        """
-
-        queue = Queue(maxsize=self.prefetch_factor)
-        loader_thread = Thread(target=self.preload_batches, args=(queue,))
-        loader_thread.start()
-
-        while True:
-            batch = queue.get()
-            if batch is None:
-                break
-            yield batch
+        if batch_tiles:
+            yield (torch.from_numpy(np.stack(batch_tiles)), batch_coords)    
 
     def process_batch(self, batch_tiles: torch.Tensor, batch_coords: List[Tuple[int, int]]) -> Tuple[torch.Tensor, List[Tuple[int, int]]]:
         """Process a batch of tiles on GPU.

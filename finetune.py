@@ -41,7 +41,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--weights_dir',
         type=str,
-        default='./weights/hrnet_w18/new',
+        default='./weights/hrnet_w18/20250108',
         help='The directory containing the weights',
     )
     
@@ -111,14 +111,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--log_dir',
         type=str,
-        default='./logs/finetune',
+        default='./logs/finetune_unetlike',
         help='The directory to save logs',
     )
     
     parser.add_argument(
         '--output_dir',
         type=str,
-        default='./weights/finetuned',
+        default='./weights/finetuned_unetlike',
         help='The directory to save weights',
     )
     
@@ -265,6 +265,9 @@ def main() -> None:
     model = HRNetSegmentationModel(
         config=model_config,
         img_decoder_head=True,
+        use_simple_decoder=False,
+        use_se_decoder=True,
+        unet_like_decoder=True,
         aux_simclr_head=False,
         img_decoder_activation='softmax',
         num_classes=8,
@@ -320,7 +323,7 @@ def main() -> None:
     
     class_dist = train_dataset.get_class_distribution()
     logger.log(f'Class distribution: {class_dist}')
-    alpha = (1 - class_dist) ** 1
+    alpha = (1 - class_dist) ** 2
     alpha = alpha / alpha.mean()
     logger.log(f'Class weights: {alpha}')
     criterion = FocalLoss(gamma=5.0).to(device)
