@@ -15,7 +15,7 @@ from src.mslandcover.config import HRNET_W18_CONFIG, HRNET_W48_CONFIG, LEGEND_CL
 from src.mslandcover.data.datasets import FineTuneDataset
 from src.mslandcover.data.transforms import StandardDataAugmentations
 from src.mslandcover.models import HRNetSegmentationModel
-from src.mslandcover.loss import FocalLoss
+from src.mslandcover.loss import FocalLoss, FocalTverskyLoss, UnifiedFocalLoss
 from src.mslandcover import metrics
 
 
@@ -111,14 +111,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--log_dir',
         type=str,
-        default='./logs/finetune_unetlike',
+        default='./logs/finetune_unetlike2',
         help='The directory to save logs',
     )
     
     parser.add_argument(
         '--output_dir',
         type=str,
-        default='./weights/finetuned_unetlike',
+        default='./weights/finetuned_unetlike2',
         help='The directory to save weights',
     )
     
@@ -164,14 +164,11 @@ def parse_arguments() -> argparse.Namespace:
             '`weights` and `n_layers_unfrozen` arguments and substituting with '\
             'predefined values based on the job array ID.')
         possible_weights = ['randinit', 'imagenet', 'ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr']
-        possible_n_layers_unfrozen = range(1, 15)
+        possible_n_layers_unfrozen = range(15)
         
         args.weights = possible_weights[(job_array_id) % len(possible_weights)]
         args.n_layers_unfrozen = possible_n_layers_unfrozen[(job_array_id) // len(possible_weights)]
         print(f'Using weights: {args.weights} and n_layers_unfrozen: {args.n_layers_unfrozen}')
-    
-    if args.n_layers_unfrozen < 1:
-        parser.error('--n_layers_unfrozen must be greater than or equal to 1')
     
     if args.lr <= 0:
         parser.error('--lr must be greater than 0')
@@ -243,30 +240,12 @@ def main() -> None:
     logger.log(f'Training dataset: {len(train_dataset)} samples')
     logger.log(f'Validation dataset: {len(val_dataset)} samples')
     
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset,
-        batch_size=args.batch_size,
-        shuffle=True,
-        drop_last=True,
-        # num_workers=args.num_workers,
-        # pin_memory=True,
-        # prefetch_factor=4,
-    )
-    val_loader = torch.utils.data.DataLoader(
-        val_dataset,
-        batch_size=args.batch_size,
-        shuffle=False,
-        # num_workers=args.num_workers,
-        # pin_memory=True,
-        # prefetch_factor=4,
-    )
-    
     model_config = HRNET_W48_CONFIG if args.model == 'hrnet_w48' else HRNET_W18_CONFIG
     model = HRNetSegmentationModel(
         config=model_config,
         img_decoder_head=True,
-        use_simple_decoder=False,
-        use_se_decoder=True,
+        use_simple_decoder=args.n_layers_unfrozen == 0,
+        use_se_decoder=args.n_layers_unfrozen > 0,
         unet_like_decoder=True,
         aux_simclr_head=False,
         img_decoder_activation='softmax',
@@ -295,6 +274,9 @@ def main() -> None:
         'encoder' # full encoder
     ][:args.n_layers_unfrozen]
     
+    if args.n_layers_unfrozen == 0:
+        trainable_stages = ['decoder'] # linear probe
+    
     total_params = 0
     for param in model.parameters():
         total_params += param.numel()
@@ -306,6 +288,7 @@ def main() -> None:
             if param[0].startswith(stage):
                 trainable_params += param[1].numel()
                 param[1].requires_grad = True
+                break
     
     logger.log(f'Total parameters: {total_params}')
     logger.log(f'Trainable parameters: {trainable_params}')
@@ -322,11 +305,36 @@ def main() -> None:
     )
     
     class_dist = train_dataset.get_class_distribution()
+    
+    oversample_classes = []
+    minimum_oversample_rations = []
+    for i, prob in enumerate(class_dist):
+        if prob < 0.1:
+            oversample_classes.append(i)
+            minimum_oversample_rations.append(1.5 * prob)
     logger.log(f'Class distribution: {class_dist}')
+    
+    train_dataset.oversample_classes(oversample_classes, minimum_ratio=minimum_oversample_rations)
+    logger.log(f'Oversampled classes: {oversample_classes}')
+    logger.log(f'New class distribution: {train_dataset.get_class_distribution()}')
+    logger.log(f'New N_train: {len(train_dataset)}')
+    
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=args.batch_size,
+        shuffle=True,
+        drop_last=True,
+    )
+    val_loader = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size=args.batch_size,
+        shuffle=False,
+    )
+    
     alpha = (1 - class_dist) ** 2
     alpha = alpha / alpha.mean()
     logger.log(f'Class weights: {alpha}')
-    criterion = FocalLoss(gamma=5.0).to(device)
+    criterion = UnifiedFocalLoss(alpha=alpha, reduction='sum').to(device)
     
     metric_fns = [
         metrics.accuracy,
@@ -399,7 +407,7 @@ def main() -> None:
             with tqdm(
                 loader, 
                 desc=f'Epoch {epoch}/{args.num_epochs} {phase.capitalize()}', 
-                postfix={'lr': lr}, 
+                postfix={'lr': f'{lr:.0e}'}, 
                 unit='batch'
             ) as tloader:
                 for step, (X, y) in enumerate(tloader):

@@ -16,9 +16,9 @@ def main():
     logger = Logger(os.path.join(log_dir, 'inference.log'))
     
     logger.log('Loading Starkville and Mississippi State boundary...')
-    census_ms_places_shp_path = '/Users/dak/Downloads/tl_2024_28_place/tl_2024_28_place.shp'
+    census_ms_places_shp_path = r'data\shapefiles\tl_2024_28_place\tl_2024_28_place.shp'
     ms_places_gdf = gpd.read_file(census_ms_places_shp_path)
-    starville_msu_gdf = ms_places_gdf[ms_places_gdf['NAME'].isin(['Mississippi State'])]
+    starville_msu_gdf = ms_places_gdf[ms_places_gdf['NAME'].isin(['Starkville', 'Mississippi State'])]
     
     starville_msu_reproj_gdf = starville_msu_gdf.to_crs(MSTM_PROJ4)
     try:
@@ -43,20 +43,20 @@ def main():
         img_decoder_activation='softmax',
     )
     logger.log('Loading model weights...')
-    model.load_state_dict(load_pth('./weights/finetuned_unetlike/hrnet_w18/dae_hsv_simclr/14/best_model.pth', map_location=torch.device('cpu')))
+    model.load_state_dict(load_pth(r'weights\finetuned_unetlike2\hrnet_w18\dae_hsv_simclr\14\best_model.pth', map_location=torch.device('cpu')))
     model.eval()
     model.to(get_torch_device())
     
     logger.log('Starting inference...')
     processor = GPURasterProcessor(
         model=model,
-        input_raster_path='/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023.tif',
-        output_path='./data/inference_results/starkville_msu_2023_LC.tif',
+        input_raster_path=r'g:\NAIP_MS_2023\ortho_1-1_hc_s_ms105_2023_1\ortho_1-1_hc_s_ms105_2023_1_1m.tif',
+        output_path='./data/inference_results/starkville_msu_2023_LC_2.tif',
         bounding_polygons=starville_msu_geom,
         tile_size=256,
-        stride=64,
+        stride=32,
         gaussian_sigma=192,
-        batch_size=32,
+        batch_size=128,
         mean=load_pth('./weights/pretrain_mean.pth'),
         std=load_pth('./weights/pretrain_std.pth'),
         device=get_torch_device(),
