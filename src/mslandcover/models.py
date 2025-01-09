@@ -670,31 +670,73 @@ class SEBlock(nn.Module):
 
 class SEImageDecoderHead(nn.Module):
     
-    def __init__(self, in_channels: int=720, num_classes: int=3, hidden_dim: int=128, num_hiddens: int=2):
+    def __init__(self, in_channels: int=720, num_classes: int=3, hidden_dim: int=192, num_hiddens: int=4, num_bottleneck_blocks: int=4):
         super(SEImageDecoderHead, self).__init__()
+        
+        self.num_bottleneck_blocks = num_bottleneck_blocks
+        self.num_hidden = num_hiddens
 
-        self.conv = nn.Sequential(
-            nn.Conv2d(in_channels, hidden_dim, kernel_size=1),
-            nn.BatchNorm2d(hidden_dim),
-            nn.ReLU(inplace=True),
-            SEBlock(hidden_dim),
-        )
-        self.hiddens = nn.ModuleList([])
-        for _ in range(num_hiddens):
-            self.hiddens.append(nn.Sequential(
-                nn.Conv2d(hidden_dim, hidden_dim, kernel_size=1),
+        self.seblock = SEBlock(in_channels)
+        self.bottleneck = nn.ModuleList([])
+        for i in range(num_bottleneck_blocks):
+            in_dim = in_channels if i == 0 else hidden_dim
+            self.bottleneck.append(nn.Sequential(
+                nn.Conv2d(in_dim, hidden_dim, kernel_size=1),
                 nn.BatchNorm2d(hidden_dim),
                 nn.ReLU(inplace=True),
                 SEBlock(hidden_dim),
             ))
+        
+        self.conv1x1s = nn.ModuleList([])
+        self.conv3x3s = nn.ModuleList([])
+        self.conv5x5s = nn.ModuleList([])
+        self.conv7x7s = nn.ModuleList([])
+        self.seblocks = nn.ModuleList([])
+        for _ in range(num_hiddens):
+            self.conv1x1s.append(nn.Sequential(
+                nn.Conv2d(hidden_dim, hidden_dim, kernel_size=1),
+                nn.BatchNorm2d(hidden_dim),
+                nn.ReLU(inplace=True),
+            ))
+            self.conv3x3s.append(nn.Sequential(
+                nn.Conv2d(hidden_dim, hidden_dim, kernel_size=3, padding=1),
+                nn.BatchNorm2d(hidden_dim),
+                nn.ReLU(inplace=True),
+            ))
+            self.conv5x5s.append(nn.Sequential(
+                nn.Conv2d(hidden_dim, hidden_dim, kernel_size=5, padding=2),
+                nn.BatchNorm2d(hidden_dim),
+                nn.ReLU(inplace=True),
+            ))
+            self.conv7x7s.append(nn.Sequential(
+                nn.Conv2d(hidden_dim, hidden_dim, kernel_size=7, padding=3),
+                nn.BatchNorm2d(hidden_dim),
+                nn.ReLU(inplace=True),
+            ))
+            self.seblocks.append(SEBlock(hidden_dim))
+        
         self.classifer = nn.Conv2d(hidden_dim, num_classes, kernel_size=1)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         
-        x = self.conv(x)
+        x = self.seblock(x)
+        for i, bottleneck in enumerate(self.bottleneck):
+            if i == 0:
+                x = bottleneck(x)
+            else:
+                x = bottleneck(x) + x
+                
         x = F.interpolate(x, scale_factor=4, mode='bilinear', align_corners=True)
-        for hidden_layer in self.hiddens:
-            x = hidden_layer(x) + x
+        x_int = x.clone()
+        for i in range(self.num_hidden):
+            x1 = self.conv1x1s[i](x)
+            x3 = self.conv3x3s[i](x)
+            x5 = self.conv5x5s[i](x)
+            x7 = self.conv7x7s[i](x)
+            x_convd = x1 + x3 + x5 + x7 + x
+            if i != 0:
+                x_convd += x_int
+            x = self.seblocks[i](x_convd)
         
         return self.classifer(x)
 

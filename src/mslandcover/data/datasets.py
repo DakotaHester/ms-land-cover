@@ -13,7 +13,7 @@ import h5py
 import os
 from time import time
 
-from typing import Iterable, Optional, Union, Tuple
+from typing import Iterable, List, Optional, Union, Tuple
 from warnings import warn
 
 
@@ -211,7 +211,7 @@ class FineTuneDataset(Dataset):
         self.return_metadata = return_metadata
         self.device = device
         self.preload = preload
-        
+                
         # remove files from data paths that do not exist in target paths
         data_path_basenames = [os.path.basename(path) for path in data_paths]
         if target_paths is not None:
@@ -270,10 +270,14 @@ class FineTuneDataset(Dataset):
                         self.targets.append(res - 1)
                         pbar.update(1)
                 pbar.close()    
-    
-    
+
+            self.len = len(self.data)
+        else:
+            self.len = len(self.data_paths)
+
+
     def __len__(self) -> int:
-        return len(self.data_paths)
+        return self.len
     
     
     
@@ -344,4 +348,29 @@ class FineTuneDataset(Dataset):
         
         class_counts = torch.bincount(targets_arr, minlength=targets_arr.max() + 1)
         return class_counts.float() / class_counts.sum()
+    
+    
+    
+    def oversample_classes(self, class_idxs: List[int], oversample_factor: int=3, minimum_ratio: Optional[List[float]]=None):
         
+        for i in range(self.len):
+            if self.preload:
+                target_tile = self.targets[i]
+            else:
+                target_tile = utils.read_image(self.target_paths[i], as_float=False, as_tensor=True)
+            for j, class_idx in enumerate(class_idxs):
+                if class_idx in target_tile:
+                    
+                    if minimum_ratio is not None:
+                        if torch.sum(target_tile == class_idx).item() / target_tile.numel() < minimum_ratio[j]:
+                            continue
+                    
+                    for _ in range(oversample_factor):
+                        if self.preload:
+                            self.data.append(self.data[i])
+                            self.targets.append(target_tile)
+
+                        else:
+                            self.target_paths.append(self.target_paths[i])
+                            self.data_paths.append(self.data_paths[i])
+                        self.len += 1

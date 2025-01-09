@@ -31,3 +31,6 @@ logs
 /data/splits/pretrain.hdf5
 /weights_old
 pretrain.hdf5
+/hrnet_w18_dae_hsv_simclr_umap2.png
+/hrnet_w18_imagenet_umap2.png
+/data/hrnet_w18_deep_features.hdf5
