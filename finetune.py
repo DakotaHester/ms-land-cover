@@ -41,7 +41,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--weights_dir',
         type=str,
-        default='./weights/hrnet_w18/20250108',
+        default='./weights/hrnet_w18/new',
         help='The directory containing the weights',
     )
     
@@ -271,7 +271,7 @@ def main() -> None:
     ).to(device)
     
     if args.weights != 'randinit':
-        weights_state_dict = load_pth(os.path.join(args.weights_dir, f'{args.weights}.pth'))
+        weights_state_dict = load_pth(os.path.join(args.weights_dir, f'{args.weights}.pth'), map_location=device)
         model.load_encoder_weights(weights_state_dict)
         logger.log(f'Loaded {args.weights} weights from {args.weights_dir}')
     
@@ -320,10 +320,10 @@ def main() -> None:
     
     class_dist = train_dataset.get_class_distribution()
     logger.log(f'Class distribution: {class_dist}')
-    alpha = (1 - class_dist) ** 3
+    alpha = (1 - class_dist) ** 1
     alpha = alpha / alpha.mean()
     logger.log(f'Class weights: {alpha}')
-    criterion = FocalLoss(alpha=alpha, gamma=5.0).to(device)
+    criterion = FocalLoss(gamma=5.0).to(device)
     
     metric_fns = [
         metrics.accuracy,

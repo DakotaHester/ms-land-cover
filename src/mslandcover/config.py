@@ -30,6 +30,7 @@ LEGEND_COLORS_HEX = {
 }
 
 LEGEND_COLORS_RGB = {k: hex_to_rgb(v) for k, v in LEGEND_COLORS_HEX.items()}
+LEGEND_COLORS_RGBA = {k: (*v, 255) for k, v in LEGEND_COLORS_RGB.items()}
 
 # modified from HRNET w48 (https://github.com/HRNet/HRNet-Image-Classification/blob/master/experiments/cls_hrnet_w48_sgd_lr5e-2_wd1e-4_bs32_x100.yaml)
 HRNET_W48_CONFIG = {

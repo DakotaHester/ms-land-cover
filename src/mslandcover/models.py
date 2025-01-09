@@ -644,6 +644,7 @@ class HRNetSegmentationModel(nn.Module):
 
         super(HRNetSegmentationModel, self).__init__()
         
+        self.num_classes = num_classes
         self.config = config
         self.encoder_output_channels = sum(config['STAGE4']['NUM_CHANNELS'])
         
