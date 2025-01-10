@@ -1,0 +1,93 @@
+import numpy as np
+import rasterio as rio
+from rasterio import windows
+import os
+from tqdm import tqdm
+
+def main() -> None:
+    
+    naip_raster_path = './naip_resampled.tif'
+    landcover_raster_path = './landcover_aligned.tif'
+    out_path = './splits'
+    tile_size = 256
+    total_samples = 10000
+    
+    with rio.open(naip_raster_path) as naip_src, rio.open(landcover_raster_path) as landcover_src:
+        
+        naip_width, naip_height = naip_src.width, naip_src.height
+        candidate_indices = [(x, y) for x in range(0, naip_width, tile_size) for y in range(0, naip_height, tile_size)]
+        np.random.shuffle(candidate_indices)
+
+        sampled_tiles = 0
+        total_tiles = len(candidate_indices)
+        pbar = tqdm(total=total_samples, desc='Sampling tiles', unit='tiles')
+        while len(candidate_indices) > 0  and sampled_tiles < total_samples:
+            candidate_index = candidate_indices.pop()
+            
+            window = windows.Window(*candidate_index, tile_size, tile_size) 
+            naip_tile = naip_src.read(window=window)
+            
+            if naip_tile.shape != (3, tile_size, tile_size):
+                continue
+            
+            # if more than 5% of the tile is black (0, 0, 0), skip
+            nd_values = np.array([naip_src.nodata] * 3)
+            pixels_with_nd = np.equal(naip_tile.transpose(1, 2, 0).reshape(-1, 3), nd_values).all(axis=1)
+            if pixels_with_nd.sum(): # > (0.05 * len(pixels_with_nd)):
+                continue
+            
+            lc_tile = landcover_src.read(window=window)
+            if lc_tile.shape != (1, tile_size, tile_size):
+                continue
+            
+            pixels_with_nd = np.equal(lc_tile.reshape(-1), landcover_src.nodata)
+            if pixels_with_nd.sum(): # > (0.05 * len(pixels_with_nd)):
+                continue
+            
+            
+            if sampled_tiles % 4 in (1, 2):
+                out_dir = os.path.join(out_path, 'train')
+            elif sampled_tiles % 4 == 3:
+                out_dir = os.path.join(out_path, 'val')
+            else:
+                out_dir = os.path.join(out_path, 'test')
+            
+            image_id = f'{sampled_tiles:04d}'
+            naip_out_path = os.path.join(out_dir, 'input')
+            os.makedirs(naip_out_path, exist_ok=True)
+            
+            profile = naip_src.profile.copy()
+            profile.update({
+                'width': tile_size,
+                'height': tile_size,
+                'transform': rio.windows.transform(window, naip_src.transform),
+                'compress': 'lzw',
+                'BIGTIFF': 'NO',
+                'TILED': 'YES',
+                'BLOCKXSIZE': '256',
+                'BLOCKYSIZE': '256'
+            })
+            with rio.open(os.path.join(naip_out_path, f'{image_id}.tif'), 'w', **profile) as dst:
+                dst.write(naip_tile)
+                
+            lc_out_path = os.path.join(out_dir, 'target')
+            os.makedirs(lc_out_path, exist_ok=True)
+            profile = landcover_src.profile.copy()
+            profile.update({
+                'width': tile_size,
+                'height': tile_size,
+                'transform': rio.windows.transform(window, landcover_src.transform),
+                'compress': 'lzw',
+                'BIGTIFF': 'NO',
+                'TILED': 'YES',
+                'BLOCKXSIZE': '256',
+                'BLOCKYSIZE': '256'
+            })
+            with rio.open(os.path.join(lc_out_path, f'{image_id}.tif'), 'w', **profile) as dst:
+                dst.write(lc_tile)
+            
+            sampled_tiles += 1
+            pbar.update(1)
+    
+if __name__ == '__main__':
+    main()

@@ -34,3 +34,8 @@ pretrain.hdf5
 /hrnet_w18_dae_hsv_simclr_umap2.png
 /hrnet_w18_imagenet_umap2.png
 /data/hrnet_w18_deep_features.hdf5
+data/cpb_tests/naip_resampled.tif
+data/cpb_tests/landcover_aligned.tif
+data/cpb_tests/va_lc_2018_2022-Edition
+data/cpb_tests/splits
+data/cpb_tests/ortho_1-1_hc_s_va059_2018_1
