@@ -76,7 +76,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--batch_size',
         type=int,
-        default=8,
+        default=64,
         help='The batch size to use for training',
     )
     
@@ -140,6 +140,13 @@ def parse_arguments() -> argparse.Namespace:
         type=int,
         default=1701,
         help='The random seed to use for training',
+    )
+    
+    parser.add_argument(
+        '--n_train_samples',
+        type=int,
+        default=None,
+        help="If set, will use the first n samples from the training dataset",
     )
     
     parser.add_argument(
@@ -218,9 +225,11 @@ def main() -> None:
     mean = load_pth(mean_path) if os.path.exists(mean_path) else None
     std = load_pth(std_path) if os.path.exists(std_path) else None
     
+    n_train_samples = -1 if args.n_train_samples is None else args.n_train_samples
+    
     train_dataset = FineTuneDataset(
-        data_paths=glob(os.path.join(args.train_dir, 'input', '*.tif')),
-        target_paths=glob(os.path.join(args.train_dir, 'target', '*.tif')),
+        data_paths=glob(os.path.join(args.train_dir, 'input', '*.tif'))[:n_train_samples],
+        target_paths=glob(os.path.join(args.train_dir, 'target', '*.tif'))[:n_train_samples],
         mean=mean,
         std=std,
         transform=StandardDataAugmentations(),
