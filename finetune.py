@@ -48,21 +48,21 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--train_dir',
         type=str,
-        default='./data/splits/train',
+        default='./data/cpb_tests/splits/train',
         help='The directory containing the training data',
     )
     
     parser.add_argument(
         '--val_dir',
         type=str,
-        default='./data/splits/val',
+        default='./data/cpb_tests/splits/val',
         help='The directory containing the validation data',
     )
     
     parser.add_argument(
         '--test_dir',
         type=str,
-        default='./data/splits/test',
+        default='./data/cpb_tests/test',
         help='The directory containing the test data',
     )
     
@@ -111,14 +111,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--log_dir',
         type=str,
-        default='./logs/finetune_unetlike2',
+        default='./logs/finetune_cpbtests',
         help='The directory to save logs',
     )
     
     parser.add_argument(
         '--output_dir',
         type=str,
-        default='./weights/finetuned_unetlike2',
+        default='./weights/finetuned_cpbtests',
         help='The directory to save weights',
     )
     
