@@ -504,10 +504,10 @@ def main() -> None:
                             optimizer.step()
                             optimizer.zero_grad()
                         tqdm_postfix = {
-                            'lr': f'{lr:.0e}',
-                            'loss': f'{running_metrics['loss']:.3e}',
-                            'f1': f'{running_metrics['f1_score']:.3f}',
-                            'macro_f1': f'{running_metrics['macro_f1_score']:.3f}',
+                            'lr': f"{lr:.0e}",
+                            'loss': f"{running_metrics['loss']:.3e}",
+                            'f1': f"{running_metrics['f1_score']:.3f}",
+                            'macro_f1': f"{running_metrics['macro_f1_score']:.3f}",
                         }
                         pbar.set_postfix(tqdm_postfix)
                         pbar.update(1)
@@ -610,9 +610,9 @@ def main() -> None:
             
             if (step + 1) % args.grad_accumulation_steps == 0:
                 tqdm_postfix = {
-                    'loss': f'{test_metrics['loss']:.3e}',
-                    'f1': f'{test_metrics['f1_score']:.3f}',
-                    'macro_f1': f'{test_metrics['macro_f1_score']:.3f}',
+                    'loss': f"{test_metrics['loss']:.3e}",
+                    'f1': f"{test_metrics['f1_score']:.3f}",
+                    'macro_f1': f"{test_metrics['macro_f1_score']:.3f}",
                 }
                 pbar.set_postfix(tqdm_postfix)
                 pbar.update(1)
