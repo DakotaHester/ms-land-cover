@@ -20,8 +20,11 @@ for weights in randinit imagenet dae_hsv simclr dae_hsv_simclr
 do
     for train_full_encoder in "" "--train_full_encoder"
     do
-        # Create a unique job name
-        JOB_NAME="dh2306_${weights}_${train_full_encoder}_ft_test"
+        if ["$train_full_encoder" = "--train_full_encoder"]; then
+            JOB_NAME="dh2306_${weights}_ft_simple_decoder_test"
+        else
+            JOB_NAME="dh2306_${weights}_ft_test"
+        fi
                                 
         # Create a SLURM script for the job
         SLURM_SCRIPT="./slurm_scripts/${JOB_NAME}.slurm"

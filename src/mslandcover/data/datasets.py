@@ -276,6 +276,7 @@ class FineTuneDataset(Dataset):
             self.len = len(self.data_paths)
 
 
+
     def __len__(self) -> int:
         return self.len
     
@@ -351,7 +352,7 @@ class FineTuneDataset(Dataset):
     
     
     
-    def oversample_classes(self, class_idxs: List[int], oversample_factor: int=3, minimum_ratio: Optional[List[float]]=None):
+    def oversample_classes(self, class_idxs: List[int], oversample_factor: int=2, minimum_ratio: Optional[List[float]]=None):
         
         for i in range(self.len):
             if self.preload:
