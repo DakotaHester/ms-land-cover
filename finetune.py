@@ -74,10 +74,17 @@ def parse_arguments() -> argparse.Namespace:
     )
     
     parser.add_argument(
-        '--batch_size',
+        '--mini_batch_size',
+        type=int,
+        default=16,
+        help='The mini-batch size to use for training (for gradient accumulation)',
+    )
+    
+    parser.add_argument(
+        '--full_batch_size',
         type=int,
         default=64,
-        help='The batch size to use for training',
+        help='The effective batch size to use for training',
     )
     
     parser.add_argument(
@@ -188,6 +195,8 @@ def parse_arguments() -> argparse.Namespace:
         
     if args.reduce_lr_patience < 1:
         parser.error('--lr_reduce_patience must be greater than or equal to 1')
+    
+    args.grad_accumulation_steps = args.full_batch_size // args.mini_batch_size
     
     return args
 
@@ -431,8 +440,9 @@ def main() -> None:
                     
                     if phase == 'train':
                         loss.backward()
-                        optimizer.step()
-                        optimizer.zero_grad()
+                        if (step + 1) % args.grad_accumulation_steps == 0:
+                            optimizer.step()
+                            optimizer.zero_grad()
                     
                     running_metrics = {
                         'loss': sum(phase_stats['loss']) / ((step * loader.batch_size) + len(X)),
