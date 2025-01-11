@@ -3,7 +3,8 @@
 # Set common SLURM parameters
 PARTITION="gpu-a100"
 ACCOUNT="research-abe"
-MEMORY="10G"
+MEMORY="16G"
+N_TASKS="2"
 TIME="48:00:00"
 GRES="gpu:a100_1g.10gb:1"
 MAIL_USER="dh2306@msstate.edu"
@@ -15,20 +16,21 @@ LOG_DIR="./logs/cpb_tests/slurm"
 mkdir -p "$LOG_DIR"
 
 # Loop through all model and pretrain_scheme combinations
-for weights in imagenet simclr dae_simclr hsv_simclr dae_hsv_simclr
-for n_layers_unfrozen in 0 1 14
+for weights in randinit imagenet dae_hsv simclr dae_hsv_simclr
+do
+    for train_full_encoder in "" "--train_full_encoder"
     do
         # Create a unique job name
-        JOB_NAME="dh2306_${model}_${pretrain_scheme}_ft_test"
+        JOB_NAME="dh2306_${weights}_${train_full_encoder}_ft_test"
                                 
-            # Create a SLURM script for the job
-            SLURM_SCRIPT="./slurm_scripts/${JOB_NAME}.slurm"
-            mkdir -p "$(dirname "$SLURM_SCRIPT")"
+        # Create a SLURM script for the job
+        SLURM_SCRIPT="./slurm_scripts/${JOB_NAME}.slurm"
+        mkdir -p "$(dirname "$SLURM_SCRIPT")"
                 
-            cat > "$SLURM_SCRIPT" <<EOL
+        cat > "$SLURM_SCRIPT" <<EOL
 #!/bin/bash
 #SBATCH -N 1
-#SBATCH -n 1
+#SBATCH -n $N_TASKS
 #SBATCH --mem=$MEMORY
 #SBATCH -p $PARTITION
 #SBATCH -A $ACCOUNT
@@ -43,11 +45,11 @@ ml cuda
 ml python/3.10.8
 source $PYTHON_ENV
 export CUDA_VISIBLE_DEVICES=0
-python $SCRIPT_NAME --weights $weights --n_layers_unfrozen $n_layers_unfrozen
+python $SCRIPT_NAME --weights $weights --n_layers_unfrozen 0 $train_full_encoder
 EOL
 
 		# Submit the job
-	        sbatch "$SLURM_SCRIPT"
+	    sbatch "$SLURM_SCRIPT"
 	done
 done
 	    
