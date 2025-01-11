@@ -311,11 +311,17 @@ def main() -> None:
         batch_size=args.mini_batch_size,
         shuffle=True,
         drop_last=True,
+        num_workers=args.num_workers,
+        pin_memory=True,
+        prefetch_factor=4,
     )
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
         batch_size=args.mini_batch_size,
         shuffle=False,
+        num_workers=args.num_workers,
+        pin_memory=True,
+        prefetch_factor=4,
     )
     
     alpha = (1 - class_dist) ** args.alpha_power

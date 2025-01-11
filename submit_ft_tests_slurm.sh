@@ -48,7 +48,7 @@ ml cuda
 ml python/3.10.8
 source $PYTHON_ENV
 export CUDA_VISIBLE_DEVICES=0
-python $SCRIPT_NAME --weights $weights --n_layers_unfrozen 0 $train_full_encoder
+python $SCRIPT_NAME --weights $weights --n_layers_unfrozen 0 $train_full_encoder --num_workers $N_TASKS
 EOL
 
 		# Submit the job

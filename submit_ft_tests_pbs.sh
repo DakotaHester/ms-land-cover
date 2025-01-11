@@ -44,7 +44,7 @@ module load cuda
 module load python/3.10.8
 source $PYTHON_ENV
 export CUDA_VISIBLE_DEVICES=0
-python $SCRIPT_NAME --weights $weights --n_layers_unfrozen $num_layers_unfrozen --num_train_samples $num_train_samples
+python $SCRIPT_NAME --weights $weights --n_layers_unfrozen $num_layers_unfrozen --num_train_samples $num_train_samples --num_workers $NCPUS
 EOL
 
         # Submit the job
