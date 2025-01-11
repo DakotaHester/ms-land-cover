@@ -53,7 +53,6 @@ def main() -> None:
     reclassify_full = {k: reclassify_2[v] for k, v in reclassify_1.items()}
     reclassify_func = np.vectorize(reclassify_full.get)
     
-    
     with rio.open(naip_raster_path) as naip_src, rio.open(landcover_raster_path) as landcover_src:
         
         naip_width, naip_height = naip_src.width, naip_src.height
@@ -61,7 +60,6 @@ def main() -> None:
         np.random.shuffle(candidate_indices)
 
         sampled_tiles = 0
-        total_tiles = len(candidate_indices)
         pbar = tqdm(total=total_samples, desc='Sampling tiles', unit='tiles')
         while len(candidate_indices) > 0  and sampled_tiles < total_samples:
             candidate_index = candidate_indices.pop()
