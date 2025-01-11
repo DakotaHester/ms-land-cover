@@ -163,6 +163,12 @@ def parse_arguments() -> argparse.Namespace:
         help='Load a checkpoint from the log directory and resume training',
     )
     
+    parser.add_argument(
+        '--train_full_encoder',
+        action='store_true',
+        help='Overrides n_layers_unfrozen and trains the full encoder',
+    )
+    
     args = parser.parse_args()
     
     # check to see if script is being run as a job array on a cluster (using SLURM or PBS) and set the random seed accordingly
@@ -328,6 +334,9 @@ def main() -> None:
     
     if args.n_layers_unfrozen == 0:
         trainable_stages = ['decoder'] # linear probe
+    
+    if args.train_full_encoder:
+        trainable_stages = ['decoder', 'encoder']
     
     total_params = 0
     for param in model.parameters():
