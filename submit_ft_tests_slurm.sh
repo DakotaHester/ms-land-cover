@@ -20,7 +20,7 @@ for weights in randinit imagenet dae_hsv simclr dae_hsv_simclr
 do
     for train_full_encoder in "" "--train_full_encoder"
     do
-        if ["$train_full_encoder" = "--train_full_encoder"]; then
+        if [ "$train_full_encoder" = "--train_full_encoder" ]; then
             JOB_NAME="dh2306_${weights}_ft_simple_decoder_test"
         else
             JOB_NAME="dh2306_${weights}_ft_test"

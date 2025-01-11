@@ -190,6 +190,13 @@ def parse_arguments() -> argparse.Namespace:
         help='Factor to multiply the minimum class proportion by to determine the minimum oversample ratio',
     )
     
+    parser.add_argument(
+        '--alpha_power',
+        type=float,
+        default=2.0,
+        help='The power to raise the class weights to',
+    )
+    
     args = parser.parse_args()
     
     # check to see if script is being run as a job array on a cluster (using SLURM or PBS) and set the random seed accordingly
