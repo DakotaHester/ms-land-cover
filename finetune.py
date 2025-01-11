@@ -258,6 +258,39 @@ def main() -> None:
     logger.log(f'Training dataset: {len(train_dataset)} samples')
     logger.log(f'Validation dataset: {len(val_dataset)} samples')
     
+    class_dist = train_dataset.get_class_distribution()
+    num_classes = len(class_dist)
+    
+    oversample_classes = []
+    minimum_oversample_rations = []
+    for i, prob in enumerate(class_dist):
+        if prob < 0.1:
+            oversample_classes.append(i)
+            minimum_oversample_rations.append(1.5 * prob)
+    logger.log(f'Class distribution: {class_dist}')
+    
+    train_dataset.oversample_classes(oversample_classes, minimum_ratio=minimum_oversample_rations)
+    logger.log(f'Oversampled classes: {oversample_classes}')
+    logger.log(f'New class distribution: {train_dataset.get_class_distribution()}')
+    logger.log(f'New N_train: {len(train_dataset)}')
+    
+    train_loader = torch.utils.data.DataLoader(
+        train_dataset,
+        batch_size=args.mini_batch_size,
+        shuffle=True,
+        drop_last=True,
+    )
+    val_loader = torch.utils.data.DataLoader(
+        val_dataset,
+        batch_size=args.mini_batch_size,
+        shuffle=False,
+    )
+    
+    alpha = (1 - class_dist) ** 2
+    alpha = alpha / alpha.mean()
+    logger.log(f'Class weights: {alpha}')
+    criterion = UnifiedFocalLoss(alpha=alpha, reduction='sum').to(device)
+    
     model_config = HRNET_W48_CONFIG if args.model == 'hrnet_w48' else HRNET_W18_CONFIG
     model = HRNetSegmentationModel(
         config=model_config,
@@ -267,7 +300,7 @@ def main() -> None:
         unet_like_decoder=True,
         aux_simclr_head=False,
         img_decoder_activation='softmax',
-        num_classes=8,
+        num_classes=num_classes,
     ).to(device)
     
     if args.weights != 'randinit':
@@ -311,7 +344,7 @@ def main() -> None:
     logger.log(f'Total parameters: {total_params}')
     logger.log(f'Trainable parameters: {trainable_params}')
     logger.log(f'Trainable stages: {trainable_stages}')
-    
+
     optimizer = Adam(
         params=model.parameters(),
         lr=args.lr,
@@ -321,38 +354,6 @@ def main() -> None:
         optimizer=optimizer,
         patience=args.reduce_lr_patience,
     )
-    
-    class_dist = train_dataset.get_class_distribution()
-    
-    oversample_classes = []
-    minimum_oversample_rations = []
-    for i, prob in enumerate(class_dist):
-        if prob < 0.1:
-            oversample_classes.append(i)
-            minimum_oversample_rations.append(1.5 * prob)
-    logger.log(f'Class distribution: {class_dist}')
-    
-    train_dataset.oversample_classes(oversample_classes, minimum_ratio=minimum_oversample_rations)
-    logger.log(f'Oversampled classes: {oversample_classes}')
-    logger.log(f'New class distribution: {train_dataset.get_class_distribution()}')
-    logger.log(f'New N_train: {len(train_dataset)}')
-    
-    train_loader = torch.utils.data.DataLoader(
-        train_dataset,
-        batch_size=args.mini_batch_size,
-        shuffle=True,
-        drop_last=True,
-    )
-    val_loader = torch.utils.data.DataLoader(
-        val_dataset,
-        batch_size=args.mini_batch_size,
-        shuffle=False,
-    )
-    
-    alpha = (1 - class_dist) ** 2
-    alpha = alpha / alpha.mean()
-    logger.log(f'Class weights: {alpha}')
-    criterion = UnifiedFocalLoss(alpha=alpha, reduction='sum').to(device)
     
     metric_fns = [
         metrics.accuracy,
@@ -456,7 +457,7 @@ def main() -> None:
                             'f1': f'{running_metrics['f1_score']:.3f}',
                             'macro_f1': f'{running_metrics['macro_f1_score']:.3f}',
                         }
-                        tloader.set_postfix(tqdm_postfix)
+                        pbar.set_postfix(tqdm_postfix)
                         pbar.update(1)
                     
                     profiler.update(epoch, phase, step, time() - phase_start_time)
