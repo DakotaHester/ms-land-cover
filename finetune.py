@@ -251,6 +251,10 @@ def main() -> None:
         log_dir = log_dir + '_full_encoder'
         out_dir = out_dir + '_full_encoder'
     
+    if args.n_train_samples is not None:
+        log_dir = log_dir + f'_{args.n_train_samples}_samples'
+        out_dir = out_dir + f'_{args.n_train_samples}_samples'
+    
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
     
