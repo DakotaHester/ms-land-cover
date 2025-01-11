@@ -1,5 +1,6 @@
 import argparse
 from glob import glob
+import math
 import os
 from time import time
 import numpy as np
@@ -423,8 +424,11 @@ def main() -> None:
                 model.eval()
                 loader = val_loader
             
+            total_steps = len(loader) / args.grad_accumulation_steps
+            total_steps = math.ceil(total_steps) if phase == 'val' else math.floor(total_steps) # ceil val steps to ensure all samples are evaluated 
+            
             with tqdm(
-                total=len(loader),
+                total=total_steps,
                 desc=f'Epoch {epoch}/{args.num_epochs} {phase.capitalize()}', 
                 postfix={'lr': f'{lr:.0e}'}, 
                 unit='batch'
@@ -459,9 +463,16 @@ def main() -> None:
                             'macro_f1': f'{running_metrics['macro_f1_score']:.3f}',
                         }
                         pbar.set_postfix(tqdm_postfix)
-                        pbar.update(args.grad_accumulation_steps)
+                        pbar.update(1)
+                        
                     
                     profiler.update(epoch, phase, step, time() - phase_start_time)
+                    
+                    # if near end of epoch and won't reach full batch size, break
+                    if phase == 'train': 
+                        if len(loader) - step < args.grad_accumulation_steps:
+                            break
+                        
                 
             history_dict[f'{phase}_loss'].append(running_metrics['loss'])
             for metric_fn in metric_fns:
@@ -533,6 +544,7 @@ def main() -> None:
     y_preds = []
     y_trues = []
     
+    total_steps = math.ceil(len(test_loader) / args.grad_accumulation_steps)
     with tqdm(total=len(test_loader), desc='Testing', unit='batch') as pbar:
         for step, (X, y) in enumerate(test_loader):
             X, y = X.to(device), y.to(device)
@@ -556,7 +568,7 @@ def main() -> None:
                     'macro_f1': f'{test_metrics['macro_f1_score']:.3f}',
                 }
                 pbar.set_postfix(tqdm_postfix)
-                pbar.update(args.grad_accumulation_steps)
+                pbar.update(1)
     
     logger.log(f'Test loss: {test_metrics["loss"]:.5f}')
     for metric_fn in metric_fns:
