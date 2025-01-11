@@ -339,13 +339,13 @@ def main() -> None:
     
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
-        batch_size=args.batch_size,
+        batch_size=args.mini_batch_size,
         shuffle=True,
         drop_last=True,
     )
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
-        batch_size=args.batch_size,
+        batch_size=args.mini_batch_size,
         shuffle=False,
     )
     
@@ -423,40 +423,42 @@ def main() -> None:
                 loader = val_loader
             
             with tqdm(
-                loader, 
                 desc=f'Epoch {epoch}/{args.num_epochs} {phase.capitalize()}', 
                 postfix={'lr': f'{lr:.0e}'}, 
                 unit='batch'
-            ) as tloader:
-                for step, (X, y) in enumerate(tloader):
+            ) as pbar:
+                for step, (X, y) in enumerate(loader):
                     X, y = X.to(device), y.to(device)
             
                     y_hat = model(X)
                     loss = criterion(y_hat, y)
                     
+                    if phase == 'train':
+                        loss.backward()
+                    
                     phase_stats['loss'].append(loss.item())
                     for metric_fn in metric_fns:
                         phase_stats[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X)) # multiple by samples seen to get true average later
-                    
-                    if phase == 'train':
-                        loss.backward()
-                        if (step + 1) % args.grad_accumulation_steps == 0:
-                            optimizer.step()
-                            optimizer.zero_grad()
-                    
+
                     running_metrics = {
                         'loss': sum(phase_stats['loss']) / ((step * loader.batch_size) + len(X)),
                     }
                     for metric_fn in metric_fns:
                         running_metrics[metric_fn.__name__] = sum(phase_stats[metric_fn.__name__]) / ((step * loader.batch_size) + len(X))
                     
-                    tqdm_postfix = {
-                        'lr': f'{lr:.0e}',
-                        'loss': f'{running_metrics['loss']:.3e}',
-                        'f1': f'{running_metrics['f1_score']:.3f}',
-                        'macro_f1': f'{running_metrics['macro_f1_score']:.3f}',
-                    }
-                    tloader.set_postfix(tqdm_postfix)
+                    if (step + 1) % args.grad_accumulation_steps == 0:
+                        if phase == 'train':
+                            optimizer.step()
+                            optimizer.zero_grad()
+                        tqdm_postfix = {
+                            'lr': f'{lr:.0e}',
+                            'loss': f'{running_metrics['loss']:.3e}',
+                            'f1': f'{running_metrics['f1_score']:.3f}',
+                            'macro_f1': f'{running_metrics['macro_f1_score']:.3f}',
+                        }
+                        tloader.set_postfix(tqdm_postfix)
+                        pbar.update(1)
+                    
                     profiler.update(epoch, phase, step, time() - phase_start_time)
                 
             history_dict[f'{phase}_loss'].append(running_metrics['loss'])
@@ -511,7 +513,7 @@ def main() -> None:
 
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
-        batch_size=args.batch_size,
+        batch_size=args.mini_batch_size,
         shuffle=False,
         # num_workers=args.num_workers,
         # pin_memory=True,
@@ -529,8 +531,8 @@ def main() -> None:
     y_preds = []
     y_trues = []
     
-    with tqdm(test_loader, desc='Testing', unit='batch') as tloader:
-        for step, (X, y) in enumerate(tloader):
+    with tqdm(test_loader, desc='Testing', unit='batch') as pbar:
+        for step, (X, y) in enumerate(test_loader):
             X, y = X.to(device), y.to(device)
             y_hat = model(X)
             
@@ -544,12 +546,15 @@ def main() -> None:
                 
             y_preds.append(y_hat.argmax(axis=1).cpu().numpy().flatten())
             y_trues.append(y.cpu().numpy().flatten())
-        
-            tqdm_postfix = {
-                'loss': f'{test_metrics['loss']:.3e}',
-                'f1': f'{test_metrics['f1_score']:.3f}',
-                'macro_f1': f'{test_metrics['macro_f1_score']:.3f}',
-            }
+            
+            if (step + 1) % args.grad_accumulation_steps == 0:
+                tqdm_postfix = {
+                    'loss': f'{test_metrics['loss']:.3e}',
+                    'f1': f'{test_metrics['f1_score']:.3f}',
+                    'macro_f1': f'{test_metrics['macro_f1_score']:.3f}',
+                }
+                pbar.set_postfix(tqdm_postfix)
+                pbar.update(1)
     
     logger.log(f'Test loss: {test_metrics["loss"]:.5f}')
     for metric_fn in metric_fns:
