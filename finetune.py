@@ -215,9 +215,13 @@ def main() -> None:
     
     torch.random.manual_seed(args.seed)
     np.random.seed(args.seed)
-    
+
     log_dir = os.path.join(args.log_dir, args.model, args.weights, str(args.n_layers_unfrozen))
     out_dir = os.path.join(args.output_dir, args.model, args.weights, str(args.n_layers_unfrozen))
+
+    if args.train_full_encoder:
+        log_dir = log_dir + '_full_encoder'
+        out_dir = out_dir + '_full_encoder'
     
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
