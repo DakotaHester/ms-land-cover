@@ -76,7 +76,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=16,
+        default=8,
         help='The mini-batch size to use for training (for gradient accumulation)',
     )
     
@@ -424,6 +424,7 @@ def main() -> None:
                 loader = val_loader
             
             with tqdm(
+                total=len(loader),
                 desc=f'Epoch {epoch}/{args.num_epochs} {phase.capitalize()}', 
                 postfix={'lr': f'{lr:.0e}'}, 
                 unit='batch'
@@ -458,7 +459,7 @@ def main() -> None:
                             'macro_f1': f'{running_metrics['macro_f1_score']:.3f}',
                         }
                         pbar.set_postfix(tqdm_postfix)
-                        pbar.update(1)
+                        pbar.update(args.grad_accumulation_steps)
                     
                     profiler.update(epoch, phase, step, time() - phase_start_time)
                 
@@ -532,7 +533,7 @@ def main() -> None:
     y_preds = []
     y_trues = []
     
-    with tqdm(test_loader, desc='Testing', unit='batch') as pbar:
+    with tqdm(total=len(test_loader), desc='Testing', unit='batch') as pbar:
         for step, (X, y) in enumerate(test_loader):
             X, y = X.to(device), y.to(device)
             y_hat = model(X)
@@ -555,7 +556,7 @@ def main() -> None:
                     'macro_f1': f'{test_metrics['macro_f1_score']:.3f}',
                 }
                 pbar.set_postfix(tqdm_postfix)
-                pbar.update(1)
+                pbar.update(args.grad_accumulation_steps)
     
     logger.log(f'Test loss: {test_metrics["loss"]:.5f}')
     for metric_fn in metric_fns:
