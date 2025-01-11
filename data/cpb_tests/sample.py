@@ -12,6 +12,48 @@ def main() -> None:
     tile_size = 256
     total_samples = 10000
     
+    # reclassify land cover rasters to match our products
+    reclassify_1 = {
+        1: 1,   # Water
+        2: 5,   # Emergent Wetlands -> low vegetation
+        3: 3,   # Tree canopy (woody vegetation)
+        4: 4,   # Shrubland
+        5: 5,   # Low vegetation
+        6: 6,   # Barren land
+        7: 7,   # Imperious structures
+        8: 8,   # Other Impervious
+        9: 8,   # Roads -> Imperious surfaces
+        10: 3,  # Tree canopy over imperious structures -> Tree canopy (woody vegetation)
+        11: 3,  # Tree canopy over other impervious -> Tree canopy (woody vegetation)
+        12: 3,  # Tree canopy over roads -> Tree canopy (woody vegetation)
+    }
+    original_class_names = {
+        1: 'Water',
+        2: 'Emergent Wetlands',
+        3: 'Tree canopy',
+        4: 'Shrubland',
+        5: 'Low vegetation',
+        6: 'Barren land',
+        7: 'Imperious structures',
+        8: 'Other Impervious',
+        9: 'Roads',
+        10: 'Tree canopy over imperious structures',
+        11: 'Tree canopy over other impervious',
+        12: 'Tree canopy over roads',
+    }
+    reclassify_1_class_names = {k: original_class_names[v] for k, v in reclassify_1.items()}
+    reclassify_2 = {v: i for i, v in enumerate(set(reclassify_1.values()), 1)}
+    reclassify_2_class_names = {v: original_class_names[k] for k, v in reclassify_2.items()}    
+    
+    print('Reclassification mapping:')
+    for starting_index, intermediate_index in reclassify_1.items():
+        final_index = reclassify_2[intermediate_index]
+        print(f'{starting_index}: {original_class_names[starting_index]} -> {intermediate_index}: {reclassify_1_class_names[intermediate_index]} -> {final_index}: {reclassify_2_class_names[final_index]}')
+    
+    reclassify_full = {k: reclassify_2[v] for k, v in reclassify_1.items()}
+    reclassify_func = np.vectorize(reclassify_full.get)
+    
+    
     with rio.open(naip_raster_path) as naip_src, rio.open(landcover_raster_path) as landcover_src:
         
         naip_width, naip_height = naip_src.width, naip_src.height
@@ -44,10 +86,11 @@ def main() -> None:
             if pixels_with_nd.sum(): # > (0.05 * len(pixels_with_nd)):
                 continue
             
+            lc_tile = reclassify_func(lc_tile)
             
-            if sampled_tiles % 4 in (1, 2):
+            if sampled_tiles % 4 in (0, 1):
                 out_dir = os.path.join(out_path, 'train')
-            elif sampled_tiles % 4 == 3:
+            elif sampled_tiles % 4 == 2:
                 out_dir = os.path.join(out_path, 'val')
             else:
                 out_dir = os.path.join(out_path, 'test')

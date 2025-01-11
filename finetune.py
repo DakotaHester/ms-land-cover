@@ -105,7 +105,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--early_stopping_patience',
         type=int,
-        default=20,
+        default=15,
         help='The number of epochs to wait before early stopping',
     )
     
@@ -167,6 +167,27 @@ def parse_arguments() -> argparse.Namespace:
         '--train_full_encoder',
         action='store_true',
         help='Overrides n_layers_unfrozen and trains the full encoder',
+    )
+    
+    parser.add_argument(
+        '--minimum_class_proportion',
+        type=float,
+        default=0.05,
+        help='Minimum proportion of a class in the dataset for it to be considered for oversampling',
+    )
+    
+    parser.add_argument(
+        '--oversample_factor',
+        type=int,
+        default=2,
+        help='Number of times to duplicate samples that contain underrepresented classes',
+    )
+    
+    parser.add_argument(
+        '--minimum_oversample_ratio_factor',
+        type=float,
+        default=2.0,
+        help='Factor to multiply the minimum class proportion by to determine the minimum oversample ratio',
     )
     
     args = parser.parse_args()
@@ -273,14 +294,14 @@ def main() -> None:
     num_classes = len(class_dist)
     
     oversample_classes = []
-    minimum_oversample_rations = []
+    minimum_oversample_ratios = []
     for i, prob in enumerate(class_dist):
-        if prob < 0.1:
+        if prob < args.minimum_class_proportion:
             oversample_classes.append(i)
-            minimum_oversample_rations.append(1.5 * prob)
+            minimum_oversample_ratios.append(args.minimum_oversample_ratio_factor * prob)
     logger.log(f'Class distribution: {class_dist}')
     
-    train_dataset.oversample_classes(oversample_classes, minimum_ratio=minimum_oversample_rations)
+    train_dataset.oversample_classes(oversample_classes, oversample_factor=args.oversample_factor, minimum_ratio=minimum_oversample_ratios)
     logger.log(f'Oversampled classes: {oversample_classes}')
     logger.log(f'New class distribution: {train_dataset.get_class_distribution()}')
     logger.log(f'New N_train: {len(train_dataset)}')
@@ -297,7 +318,7 @@ def main() -> None:
         shuffle=False,
     )
     
-    alpha = (1 - class_dist) ** 2
+    alpha = (1 - class_dist) ** args.alpha_power
     alpha = alpha / alpha.mean()
     logger.log(f'Class weights: {alpha}')
     criterion = UnifiedFocalLoss(alpha=alpha, reduction='sum').to(device)
