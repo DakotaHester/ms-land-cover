@@ -63,7 +63,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--test_dir',
         type=str,
-        default='./data/cpb_tests/test',
+        default='./data/cpb_tests/splits/test',
         help='The directory containing the test data',
     )
     
@@ -277,11 +277,11 @@ def main() -> None:
     mean = load_pth(mean_path) if os.path.exists(mean_path) else None
     std = load_pth(std_path) if os.path.exists(std_path) else None
     
-    n_train_samples = -1 if args.n_train_samples is None else args.n_train_samples
+    # n_train_samples = -0 if args.n_train_samples is None else args.n_train_samples
     
     train_dataset = FineTuneDataset(
-        data_paths=glob(os.path.join(args.train_dir, 'input', '*.tif'))[:n_train_samples],
-        target_paths=glob(os.path.join(args.train_dir, 'target', '*.tif'))[:n_train_samples],
+        data_paths=glob(os.path.join(args.train_dir, 'input', '*.tif'))[:args.n_train_samples],
+        target_paths=glob(os.path.join(args.train_dir, 'target', '*.tif'))[:args.n_train_samples],
         mean=mean,
         std=std,
         transform=StandardDataAugmentations(),
