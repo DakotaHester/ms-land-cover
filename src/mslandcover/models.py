@@ -670,7 +670,7 @@ class SEBlock(nn.Module):
 
 class SEImageDecoderHead(nn.Module):
     
-    def __init__(self, in_channels: int=720, num_classes: int=3, hidden_dim: int=192, num_hiddens: int=4, num_bottleneck_blocks: int=4):
+    def __init__(self, in_channels: int=720, num_classes: int=3, hidden_dim: int=192, num_hiddens: int=4, num_bottleneck_blocks: int=1):
         super(SEImageDecoderHead, self).__init__()
         
         self.num_bottleneck_blocks = num_bottleneck_blocks
