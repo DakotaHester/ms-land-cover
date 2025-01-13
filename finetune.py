@@ -643,6 +643,9 @@ def main() -> None:
     
     cr_df = pd.DataFrame(cr).transpose()
     cr_df.to_csv(os.path.join(log_dir, 'classification_report.csv'), index=True)
+
+
+
 if __name__ == '__main__':
 
     main()
