@@ -277,7 +277,7 @@ def main():
         n_views=n_views,
         mean=train_dataset.mean,
         std=train_dataset.std,
-        transform=None,
+        transform=transforms.ResizeTransform(size=args.image_size),
         return_hsv=return_hsv,
         noisy_input=noisy_input,
         preload=args.preload_data
