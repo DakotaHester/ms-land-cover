@@ -595,7 +595,7 @@ class ImageDecoderHead(nn.Module):
 # z_i = W^{(2)} \sigma(W^{(1)} h_i)
 class ProjectionHead(nn.Module):
     
-    def __init__(self, in_channels: int=720, num_hiddens: int=4, embedding_dim: int=128):
+    def __init__(self, in_channels: int=720, num_hiddens: int=1, embedding_dim: int=128):
         super(ProjectionHead, self).__init__()
         
         self.gap = nn.AdaptiveAvgPool2d((1, 1))
@@ -937,6 +937,8 @@ class ResNetAutoencoder(nn.Module):
             
         else:
             self.encoder_output_channels = 2048
+        
+        self.final_layer_output_channels = 2048
 
         self.decoder = None
         if img_decoder_head:
@@ -957,7 +959,7 @@ class ResNetAutoencoder(nn.Module):
                     
         self.projection_head = None
         if aux_simclr_head:
-            self.projection_head = ProjectionHead(in_channels=self.encoder_output_channels)
+            self.projection_head = ProjectionHead(in_channels=self.final_layer_output_channels)
     
     
     def load_encoder_weights(self, state_dict: dict):
@@ -983,6 +985,8 @@ class ResNetAutoencoder(nn.Module):
             returns.append(y)
         
         if self.projection_head is not None:
+            # only pass the output of the last layer of the encoder to the projection head
+            h = h[:, -self.final_layer_output_channels:]
             returns.append(self.projection_head(h))
         
         if len(returns) == 1:

@@ -246,8 +246,9 @@ class StandardDataAugmentations:
     flips and color distortions.
     '''
     
-    def __init__(self):
+    def __init__(self, size: int=256):
         self.color_transforms = get_color_transforms()
+        self.size = size
     
     def __call__(self, X: torch.Tensor, y: Optional[torch.Tensor] = None):
         
@@ -268,6 +269,11 @@ class StandardDataAugmentations:
             y = F.rotate(y, rot_angle * 90)
         
         X = self.color_transforms(X)
+        
+        if X.shape[1] != self.size:
+            X = F.resize(X, (self.size, self.size))
+            if y is not None:
+                y = F.resize(y, (self.size, self.size))
         
         if y is not None:
             return X, y
