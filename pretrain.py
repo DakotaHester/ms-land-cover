@@ -105,7 +105,7 @@ def parse_arguments():
     parser.add_argument(
         '--learning_rate_factor',
         type=float,
-        default=0.1,
+        default=1.0,
         help='The factor by which to reduce the learning rate after loading the imagenet weights.',
     )
     
@@ -119,7 +119,7 @@ def parse_arguments():
     parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=16,
+        default=32,
         help='The mini-batch size to use for gradient caching.',
     )
     
@@ -551,7 +551,7 @@ def main():
                             reconstruction_loss = torch.tensor(0.0, device=device)
                             for view in range(n_views):
                                 reconstruction_loss += cached_mse_loss_call(cache[view]['y_hat'], cache[view]['y'])
-                            reconstruction_loss_values.append(reconstruction_loss.item())
+                            reconstruction_loss_values.append(reconstruction_loss.item() / n_views)
                         epoch_reconstruction_loss = np.sum(reconstruction_loss_values) / ((step * args.mini_batch_size) + len(batch)) 
                         tqdm_postfix['MSE Loss'] = f'{epoch_reconstruction_loss:.2e}'
                     
