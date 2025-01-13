@@ -389,7 +389,7 @@ def main():
         weight_decay=1e-6,
     )
     
-    warmup_epochs = 10
+    warmup_epochs = args.num_epochs // 10 # per original SimCLR implementation
     warmup_scheduler = LambdaLR(
         optimizer=optimizer,
         lr_lambda=lambda epoch: min(1, (epoch+1) / warmup_epochs),
