@@ -593,7 +593,7 @@ def main():
                     pbar.set_postfix(tqdm_postfix)
                     pbar.update(1)
                     
-                    if phase == 'val':
+                    if phase == 'train':
                         if len(loader) - step < grad_accum_steps:
                             break
 
