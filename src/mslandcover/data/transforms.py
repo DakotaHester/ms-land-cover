@@ -209,7 +209,7 @@ class SimCLRDataAugmentation:
     Data Transformer for creating a pair of views from an image.
     """
     
-    def __init__(self, size: int=64):
+    def __init__(self, size: int=96):
         
         scale_factor = (size ** 2) / (256 ** 2)
         scale_min = 0.08 * scale_factor
