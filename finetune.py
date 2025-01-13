@@ -15,7 +15,7 @@ from src.mslandcover.utils import Logger, get_torch_device, ProfilerHistory, loa
 from src.mslandcover.config import HRNET_W18_CONFIG, HRNET_W48_CONFIG, LEGEND_CLASSES
 from src.mslandcover.data.datasets import FineTuneDataset
 from src.mslandcover.data.transforms import StandardDataAugmentations
-from src.mslandcover.models import HRNetSegmentationModel
+from src.mslandcover.models import HRNetSegmentationModel, ResNetAutoencoder
 from src.mslandcover.loss import FocalLoss, FocalTverskyLoss, UnifiedFocalLoss
 from src.mslandcover import metrics
 
@@ -26,15 +26,15 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--model',
         type=str,
-        default='hrnet_w18',
-        choices=['hrnet_w18', 'hrnet_w48'],
+        default='resnet152',
+        choices=['hrnet_w18', 'hrnet_w48', 'resnet152'],
         help='The model to use for training',
     )
     
     parser.add_argument(
         '--weights',
         type=str,
-        default='randinit',
+        default='imagenet',
         choices=['randinit', 'imagenet', 'ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr'],
         help='The weights to use for the model',
     )
@@ -42,28 +42,28 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--weights_dir',
         type=str,
-        default='./weights/hrnet_w18/20250108',
+        default='./weights/resnet152/',
         help='The directory containing the weights',
     )
     
     parser.add_argument(
         '--train_dir',
         type=str,
-        default='./data/cpb_tests/splits/train',
+        default='./data/splits/train',
         help='The directory containing the training data',
     )
     
     parser.add_argument(
         '--val_dir',
         type=str,
-        default='./data/cpb_tests/splits/val',
+        default='./data/splits/val',
         help='The directory containing the validation data',
     )
     
     parser.add_argument(
         '--test_dir',
         type=str,
-        default='./data/cpb_tests/splits/test',
+        default='./data/splits/test',
         help='The directory containing the test data',
     )
     
@@ -77,7 +77,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=8,
+        default=4,
         help='The mini-batch size to use for training (for gradient accumulation)',
     )
     
@@ -119,14 +119,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--log_dir',
         type=str,
-        default='./logs/finetune_cpbtests',
+        default='./logs/finetune_resnet',
         help='The directory to save logs',
     )
     
     parser.add_argument(
         '--output_dir',
         type=str,
-        default='./weights/finetuned_cpbtests',
+        default='./weights/finetuned_resnet',
         help='The directory to save weights',
     )
     
@@ -340,22 +340,38 @@ def main() -> None:
     logger.log(f'Class weights: {alpha}')
     criterion = UnifiedFocalLoss(alpha=alpha, reduction='sum').to(device)
     
-    model_config = HRNET_W48_CONFIG if args.model == 'hrnet_w48' else HRNET_W18_CONFIG
-    model = HRNetSegmentationModel(
-        config=model_config,
-        img_decoder_head=True,
-        use_simple_decoder=args.n_layers_unfrozen == 0,
-        use_se_decoder=args.n_layers_unfrozen > 0,
-        unet_like_decoder=True,
-        aux_simclr_head=False,
-        img_decoder_activation='softmax',
-        num_classes=num_classes,
-    ).to(device)
-    
-    if args.weights != 'randinit':
-        weights_state_dict = load_pth(os.path.join(args.weights_dir, f'{args.weights}.pth'), map_location=device)
-        model.load_encoder_weights(weights_state_dict)
-        logger.log(f'Loaded {args.weights} weights from {args.weights_dir}')
+    if 'hrnet' in args.model:
+        model_config = HRNET_W48_CONFIG if args.model == 'hrnet_w48' else HRNET_W18_CONFIG
+        model = HRNetSegmentationModel(
+            config=model_config,
+            img_decoder_head=True,
+            use_simple_decoder=args.n_layers_unfrozen == 0,
+            use_se_decoder=args.n_layers_unfrozen > 0,
+            unet_like_decoder=True,
+            aux_simclr_head=False,
+            img_decoder_activation='softmax',
+            num_classes=num_classes,
+        ).to(device)
+        
+        if args.weights != 'randinit':
+            weights_state_dict = load_pth(os.path.join(args.weights_dir, f'{args.weights}.pth'), map_location=device)
+            model.load_encoder_weights(weights_state_dict)
+            logger.log(f'Loaded {args.weights} weights from {args.weights_dir}')
+    elif args.model == 'resnet152':
+        model = ResNetAutoencoder(
+            img_decoder_head=True,
+            use_simple_decoder=args.n_layers_unfrozen == 0,
+            use_se_decoder=args.n_layers_unfrozen > 0,
+            unet_like_decoder=True,
+            aux_simclr_head=False,
+            img_decoder_activation='softmax',
+            num_classes=num_classes,
+            pretrained=args.weights == 'imagenet',
+        ).to(device)
+        if args.weights not in ('randinit', 'imagenet'):
+            weights_state_dict = load_pth(os.path.join(args.weights_dir, f'{args.weights}.pth'), map_location=device)
+            model.load_encoder_weights(weights_state_dict)
+            logger.log(f'Loaded {args.weights} weights from {args.weights_dir}')
     
     trainable_stages = [
         'decoder',
