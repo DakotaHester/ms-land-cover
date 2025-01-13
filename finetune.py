@@ -42,7 +42,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--weights_dir',
         type=str,
-        default='./weights/resnet152/',
+        default='./weights/resnet_152_20250113',
         help='The directory containing the weights',
     )
     
@@ -70,7 +70,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--n_layers_unfrozen',
         type=int,
-        default=1,
+        default=0,
         help='The number of layers to unfreeze for training',
     )
     
@@ -532,13 +532,12 @@ def main() -> None:
                         pbar.set_postfix(tqdm_postfix)
                         pbar.update(1)
                         
+                        if phase == 'train':
+                            if len(loader) - step < args.grad_accumulation_steps:
+                                profiler.update(epoch, phase, step, time() - phase_start_time)
+                                break
                     
                     profiler.update(epoch, phase, step, time() - phase_start_time)
-                    
-                    # if near end of epoch and won't reach full batch size, break
-                    if phase == 'train': 
-                        if len(loader) - step < args.grad_accumulation_steps:
-                            break
                         
                 
             history_dict[f'{phase}_loss'].append(running_metrics['loss'])
