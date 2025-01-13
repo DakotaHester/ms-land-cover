@@ -254,6 +254,7 @@ class StandardDataAugmentations:
     def __init__(self, size: int=256):
         self.color_transforms = get_color_transforms()
         self.size = size
+        self.resize_transform = ResizeTransform(size=size)
     
     def __call__(self, X: torch.Tensor, y: Optional[torch.Tensor] = None):
         
@@ -275,23 +276,10 @@ class StandardDataAugmentations:
         
         X = self.color_transforms(X)
         
-        if X.shape[1] > self.size:
-            # crop a random region from the image to the desired size
-            x_offset = torch.randint(0, X.shape[1] - self.size, (1,)).item()
-            y_offset = torch.randint(0, X.shape[2] - self.size, (1,)).item()
-            X = F.crop(X, x_offset, y_offset, self.size, self.size)
-            
-            if y is not None:
-                y = F.crop(y, x_offset, y_offset, self.size, self.size)
-            
-        elif X.shape[1] < self.size:
-            # resize to the desired size
-            X = F.resize(X, (self.size, self.size))
-            
-            if y is not None:
-                y = F.resize(y, (self.size, self.size))
+        if y is not None:
+            X, y = self.resize_transform(X, y)
         else:
-            pass
+            X = self.resize_transform(X)
         
         if y is not None:
             return X, y
@@ -398,4 +386,37 @@ def visualize_transforms(
                     X = X.int().cpu().numpy().astype(np.uint8)
                     X = cv.cvtColor(X, cv.COLOR_RGB2BGR)
                     cv.imwrite(os.path.join(out_path, f'{i}_view_{view}.png'), X)
+
+
+
+class ResizeTransform:
+    """
+    Resize the input image tensor to the desired size.
+    """
     
+    def __init__(self, size: int=256):
+        self.size = size
+    
+    def __call__(self, X: torch.Tensor, y: Optional[torch.Tensor]) -> torch.Tensor:
+            
+        if X.shape[1] > self.size:
+            # crop a random region from the image to the desired size
+            x_offset = torch.randint(0, X.shape[1] - self.size, (1,)).item()
+            y_offset = torch.randint(0, X.shape[2] - self.size, (1,)).item()
+            X = F.crop(X, x_offset, y_offset, self.size, self.size)
+            
+            if y is not None:
+                y = F.crop(y, x_offset, y_offset, self.size, self.size)
+            
+        elif X.shape[1] < self.size:
+            # resize to the desired size
+            X = F.resize(X, (self.size, self.size))
+            
+            if y is not None:
+                y = F.resize(y, (self.size, self.size))
+        else:
+            pass
+            
+        if y is not None:
+            return X, y
+        return X
