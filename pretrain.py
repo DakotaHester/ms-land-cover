@@ -379,7 +379,7 @@ def main():
         }, f, indent=4)
     
     # define optimizer and scheduler - the specifics are taken from the original SimCLR implementation
-    learning_rate = 0.3 * args.full_batch_size / 256 # per original SimCLR implementation
+    learning_rate = 0.3 * args.full_batch_size * ((args.image_size ** 2) / 256 ** 2) / 256 
     if not args.rand_init:
         learning_rate *= args.learning_rate_factor # reduce the learning rate as model is pretrained
     
