@@ -249,7 +249,7 @@ def main():
         torch.cuda.manual_seed_all(args.seed)
     
     transform = transforms.SimCLRDataAugmentation(size=args.image_size) if is_contrastive \
-        else transforms.StandardDataAugmentations()
+        else transforms.StandardDataAugmentations(size=args.image_size)
     return_hsv = 'hsv' in args.pretrain_scheme
     noisy_input = 'dae' in args.pretrain_scheme
     n_views = 2 if is_contrastive else 1
