@@ -11,7 +11,7 @@ from .utils import get_torch_device
 
 from typing import Optional, Union, List, Literal
 
-def nt_xent_loss(z_0: torch.Tensor, z_1: torch.Tensor, temperature: float=1.0, reduction='sum') -> torch.Tensor:
+def nt_xent_loss(z_0: torch.Tensor, z_1: torch.Tensor, temperature: float=10.0, reduction='sum') -> torch.Tensor:
     """
     Functional implementation of the normalized temperature-scaled cross entropy loss.
 
