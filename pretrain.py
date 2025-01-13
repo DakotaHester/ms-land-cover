@@ -19,7 +19,7 @@ import math
 
 from src.mslandcover.data.datasets import PreTrainDataset
 from src.mslandcover.data import transforms
-from src.mslandcover.models import HRNetSegmentationModel
+from src.mslandcover.models import HRNetSegmentationModel, ResNetAutoencoder
 from src.mslandcover.optim import LARS, PCGradAMP
 from src.mslandcover.loss import cached_mse_loss_call, cached_contrastive_loss_call
 from src.mslandcover.gradcaching import cached_model_call, init_grad_cache_closure_dicts, call_closures
@@ -42,8 +42,8 @@ def parse_arguments():
     parser.add_argument(
         '--model',
         type=str,
-        default='hrnet_w48',
-        choices=['hrnet_w48', 'hrnet_w18'],
+        default='resnet152',
+        choices=['hrnet_w48', 'hrnet_w18', 'resnet152'],
     )
     
     parser.add_argument(
@@ -163,7 +163,7 @@ def parse_arguments():
     parser.add_argument(
         '--image_size',
         type=int,
-        default=256,
+        default=96,
         help='The size of the input.'
     )
     
@@ -337,22 +337,32 @@ def main():
         )
         return
 
-    model_config = HRNET_W48_CONFIG if args.model == 'hrnet_w48' else HRNET_W18_CONFIG
-    model = HRNetSegmentationModel(
-        config=model_config,
-        img_decoder_head=is_reconstruction,
-        aux_simclr_head=is_contrastive,
-        img_decoder_activation='sigmoid' if 'hsv' in args.pretrain_scheme else 'none',
-    )
-    if not args.rand_init:
-        imagenet_weights = load_pth(os.path.join(out_dir, 'imagenet.pth'))
-        model.load_encoder_weights(imagenet_weights)
+    if 'hrnet' in args.model:
+        model_config = HRNET_W48_CONFIG if args.model == 'hrnet_w48' else HRNET_W18_CONFIG
+        model = HRNetSegmentationModel(
+            config=model_config,
+            img_decoder_head=is_reconstruction,
+            aux_simclr_head=is_contrastive,
+            img_decoder_activation='sigmoid' if 'hsv' in args.pretrain_scheme else 'none',
+        )
+        if not args.rand_init:
+            imagenet_weights = load_pth(os.path.join(out_dir, 'imagenet.pth'))
+            model.load_encoder_weights(imagenet_weights)
+    elif args.model == 'resnet152':
+        model = ResNetAutoencoder(
+            img_decoder_head=is_reconstruction,
+            aux_simclr_head=is_contrastive,
+            img_decoder_activation='sigmoid' if 'hsv' in args.pretrain_scheme else 'none',
+            pretrained=not args.rand_init,
+        )
+    else:
+        raise ValueError(f'Invalid model: {args.model}')
     
     model.to(device)
     
     flops, macs, _ = calculate_flops(
         model=model,
-        input_shape=(1, 3, 256, 256),
+        input_shape=(1, 3, args.image_size, args.image_size),
         output_as_string=False,
         print_results=False,
         print_detailed=False,
@@ -465,23 +475,19 @@ def main():
                 optimizer.zero_grad() # just in case
                 model.train()
                 loader = train_loader 
-                pbar = tqdm(
-                    desc=f'Epoch {epoch}/{args.num_epochs} Training', 
-                    total=math.ceil(len(train_loader) / grad_accum_steps),
-                    unit='batch',
-                    postfix=tqdm_postfix,
-                )
             
             else:
                 torch.set_grad_enabled(False)
                 model.eval()
                 loader = val_loader
-                pbar = tqdm(
-                    desc=f'Epoch {epoch}/{args.num_epochs} Validation', 
-                    total=math.ceil(len(val_loader) / grad_accum_steps),
-                    unit='batch',
-                    postfix=tqdm_postfix,
-                )
+            
+            total_steps = math.ceil(len(loader) / grad_accum_steps) if phase == 'val' else math.floor(len(loader) / grad_accum_steps)
+            pbar = tqdm(
+                desc=f'Epoch {epoch}/{args.num_epochs} {phase.capitalize()}', 
+                total=total_steps,
+                unit='batch',
+                postfix=tqdm_postfix,
+            )
             
             if is_contrastive:
                 cache, closures = init_grad_cache_closure_dicts(n_views, cache_contents)
@@ -585,6 +591,10 @@ def main():
                     
                     pbar.set_postfix(tqdm_postfix)
                     pbar.update(1)
+                    
+                    if phase == 'val':
+                        if len(loader) - step < grad_accum_steps:
+                            break
 
                 profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                                 
