@@ -397,7 +397,7 @@ class ResizeTransform:
     def __init__(self, size: int=256):
         self.size = size
     
-    def __call__(self, X: torch.Tensor, y: Optional[torch.Tensor]) -> torch.Tensor:
+    def __call__(self, X: torch.Tensor, y: Optional[torch.Tensor]=None) -> torch.Tensor:
             
         if X.shape[1] > self.size:
             # crop a random region from the image to the desired size
