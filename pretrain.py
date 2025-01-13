@@ -389,7 +389,8 @@ def main():
         weight_decay=1e-6,
     )
     
-    warmup_epochs = int(math.ceil(args.num_epochs * 0.1))
+    warmup_epochs = args.num_epochs // 10
+    if warmup_epochs == 0: warmup_epochs = 1 # prevent division by zero
     warmup_scheduler = LambdaLR(
         optimizer=optimizer,
         lr_lambda=lambda epoch: min(1, (epoch+1) / warmup_epochs),
