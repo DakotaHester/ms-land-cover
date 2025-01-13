@@ -211,15 +211,13 @@ class SimCLRDataAugmentation:
     
     def __init__(self, size: int=96):
         
-        scale_factor = (size ** 2) / (256 ** 2)
-        scale_min = 0.08 * scale_factor
-        scale_max = 1.0 * scale_factor
-        
         self.size = size
-        self.random_resize_crop = transforms.RandomResizedCrop(size=size, scale=(scale_min, scale_max))
+        self.resize_transform = ResizeTransform(size=size)
+        self.random_resize_crop = transforms.RandomResizedCrop(size=size)
         self.random_horizontal_flip = transforms.RandomHorizontalFlip()
         self.color_transforms = get_color_transforms()
         self.composed_transforms = transforms.Compose([
+            self.resize_transform,
             self.random_resize_crop,
             self.random_horizontal_flip,
             self.color_transforms,
