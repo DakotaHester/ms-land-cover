@@ -210,8 +210,13 @@ class SimCLRDataAugmentation:
     """
     
     def __init__(self, size: int=64):
+        
+        scale_factor = (size ** 2) / (256 ** 2)
+        scale_min = 0.08 * scale_factor
+        scale_max = 1.0 * scale_factor
+        
         self.size = size
-        self.random_resize_crop = transforms.RandomResizedCrop(size=size)
+        self.random_resize_crop = transforms.RandomResizedCrop(size=size, scale=(scale_min, scale_max))
         self.random_horizontal_flip = transforms.RandomHorizontalFlip()
         self.color_transforms = get_color_transforms()
         self.composed_transforms = transforms.Compose([
@@ -278,6 +283,7 @@ class StandardDataAugmentations:
             
             if y is not None:
                 y = F.crop(y, x_offset, y_offset, self.size, self.size)
+            
         elif X.shape[1] > self.size:
             # resize to the desired size
             X = F.resize(X, (self.size, self.size))
