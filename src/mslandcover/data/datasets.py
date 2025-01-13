@@ -169,7 +169,7 @@ class PreTrainDataset(Dataset):
             
             if self.noisy_input:
                 std, lam = torch.rand(1).item() / self.n_views, torch.rand(1).item() / self.n_views
-                noisy_view = T.add_noise(norm_view, std=std, lam=lam)
+                noisy_view = T.add_noise(norm_view, std=std*2, lam=lam*2)
                 
             if self.return_hsv:
                 hsv = T.rgb_to_hsv(view)
