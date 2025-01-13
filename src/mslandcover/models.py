@@ -17,6 +17,7 @@ import torch._utils
 import torch.nn.functional as F
 
 from torchvision.models import ConvNeXt_Tiny_Weights, convnext_tiny
+from torchvision.models import ResNet152_Weights, resnet152
 from .utils import load_pth
 
 BN_MOMENTUM = 0.1
@@ -594,7 +595,7 @@ class ImageDecoderHead(nn.Module):
 # z_i = W^{(2)} \sigma(W^{(1)} h_i)
 class ProjectionHead(nn.Module):
     
-    def __init__(self, in_channels: int=720, num_hiddens: int=3, embedding_dim: int=128):
+    def __init__(self, in_channels: int=720, num_hiddens: int=4, embedding_dim: int=128):
         super(ProjectionHead, self).__init__()
         
         self.gap = nn.AdaptiveAvgPool2d((1, 1))
@@ -630,11 +631,12 @@ class SimpleImageDecoderHead(nn.Module):
     classes.
     '''
     
-    def __init__(self, in_channels: int=720, num_classes: int=3):
+    def __init__(self, in_channels: int=720, num_classes: int=3, output_size: Tuple[int, int]=(256, 256)):
         super(SimpleImageDecoderHead, self).__init__()
 
         self.in_channels = in_channels
         self.classifier = nn.Conv2d(in_channels, num_classes, kernel_size=1)
+        self.output_size = output_size
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         
@@ -881,6 +883,103 @@ class ConvNextTinyAutoencoder(nn.Module):
             y = self.decoder(h)
             if self.img_decoder_activation is not None:
                 y = self.img_decoder_activation(y)
+            returns.append(y)
+        
+        if self.projection_head is not None:
+            returns.append(self.projection_head(h))
+        
+        if len(returns) == 1:
+            return returns[0]
+
+        return tuple(returns)
+
+
+
+class ResNetAutoencoder(nn.Module):
+    
+    def __init__(self, 
+        img_decoder_head: bool=True,
+        use_simple_decoder: bool=True, # if True, use SimpleImageDecoderHead, else use ImageDecoderHead with multiple blocks\
+        use_se_decoder: bool=False,
+        unet_like_decoder: bool=True,
+        img_decoder_activation: str='sigmoid',
+        num_classes: int=3, 
+        aux_simclr_head: bool=False,
+        pretrained: bool=True
+    ):
+        super(ResNetAutoencoder, self).__init__()
+        
+        self.encoder = resnet152(weights=ResNet152_Weights.DEFAULT if pretrained else None)
+        self.encoder.avgpool = nn.Identity()
+        self.encoder.fc = nn.Identity()
+        
+        if unet_like_decoder:
+            self.encoder_output_channels = 3840
+            def adjusted_forward(self, x: torch.Tensor) -> torch.Tensor:
+                
+                x_list = []
+                # x_dim = x.shape[2:]
+                
+                for module in self.children():
+                    x = module(x)
+                    
+                    if isinstance(module, nn.Sequential):
+                        x_list.append(x)
+                
+                for i, x in enumerate(x_list):
+                    if i == 0:
+                        x_dim = x.shape[2:]
+                    x_list[i] = F.interpolate(x, x_dim, mode='bilinear', align_corners=True)
+                
+                return torch.concat(x_list, 1)
+        
+            self.encoder.forward = functools.partial(adjusted_forward, self.encoder)
+            
+        else:
+            self.encoder_output_channels = 2048
+
+        self.decoder = None
+        if img_decoder_head:
+            if use_simple_decoder:
+                self.decoder = SimpleImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes)
+            elif use_se_decoder:
+                self.decoder = SEImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes)
+            else:
+                self.decoder = ImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes)
+            
+            # self.img_decoder_activation = nn.Identity()
+            if img_decoder_activation == 'sigmoid':
+                self.img_decoder_activation = nn.Sigmoid()
+            elif img_decoder_activation == 'softmax':
+                self.img_decoder_activation = nn.Softmax(dim=1)
+            else:
+                self.img_decoder_activation = nn.Identity()
+                    
+        self.projection_head = None
+        if aux_simclr_head:
+            self.projection_head = ProjectionHead(in_channels=self.encoder_output_channels)
+    
+    
+    def load_encoder_weights(self, state_dict: dict):
+        for key in list(state_dict.keys()):
+            if key.split('.')[0] == 'encoder':
+                new_key = '.'.join(key.split('.')[1:])
+                state_dict[new_key] = state_dict.pop(key)
+                key = new_key
+            # remove keys that are not in the encoder
+            if key.split('.')[0] in ['incre_modules', 'downsamp_modules', 'final_layer', 'classifier', 'decoder', 'projection_head']:
+                del state_dict[key]
+        self.encoder.load_state_dict(state_dict)
+    
+    
+    def forward(self, x: torch.Tensor) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+        
+        h = self.encoder(x)
+        
+        returns = []
+        if self.decoder is not None:
+            y = self.decoder(h)
+            y = self.img_decoder_activation(y)
             returns.append(y)
         
         if self.projection_head is not None:
