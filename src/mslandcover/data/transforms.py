@@ -270,10 +270,22 @@ class StandardDataAugmentations:
         
         X = self.color_transforms(X)
         
-        if X.shape[1] != self.size:
+        if X.shape[1] < self.size:
+            # crop a random region from the image to the desired size
+            x_offset = torch.randint(0, self.size - X.shape[1], (1,)).item()
+            y_offset = torch.randint(0, self.size - X.shape[2], (1,)).item()
+            X = F.crop(X, x_offset, y_offset, self.size, self.size)
+            
+            if y is not None:
+                y = F.crop(y, x_offset, y_offset, self.size, self.size)
+        elif X.shape[1] > self.size:
+            # resize to the desired size
             X = F.resize(X, (self.size, self.size))
+            
             if y is not None:
                 y = F.resize(y, (self.size, self.size))
+        else:
+            pass
         
         if y is not None:
             return X, y
