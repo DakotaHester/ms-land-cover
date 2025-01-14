@@ -14,7 +14,7 @@ foreach ($pretrain_scheme in $pretrain_schemes) {
 
             if ($pretrain_scheme -eq "randinit" -and $freeze_encoder -eq "--freeze_encoder") {
                 continue
-            }
+            })
 
             $TRAIN_DIR = "${ft_data}/train/"
             $VAL_DIR = "${ft_data}/val/"
@@ -36,6 +36,12 @@ foreach ($pretrain_scheme in $pretrain_schemes) {
 
             $LOG_DIR = "./logs/${SUB_DIR}"
             $OUT_DIR = "./weights/${SUB_DIR}"
+
+            # if os.path.exists(f'{LOG_DIR}/classification_report.csv'): continue
+            # if classification_report.csv already exists in log_dir, skip
+            if (Test-Path "${LOG_DIR}/classification_report.csv") {
+                continue
+            }
 
             if ($pretrain_scheme -eq "imagenet") {
                 $WEIGHTS_PARAMETER = "--encoder_weights imagenet"
