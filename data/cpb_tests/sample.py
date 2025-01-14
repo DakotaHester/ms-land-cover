@@ -10,7 +10,7 @@ def main() -> None:
     landcover_raster_path = './landcover_aligned.tif'
     out_path = './splits'
     tile_size = 256
-    total_samples = 10000
+    # total_samples = 10000
     
     # reclassify land cover rasters to match our products
     reclassify_1 = {
@@ -60,8 +60,10 @@ def main() -> None:
         np.random.shuffle(candidate_indices)
 
         sampled_tiles = 0
-        pbar = tqdm(total=total_samples, desc='Sampling tiles', unit='tiles')
-        while len(candidate_indices) > 0  and sampled_tiles < total_samples:
+        pbar = tqdm(total=len(candidate_indices), desc='Sampling tiles', unit='tiles')
+        while len(candidate_indices) > 0:
+            pbar.set_postfix({'sampled_tiles': sampled_tiles})
+            pbar.update(1)
             candidate_index = candidate_indices.pop()
             
             window = windows.Window(*candidate_index, tile_size, tile_size) 
@@ -84,6 +86,9 @@ def main() -> None:
             if pixels_with_nd.sum(): # > (0.05 * len(pixels_with_nd)):
                 continue
             
+            # valid_tiles += 1
+            # continue
+            
             lc_tile = reclassify_func(lc_tile)
             
             if sampled_tiles % 4 in (0, 1):
@@ -93,7 +98,7 @@ def main() -> None:
             else:
                 out_dir = os.path.join(out_path, 'test')
             
-            image_id = f'{sampled_tiles:04d}'
+            image_id = f'{sampled_tiles:05d}'
             naip_out_path = os.path.join(out_dir, 'input')
             os.makedirs(naip_out_path, exist_ok=True)
             
@@ -129,6 +134,9 @@ def main() -> None:
             
             sampled_tiles += 1
             pbar.update(1)
+    
+    with open(os.path.join(out_path, 'sampled_tiles.txt'), 'w') as f:
+        f.write(f'{sampled_tiles}\n')
     
 if __name__ == '__main__':
     main()
