@@ -346,9 +346,9 @@ def main() -> None:
     scaler = GradScaler()
     # new pytorch version requires device_type argument, old one assumes CUDA and has no device_type argument
     try:
-        autocast_context_manager = autocast(device_type=device.type, enabled=args.use_amp)
+        autocast_context_manager = autocast(device_type=device.type, enabled=True)
     except TypeError: # multiple values for argument `enabled`
-        autocast_context_manager = autocast(enabled=args.use_amp)
+        autocast_context_manager = autocast(enabled=True)
     
     scheduler = ReduceLROnPlateau(
         optimizer=optimizer,
