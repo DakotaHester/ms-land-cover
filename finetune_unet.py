@@ -19,6 +19,11 @@ from src.mslandcover.models import UNet
 from src.mslandcover.loss import FocalLoss, FocalTverskyLoss, UnifiedFocalLoss
 from src.mslandcover import metrics
 
+try:
+    from torch.amp import autocast, GradScaler
+except ImportError:
+    from torch.cuda.amp import autocast, GradScaler
+
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
@@ -338,6 +343,13 @@ def main() -> None:
         lr=args.lr,
     )
     
+    scaler = GradScaler()
+    # new pytorch version requires device_type argument, old one assumes CUDA and has no device_type argument
+    try:
+        autocast_context_manager = autocast(device_type=device.type, enabled=args.use_amp)
+    except TypeError: # multiple values for argument `enabled`
+        autocast_context_manager = autocast(enabled=args.use_amp)
+    
     scheduler = ReduceLROnPlateau(
         optimizer=optimizer,
         patience=args.reduce_lr_patience,
@@ -421,27 +433,30 @@ def main() -> None:
                 unit='batch'
             ) as pbar:
                 for step, (X, y) in enumerate(loader):
-                    X, y = X.to(device), y.to(device)
-            
-                    y_hat = model(X)
-                    loss = criterion(y_hat, y)
                     
-                    if phase == 'train':
-                        loss.backward()
+                    with autocast_context_manager:
+                        X, y = X.to(device), y.to(device)
+                
+                        y_hat = model(X)
+                        loss = criterion(y_hat, y)
+                        
+                        if phase == 'train':
+                            scaler.scale(loss).backward()
                     
-                    phase_stats['loss'].append(loss.detach().cpu().item())
-                    for metric_fn in metric_fns:
-                        phase_stats[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X)) # multiple by samples seen to get true average later
+                        phase_stats['loss'].append(loss.detach().cpu().item())
+                        for metric_fn in metric_fns:
+                            phase_stats[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X)) # multiple by samples seen to get true average later
 
-                    running_metrics = {
-                        'loss': sum(phase_stats['loss']) / ((step * loader.batch_size) + len(X)),
-                    }
-                    for metric_fn in metric_fns:
-                        running_metrics[metric_fn.__name__] = sum(phase_stats[metric_fn.__name__]) / ((step * loader.batch_size) + len(X))
+                        running_metrics = {
+                            'loss': sum(phase_stats['loss']) / ((step * loader.batch_size) + len(X)),
+                        }
+                        for metric_fn in metric_fns:
+                            running_metrics[metric_fn.__name__] = sum(phase_stats[metric_fn.__name__]) / ((step * loader.batch_size) + len(X))
                     
                     if (step + 1) % args.grad_accumulation_steps == 0:
                         if phase == 'train':
-                            optimizer.step()
+                            scaler.step(optimizer)
+                            scaler.update()
                             optimizer.zero_grad(set_to_none=True)
                         tqdm_postfix = {
                             'lr': f"{lr:.0e}",
