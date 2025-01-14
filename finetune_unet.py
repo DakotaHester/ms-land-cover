@@ -402,7 +402,7 @@ def main() -> None:
             
             if phase == 'train':
                 torch.set_grad_enabled(True)
-                optimizer.zero_grad()
+                optimizer.zero_grad(set_to_none=True)
                 model.train()
                 loader = train_loader
 
