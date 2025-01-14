@@ -1002,7 +1002,7 @@ class UNetUpBlock(nn.Module):
         super(UNetUpBlock, self).__init__()
         
         self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
-        self.se = SEBlock(in_channels)
+        # self.se = SEBlock(in_channels)
         self.conv_blocks = nn.ModuleList([])
         for i in range(2):
             channels = in_channels if i == 0 else out_channels
@@ -1015,9 +1015,9 @@ class UNetUpBlock(nn.Module):
     def forward(self, x: torch.Tensor, x_enc: Optional[torch.Tensor]=None) -> torch.Tensor:
         
         x = self.up(x)
+        # x = self.se(x)
         if x_enc is not None:
             x = torch.cat([x, x_enc], dim=1)
-        x = self.se(x)
         x = self.conv_blocks[0](x)
         x = self.conv_blocks[1](x) + x
         return x
@@ -1026,34 +1026,35 @@ class UNetUpBlock(nn.Module):
 
 class UNet(nn.Module):
     
-    def __init__(self, num_classes: int=7, activation: nn.Module=nn.Softmax(dim=1)):
+    def __init__(self, 
+        num_classes: int=8,
+        pretrained: bool=True, 
+        activation: nn.Module=nn.Softmax(dim=1)
+    ):
         super(UNet, self).__init__()
         
-        self.encoder = resnet152(weights=ResNet152_Weights.DEFAULT)
+        self.pretrained = pretrained
+        weights = ResNet152_Weights.DEFAULT if pretrained else None
+        
+        self.encoder = resnet152(weights=weights)
         self.encoder.avgpool = nn.Identity()
         self.encoder.fc = nn.Identity()
+        self.encoder_blocks = nn.ModuleList([
+            nn.Sequential(
+                self.encoder.conv1,
+                self.encoder.bn1,
+                self.encoder.relu,
+            ),
+            nn.Sequential(
+                self.encoder.maxpool,
+                self.encoder.layer1
+            ),
+            self.encoder.layer2,
+            self.encoder.layer3,
+            self.encoder.layer4,
+        ])
         
-        def adjusted_forward(self, x: torch.Tensor) -> torch.Tensor:
-                
-                x_list = []
-                # x_dim = x.shape[2:]
-                
-                for module in self.children():
-    
-                    if isinstance(module, nn.Sequential):
-                        if len(x_list) == 0:
-                            x_list.append(x) # get the output of the stem
-                            
-                        x = module(x)
-                        x_list.append(x)
-                    
-                    else:
-                        x = module(x)
-                
-                
-                return x_list
-        self.encoder.forward = functools.partial(adjusted_forward, self.encoder)
-        self.decoder = nn.ModuleList([
+        self.decoder_blocks = nn.ModuleList([
             UNetUpBlock(3072, 1024),
             UNetUpBlock(1536, 512),
             UNetUpBlock(768, 256),
@@ -1066,25 +1067,38 @@ class UNet(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         
         # encoder blocks
-        x_list = self.encoder(x)
+        x_list = []
+        for block in self.encoder_blocks:
+            x = block(x)
+            x_list.append(x)
         # x_list = [
-        #     stem_features,                (B, 64, 64, 64)
+        #     stem_features,                (B, 64, 128, 128)
         #     residual_block_1_features,    (B, 256, 64, 64)
         #     residual_block_2_features,    (B, 512, 32, 32)
         #     residual_block_3_features,    (B, 1024, 16, 16)
         #     residual_block_4_features,    (B, 2048, 8, 8)
         # ]
         
-        x = self.decoder[0](x_list[-1], x_list[-2]) # (B, 1024, 16, 16)
-        x = self.decoder[1](x, x_list[-3])          # (B, 512, 32, 32)
-        x = self.decoder[2](x, x_list[-4])          # (B, 256, 64, 64)
-        
-        # features from ResNet 152 stem are half the size of the features from the last block
-        x_enc = F.interpolate(x_list[-5], scale_factor=2, mode='bilinear', align_corners=True)
-        x = self.decoder[3](x, x_enc)               # (B, 128, 128, 128)
+        x = self.decoder_blocks[0](x_list[-1], x_list[-2]) # (B, 1024, 16, 16)
+        x = self.decoder_blocks[1](x, x_list[-3])          # (B, 512, 32, 32)
+        x = self.decoder_blocks[2](x, x_list[-4])          # (B, 256, 64, 64)
+        x = self.decoder_blocks[3](x, x_list[-5])          # (B, 128, 128, 128)
         
         # no concatenation with encoder features for last block, just bringing features back up to original size
-        x = self.decoder[4](x)                      # (B, 64, 256, 256)
-        x = self.classifier(x)                      # (B, num_classes, 256, 256)
+        x = self.decoder_blocks[4](x)                      # (B, 64, 256, 256)
+        x = self.classifier(x)                             # (B, num_classes, 256, 256)
         
         return self.activation(x)
+
+    
+    
+    def load_encoder_weights(self, state_dict: dict):
+        for key in list(state_dict.keys()):
+            if key.split('.')[0] == 'encoder':
+                new_key = '.'.join(key.split('.')[1:])
+                state_dict[new_key] = state_dict.pop(key)
+                key = new_key
+            # remove keys that are not in the encoder
+            if key.split('.')[0] in ['incre_modules', 'downsamp_modules', 'final_layer', 'classifier', 'decoder', 'projection_head']:
+                del state_dict[key]
+        self.encoder.load_state_dict(state_dict)
