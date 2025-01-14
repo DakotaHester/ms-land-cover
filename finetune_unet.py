@@ -429,7 +429,7 @@ def main() -> None:
                     if phase == 'train':
                         loss.backward()
                     
-                    phase_stats['loss'].append(loss.item())
+                    phase_stats['loss'].append(loss.detach().cpu().item())
                     for metric_fn in metric_fns:
                         phase_stats[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X)) # multiple by samples seen to get true average later
 
@@ -442,7 +442,7 @@ def main() -> None:
                     if (step + 1) % args.grad_accumulation_steps == 0:
                         if phase == 'train':
                             optimizer.step()
-                            optimizer.zero_grad()
+                            optimizer.zero_grad(set_to_none=True)
                         tqdm_postfix = {
                             'lr': f"{lr:.0e}",
                             'loss': f"{running_metrics['loss']:.3e}",
@@ -537,7 +537,7 @@ def main() -> None:
             y_hat = model(X)
             
             loss = criterion(y_hat, y)
-            phase_metrics['loss'].append(loss.item())
+            phase_metrics['loss'].append(loss.detach().cpu().item())
             test_metrics['loss'] = sum(phase_metrics['loss']) / ((step * test_loader.batch_size) + len(X))
             
             for metric_fn in metric_fns:
