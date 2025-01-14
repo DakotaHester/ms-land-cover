@@ -15,7 +15,7 @@ from src.mslandcover.utils import Logger, get_torch_device, ProfilerHistory, loa
 from src.mslandcover.config import HRNET_W18_CONFIG, HRNET_W48_CONFIG, LEGEND_CLASSES
 from src.mslandcover.data.datasets import FineTuneDataset
 from src.mslandcover.data.transforms import StandardDataAugmentations
-from src.mslandcover.models import HRNetSegmentationModel, ResNetAutoencoder
+from src.mslandcover.models import UNet
 from src.mslandcover.loss import FocalLoss, FocalTverskyLoss, UnifiedFocalLoss
 from src.mslandcover import metrics
 
@@ -26,23 +26,15 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--encoder_weights',
         type=str,
-        default='imagenet',
-        choices=['randinit', 'dae', 'imagenet', 'ms', 'cpb'],
-        help='The weights to use for the encoder',
+        default=None,
+        help='The path to the encoder weights to load for the full model. If `imagenet`, will load ImageNet weights.',
     )
     
     parser.add_argument(
-        '--decoder_weights',
+        '--model_weights',
         type=str,
-        default='randinit',
-        choices=['randinit', 'cpb', 'cpb_fe', 'mslc', 'mslc_fe', 'mslc_fe_fd'],
-    )
-    
-    parser.add_argument(
-        '--weights_dir',
-        type=str,
-        default='./weights/resnet_152_20250113',
-        help='The directory containing the weights',
+        default=None,
+        help='The path to the model weights to load for the full model.',
     )
     
     parser.add_argument(
@@ -123,14 +115,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--log_dir',
         type=str,
-        default='./logs/finetune_resnet',
+        default='./logs/finetune_unet',
         help='The directory to save logs',
     )
     
     parser.add_argument(
         '--output_dir',
         type=str,
-        default='./weights/finetuned_resnet',
+        default='./weights/finetuned_unet',
         help='The directory to save weights',
     )
     
@@ -143,7 +135,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--num_workers',
         type=int,
-        default=1,
+        default=8,
         help='The number of workers to use for data loading',
     )
     
@@ -165,12 +157,6 @@ def parse_arguments() -> argparse.Namespace:
         '--load_checkpoint',
         action='store_true',
         help='Load a checkpoint from the log directory and resume training',
-    )
-    
-    parser.add_argument(
-        '--train_full_encoder',
-        action='store_true',
-        help='Overrides n_layers_unfrozen and trains the full encoder',
     )
     
     parser.add_argument(
@@ -203,26 +189,6 @@ def parse_arguments() -> argparse.Namespace:
     
     args = parser.parse_args()
     
-    # check to see if script is being run as a job array on a cluster (using SLURM or PBS) and set the random seed accordingly
-    job_array_id = None
-    if os.getenv('SLURM_ARRAY_TASK_ID') is not None:
-        job_array_id = int(os.getenv('SLURM_ARRAY_TASK_ID'))
-    elif os.getenv('PBS_ARRAY_INDEX') is not None:
-        job_array_id = int(os.getenv('PBS_ARRAY_INDEX'))
-    elif os.getenv('TASK_ARRAY_ID') is not None:
-        job_array_id = int(os.getenv('TASK_ARRAY_ID'))
-    
-    if job_array_id is not None:
-        print(f'Running as a job array with ID {job_array_id}. Disregarding '\
-            '`weights` and `n_layers_unfrozen` arguments and substituting with '\
-            'predefined values based on the job array ID.')
-        possible_weights = ['randinit', 'imagenet', 'ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr']
-        possible_n_layers_unfrozen = range(15)
-        
-        args.weights = possible_weights[(job_array_id) % len(possible_weights)]
-        args.n_layers_unfrozen = possible_n_layers_unfrozen[(job_array_id) // len(possible_weights)]
-        print(f'Using weights: {args.weights} and n_layers_unfrozen: {args.n_layers_unfrozen}')
-    
     if args.lr <= 0:
         parser.error('--lr must be greater than 0')
         
@@ -248,16 +214,8 @@ def main() -> None:
     torch.random.manual_seed(args.seed)
     np.random.seed(args.seed)
 
-    log_dir = os.path.join(args.log_dir, args.model, args.weights, str(args.n_layers_unfrozen))
-    out_dir = os.path.join(args.output_dir, args.model, args.weights, str(args.n_layers_unfrozen))
-
-    if args.train_full_encoder:
-        log_dir = log_dir + '_full_encoder'
-        out_dir = out_dir + '_full_encoder'
-    
-    if args.n_train_samples is not None:
-        log_dir = log_dir + f'_{args.n_train_samples}_samples'
-        out_dir = out_dir + f'_{args.n_train_samples}_samples'
+    log_dir = os.path.join(args.log_dir)
+    out_dir = os.path.join(args.output_dir)
     
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
@@ -275,8 +233,8 @@ def main() -> None:
         torch.backends.cudnn.deteministic = True
         torch.cuda.manual_seed_all(args.seed)
     
-    mean_path = os.path.join(args.weights_dir, 'pretrain_mean.pth')
-    std_path = os.path.join(args.weights_dir, 'pretrain_std.pth')
+    mean_path = os.path.join('weights', 'pretrain_mean.pth')
+    std_path = os.path.join('weights', 'pretrain_std.pth')
     
     mean = load_pth(mean_path) if os.path.exists(mean_path) else None
     std = load_pth(std_path) if os.path.exists(std_path) else None
@@ -293,8 +251,8 @@ def main() -> None:
         n_threads=args.num_workers,
     )
     val_dataset = FineTuneDataset(
-        data_paths=glob(os.path.join(args.val_dir, 'input', '*.tif')),
-        target_paths=glob(os.path.join(args.val_dir, 'target', '*.tif')),
+        data_paths=glob(os.path.join(args.val_dir, 'input', '*.tif'))[:args.n_train_samples],
+        target_paths=glob(os.path.join(args.val_dir, 'target', '*.tif'))[:args.n_train_samples],
         mean=mean,
         std=std,
         transform=None,
@@ -344,78 +302,36 @@ def main() -> None:
     logger.log(f'Class weights: {alpha}')
     criterion = UnifiedFocalLoss(alpha=alpha, reduction='sum').to(device)
     
-    if 'hrnet' in args.model:
-        model_config = HRNET_W48_CONFIG if args.model == 'hrnet_w48' else HRNET_W18_CONFIG
-        model = HRNetSegmentationModel(
-            config=model_config,
-            img_decoder_head=True,
-            use_simple_decoder=args.n_layers_unfrozen == 0,
-            use_se_decoder=args.n_layers_unfrozen > 0,
-            unet_like_decoder=True,
-            aux_simclr_head=False,
-            img_decoder_activation='softmax',
-            num_classes=num_classes,
-        ).to(device)
-        
-        if args.weights != 'randinit':
-            weights_state_dict = load_pth(os.path.join(args.weights_dir, f'{args.weights}.pth'), map_location=device)
-            model.load_encoder_weights(weights_state_dict)
-            logger.log(f'Loaded {args.weights} weights from {args.weights_dir}')
-    elif args.model == 'resnet152':
-        model = ResNetAutoencoder(
-            img_decoder_head=True,
-            use_simple_decoder=args.n_layers_unfrozen == 0,
-            use_se_decoder=args.n_layers_unfrozen > 0,
-            unet_like_decoder=True,
-            aux_simclr_head=False,
-            img_decoder_activation='softmax',
-            num_classes=num_classes,
-            pretrained=args.weights == 'imagenet',
-        ).to(device)
-        if args.weights not in ('randinit', 'imagenet'):
-            weights_state_dict = load_pth(os.path.join(args.weights_dir, f'{args.weights}.pth'), map_location=device)
-            model.load_encoder_weights(weights_state_dict)
-            logger.log(f'Loaded {args.weights} weights from {args.weights_dir}')
+    num_classes = 7 if 'cpb' in args.train_dir else 8
     
-    trainable_stages = [
-        'decoder',
-        'encoder.stage4.2',
-        'encoder.stage4.1',
-        'encoder.stage4.0',
-        'encoder.transition3',
-        'encoder.stage3.3',
-        'encoder.stage3.2',
-        'encoder.stage3.1',
-        'encoder.stage3.0',
-        'encoder.transition2',
-        'encoder.stage2.0',
-        'encoder.transition1',
-        'encoder.layer1',
-        'encoder' # full encoder
-    ][:args.n_layers_unfrozen]
+    # if full model weights are provided, load them and replace the old
+    if args.model_weights is not None:
+        pretrained_model_classes = 7 if 'cpb' in args.model_weights else 8
+        model = UNet(num_classes=pretrained_model_classes).to(device)
+        model.load_state_dict(load_pth(args.model_weights))
+        model.classifier = torch.nn.Conv2d(64, num_classes, kernel_size=1)
     
-    if args.n_layers_unfrozen == 0:
-        trainable_stages = ['decoder'] # linear probe
+    # if encoder weights only are provided, load them and keep the random decoder
+    elif args.encoder_weights is not None and args.encoder_weights != 'imagenet':
+        model = UNet(num_classes=num_classes).to(device)
+        model.load_encoder_weights(load_pth(args.encoder_weights))
     
-    if args.train_full_encoder:
-        trainable_stages = ['decoder', 'encoder']
+    else:
+        model = UNet(num_classes=num_classes, pretrained=args.encoder_weights != 'imagenet').to(device)
     
-    total_params = 0
-    for param in model.parameters():
-        total_params += param.numel()
-        param.requires_grad = False
+    if args.freeze_encoder:
+        for param in model.encoder.parameters():
+            param.requires_grad = False
     
-    trainable_params = 0
-    for param in model.named_parameters():
-        for stage in trainable_stages:
-            if param[0].startswith(stage):
-                trainable_params += param[1].numel()
-                param[1].requires_grad = True
-                break
+    if args.freeze_decoder:
+        for param in model.decoder.parameters():
+            param.requires_grad = False
+    
+    total_params = sum(p.numel() for p in model.parameters())
+    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     
     logger.log(f'Total parameters: {total_params}')
     logger.log(f'Trainable parameters: {trainable_params}')
-    logger.log(f'Trainable stages: {trainable_stages}')
 
     optimizer = Adam(
         params=model.parameters(),
@@ -615,7 +531,7 @@ def main() -> None:
     y_trues = []
     
     total_steps = math.ceil(len(test_loader) / args.grad_accumulation_steps)
-    with tqdm(total=len(test_loader), desc='Testing', unit='batch') as pbar:
+    with tqdm(total=total_steps, desc='Testing', unit='batch') as pbar:
         for step, (X, y) in enumerate(test_loader):
             X, y = X.to(device), y.to(device)
             y_hat = model(X)
@@ -631,7 +547,7 @@ def main() -> None:
             y_preds.append(y_hat.argmax(axis=1).cpu().numpy().flatten())
             y_trues.append(y.cpu().numpy().flatten())
             
-            if (step + 1) % args.grad_accumulation_steps == 0:
+            if (step + 1) % args.grad_accumulation_steps == 0 or step == len(test_loader) - 1:
                 tqdm_postfix = {
                     'loss': f"{test_metrics['loss']:.3e}",
                     'f1': f"{test_metrics['f1_score']:.3f}",
@@ -650,9 +566,23 @@ def main() -> None:
     y_preds = np.concatenate(y_preds)
     y_trues = np.concatenate(y_trues)
     
-    y_trues_class_names = [LEGEND_CLASSES[i+1] for i in y_trues]
-    y_preds_class_names = [LEGEND_CLASSES[i+1] for i in y_preds]
-    class_names_list = [LEGEND_CLASSES[i+1] for i in range(8)]
+    
+    if 'cpb' in args.test_dir:
+        legend_classes = {
+            1: 'Water',
+            2: 'Tree canopy',
+            3: 'Shrubland',
+            4: 'Low vegetation',
+            5: 'Barren land',
+            6: 'Impervious structures',
+            7: 'Other impervious',
+        }
+    else:
+        legend_classes = LEGEND_CLASSES
+        
+    y_trues_class_names = [legend_classes[i+1] for i in y_trues]
+    y_preds_class_names = [legend_classes[i+1] for i in y_preds]
+    class_names_list = [legend_classes[i+1] for i in range(num_classes)]
 
     cm = confusion_matrix(y_trues_class_names, y_preds_class_names, labels=class_names_list)
     cm_df = pd.DataFrame(cm, index=class_names_list, columns=class_names_list)
