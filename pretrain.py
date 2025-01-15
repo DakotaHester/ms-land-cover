@@ -34,7 +34,7 @@ def parse_arguments():
     parser.add_argument(
         '--pretrain_scheme',
         type=str,
-        default='dae_simclr',
+        default='dae',
         choices=['ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr'],
         help='The pretraining scheme to use. One of [ae, dae, hsv, dae_hsv, simclr, ae_simclr, dae_simclr, hsv_simclr, dae_hsv_simclr].',
     )
@@ -163,7 +163,7 @@ def parse_arguments():
     parser.add_argument(
         '--image_size',
         type=int,
-        default=96,
+        default=256,
         help='The size of the input.'
     )
     
@@ -389,12 +389,12 @@ def main():
         weight_decay=1e-6,
     )
     
-    warmup_epochs = args.num_epochs // 10
-    if warmup_epochs == 0: warmup_epochs = 1 # prevent division by zero
-    warmup_scheduler = LambdaLR(
-        optimizer=optimizer,
-        lr_lambda=lambda epoch: min(1, (epoch+1) / warmup_epochs),
-    )
+    # warmup_epochs = args.num_epochs // 10
+    # if warmup_epochs == 0: warmup_epochs = 1 # prevent division by zero
+    # warmup_scheduler = LambdaLR(
+    #     optimizer=optimizer,
+    #     lr_lambda=lambda epoch: min(1, (epoch+1) / warmup_epochs),
+    # )
     reduce_lr_on_plateau = ReduceLROnPlateau(
         optimizer=optimizer,
         patience=args.reduce_lr_patience,
@@ -444,7 +444,7 @@ def main():
         checkpoint = torch.load(os.path.join(log_dir, 'checkpoint.pth'))
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
-        warmup_scheduler.load_state_dict(checkpoint['warmup_scheduler'])
+        # warmup_scheduler.load_state_dict(checkpoint['warmup_scheduler'])
         reduce_lr_on_plateau.load_state_dict(checkpoint['reduce_lr_on_plateau'])
         
         if args.use_amp:
@@ -612,13 +612,13 @@ def main():
             best_epoch = epoch
             torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}.pth'))
         
-        warmup_scheduler.step()
+        # warmup_scheduler.step()
         reduce_lr_on_plateau.step(epoch_loss)
         checkpoint = {
             'epoch': epoch,
             'model': model.state_dict(),
             'optimizer': optimizer.state_dict(),
-            'warmup_scheduler': warmup_scheduler.state_dict(),
+            # 'warmup_scheduler': warmup_scheduler.state_dict(),
             'reduce_lr_on_plateau': reduce_lr_on_plateau.state_dict(),
             # 'scheduler': scheduler.state_dict(),
             'scaler': scaler.state_dict() if args.use_amp else None,
