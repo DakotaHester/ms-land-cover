@@ -11,22 +11,22 @@ MAIL_USER="dh2306@msstate.edu"
 SCRIPT_NAME="finetune_unet.py"
 PBS_LOG_DIR="./logs/ms_ft_stage1/pbs"
 FT_DATA="./data/cpb_tests/splits"
-DAE_WEIGHTS_PATH="./weights/resnet152/dae.pth"
+DAE_WEIGHTS_PATH="./weights/resnet152_a100_20250114/dae.pth"
 
 # Ensure the log directory exists
 mkdir -p "$PBS_LOG_DIR"
 
-pretrain_schemes=('imagenet' 'dae' 'randinit')
+pretrain_schemes=('randinit')
 # ft_datas=("./data/splits" "./data/cpb_tests/splits")
 
-freeze_encoders=("" "--freeze_encoder")
+freeze_encoders=("--freeze_encoder")
 
 # source $PYTHON_ENV
 
 for pretrain_scheme in "${pretrain_schemes[@]}"; do
     for freeze_encoder in "${freeze_encoders[@]}"; do
         if [[ "$pretrain_scheme" == "randinit" && "$freeze_encoder" == "--freeze_encoder" ]]; then
-            continue
+            :
         fi
 
         SUB_DIR="multistage_finetuning_stage1/${pretrain_scheme}"
@@ -95,9 +95,11 @@ for pretrain_scheme in "${pretrain_schemes[@]}"; do
 #PBS -M $MAIL_USER
 
 cd \${PBS_O_WORKDIR}
-module load cuda
-module load python/3.10.8
-source $PYTHON_ENV
+module load cuda10.2/toolkit
+module load python
+conda init
+source ~/.bashrc
+conda activate mslc
 export CUDA_VISIBLE_DEVICES=0
 python ${arguments[@]}
 EOL
