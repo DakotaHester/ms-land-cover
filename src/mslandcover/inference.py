@@ -19,6 +19,7 @@ from shapely.geometry import shape
 import geopandas as gpd
 from src.mslandcover.config import LEGEND_CLASSES
 from multiprocessing import Pool, shared_memory, cpu_count
+from scipy.special import softmax
 
 
 def process_geom(geom, shm_name, shape, dtype, transform):
@@ -455,10 +456,92 @@ class GPURasterProcessor:
                 weights_sum[y:y+self.tile_size, x:x+self.tile_size] += self.weights_cpu
         
         # Remove padding
-        outputs = outputs[:, self.pad_size:-self.pad_size, self.pad_size:-self.pad_size]
-        weights_sum = weights_sum[self.pad_size:-self.pad_size, self.pad_size:-self.pad_size]
+        outputs = outputs[:, self.pad_size:-self.pad_size, self.pad_size:-self.pad_size].numpy()
+        weights_sum = weights_sum[self.pad_size:-self.pad_size, self.pad_size:-self.pad_size].numpy()
         
         # Get final probabilities
-        final_outputs = F.softmax(outputs / (weights_sum + 1e-10), dim=0)
-        
-        return final_outputs
+        return get_probabilites(outputs, weights_sum)
+
+def process_chunk_shared(args):
+    (y_start, y_end, x_start, x_end), outputs_name, weights_name, final_name, output_shape, weights_shape = args
+    
+    # Attach to shared memory
+    outputs_shm = shared_memory.SharedMemory(name=outputs_name)
+    weights_shm = shared_memory.SharedMemory(name=weights_name)
+    final_shm = shared_memory.SharedMemory(name=final_name)
+
+    try:
+        # Create numpy arrays from shared memory
+        outputs = np.ndarray(output_shape, dtype=np.float32, buffer=outputs_shm.buf)
+        weights = np.ndarray(weights_shape, dtype=np.float32, buffer=weights_shm.buf)
+        final_outputs = np.ndarray(output_shape, dtype=np.float32, buffer=final_shm.buf)
+
+        # Process chunk
+        chunk_outputs = outputs[:, y_start:y_end, x_start:x_end]
+        chunk_weights = weights[y_start:y_end, x_start:x_end]
+        result = softmax(chunk_outputs / (chunk_weights + 1e-10)[np.newaxis, :, :], axis=0)
+
+        # Write result back to shared memory
+        final_outputs[:, y_start:y_end, x_start:x_end] = result
+
+    finally:
+        # Close (but don't unlink) shared memory
+        outputs_shm.close()
+        weights_shm.close()
+        final_shm.close()
+
+
+def get_probabilites(outputs, weights_sum, chunk_size=4096):
+    # Get final probabilities
+    # split outputs and weights_sum into chunks to avoid memory issues
+    # Define chunk size and create empty array for final outputs
+    # chunk_size = 8192  # Adjust based on available memory
+    output_shape = outputs.shape
+    weights_sum_shape = weights_sum.shape
+
+    # Create shared memory blocks
+    outputs_shm = shared_memory.SharedMemory(create=True, size=outputs.nbytes)
+    weights_sum_shm = shared_memory.SharedMemory(create=True, size=weights_sum.nbytes)
+    final_outputs_shm = shared_memory.SharedMemory(create=True, size=outputs.nbytes)
+
+    try:
+        # Create numpy arrays using shared memory
+        shared_outputs = np.ndarray(output_shape, dtype=outputs.dtype, buffer=outputs_shm.buf)
+        shared_weights = np.ndarray(weights_sum_shape, dtype=weights_sum.dtype, buffer=weights_sum_shm.buf)
+        shared_final = np.ndarray(output_shape, dtype=outputs.dtype, buffer=final_outputs_shm.buf)
+
+        # Copy data to shared memory
+        np.copyto(shared_outputs, outputs)
+        np.copyto(shared_weights, weights_sum)
+
+        # Process chunks in parallel
+        chunk_args = []
+        for y_start in range(0, output_shape[1], chunk_size):
+            y_end = min(y_start + chunk_size, output_shape[1])
+            for x_start in range(0, output_shape[2], chunk_size):
+                x_end = min(x_start + chunk_size, output_shape[2])
+                chunk_args.append((
+                    (y_start, y_end, x_start, x_end),
+                    outputs_shm.name,
+                    weights_sum_shm.name,
+                    final_outputs_shm.name,
+                    output_shape,
+                    weights_sum_shape
+                ))
+
+        with Pool(cpu_count()) as pool:
+            pool.map(process_chunk_shared, chunk_args)
+
+        # Copy result back from shared memory
+        result = np.copy(shared_final)
+
+    finally:
+        # Clean up shared memory
+        outputs_shm.close()
+        outputs_shm.unlink()
+        weights_sum_shm.close()
+        weights_sum_shm.unlink()
+        final_outputs_shm.close()
+        final_outputs_shm.unlink()
+    
+    return result

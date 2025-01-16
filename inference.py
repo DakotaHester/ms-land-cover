@@ -66,9 +66,9 @@ def main():
     processor = GPURasterProcessor(
         model=model,
         tile_size=256,
-        stride=128,
+        stride=64,
         gaussian_sigma=192,
-        batch_size=32,
+        batch_size=16,
         mean=load_pth('./weights/pretrain_mean.pth'),
         std=load_pth('./weights/pretrain_std.pth'),
         device=device,
@@ -76,6 +76,7 @@ def main():
     
     logger.log('Loading raster data...')
     # raster_path = '/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023_reduced.tif'
+    # raster_path = r"G:\mslc_inf_test\starkville_msu_2023_reduced.tif"
     with rio.open(raster_path) as src:
         profile = src.profile
         raster_data = src.read()
