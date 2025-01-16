@@ -86,9 +86,9 @@ do
                     "--train_dir" "$TRAIN_DIR"
                     "--val_dir" "$VAL_DIR"
                     "--test_dir" "$TEST_DIR"
-                    "--weights_dir" "$WEIGHTS_DIR"
+                    "--weights" "$WEIGHTS_DIR"
                     "--log_dir" "$LOG_DIR"
-                    "--out_dir" "$OUT_DIR"
+                    "--output_dir" "$OUT_DIR"
                     "--lr 1e-5"
                     $frozen_encoder
                 )
