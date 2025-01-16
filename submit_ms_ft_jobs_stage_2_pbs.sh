@@ -33,7 +33,7 @@ do
     do
 
         # did not train with frozen encoder/randinit in stage 1
-        if [ "$stage_1_frozen_encoder" = true && $pretrain_scheme == "randinit" ]; then
+        if [ "$stage_1_frozen_encoder" = true -a $pretrain_scheme = "randinit" ]; then
             continue
         fi
 
@@ -44,23 +44,30 @@ do
             do
 
                 SUB_DIR="multistage_finetuning_stage2/${pretrain_scheme}"
+                JOB_NAME="resunet_${pretrain_scheme}_ft_stage2"
                 WEIGHTS_DIR="./weights/multistage_finetuning_stage1/${pretrain_scheme}_bak/cpb"
                 if [ "$stage_1_frozen_encoder" = true ]; then
                     SUB_DIR="${SUB_DIR}/s1_frozen_encoder"
                     WEIGHTS_DIR="$WEIGHTS_DIR/cpb/decoder_train/best_model.pth"
+                    JOB_NAME="${JOB_NAME}_s1_decoder_train"
                 else
                     SUB_DIR="${SUB_DIR}/s1_full_encoder"
                     WEIGHTS_DIR="$WEIGHTS_DIR/cpb/full_encoder/best_model.pth"
+                    JOB_NAME="${JOB_NAME}_s1_full_train"
                 fi
 
-                if [ "$freeze_encoder" = "--freeze_encoder" && "$freeze_decoder" = "--freeze_decoder"]; then
+                if [ "$freeze_encoder" = "--freeze_encoder" -a "$freeze_decoder" = "--freeze_decoder" ]; then
                     SUB_DIR="${SUB_DIR}/s2_linear_probe"
+                    JOB_NAME="${JOB_NAME}_s2_linear_probe"
                 elif [ "$freeze_encoder" = "--freeze_encoder" ]; then
                     SUB_DIR="${SUB_DIR}/s2_decoder_train"
+                    JOB_NAME="${JOB_NAME}_s2_decoder_train"
                 elif [ "$freeze_decoder" = "--freeze_decoder" ]; then
                     SUB_DIR="${SUB_DIR}/s2_encoder_train"
+                    JOB_NAME="${JOB_NAME}_s2_encoder_train"
                 else
                     SUB_DIR="${SUB_DIR}/s2_full_train"
+                    JOB_NAME="${JOB_NAME}_s2_full_train"
                 fi
 
                 LOG_DIR="./logs/${SUB_DIR}"
@@ -71,7 +78,7 @@ do
                     continue
                 fi
 
-                JOB_NAME="resunet_${pretrain_scheme}_ft_stage2_s1_${stage_1_frozen_encoder}_s2_${freeze_encoder}_${freeze_decoder}"
+
                 PBS_SCRIPT="./pbs_scripts/${JOB_NAME}.pbs"
 
                 arguments=(
@@ -109,6 +116,8 @@ export CUDA_VISIBLE_DEVICES=0
 python ${arguments[@]}
 EOL
         # Submit the job
-        qsub "$PBS_SCRIPT"
+                qsub "$PBS_SCRIPT"
+            done
+        done
     done
 done
