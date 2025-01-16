@@ -1,21 +1,23 @@
+from functools import partial
 from threading import Lock
+from time import time
 import torch
 import geopandas as gpd
 import shapely
 import rasterio as rio
 from rasterio.mask import geometry_mask, mask
-from rasterio.features import shapes
+from rasterio.features import shapes, rasterize
 from rasterio.io import MemoryFile
-from multiprocessing import cpu_count
+from multiprocessing import cpu_count, shared_memory
 import os
 import numpy as np
 import cv2 as cv
 from concurrent.futures import ThreadPoolExecutor
-
+from skimage.segmentation import quickshift
 from tqdm import tqdm
 
 
-from src.mslandcover.inference import GPURasterProcessor, extract_zonal_mean
+from src.mslandcover.inference import GPURasterProcessor, compute_zonal_means
 from src.mslandcover.models import HRNetSegmentationModel
 from src.mslandcover.config import MSTM_PROJ4, HRNET_W18_CONFIG, LEGEND_COLORS_RGBA, LEGEND_CLASSES
 from src.mslandcover.utils import load_pth, get_torch_device, Logger
@@ -81,6 +83,7 @@ def main():
     
     logger.log('Processing raster data...')
     lc_probs = processor.process_raster(raster_data)
+    print(lc_probs[:, 0, 0])
     
     out_path = './data/inference_results/test/starkville_msu_2023_reduced'
     logger.log('Saving results...')
@@ -142,42 +145,20 @@ def main():
             dst.write(clipped_data)
             dst.write_colormap(1, LEGEND_COLORS_RGBA)
     
-    # now, object-based segmentation using mean shift
-    logger.log('Segmenting mean shift image...')
-    segmented_image = cv.pyrMeanShiftFiltering(raster_data.transpose(1, 2, 0), 10, 10)
-    segmented_image_reshaped = segmented_image.reshape(-1, 3)
-    unique_values, segments = np.unique(segmented_image_reshaped, axis=0, return_inverse=True)
-    segments = segments.reshape(segmented_image.shape[:2]).astype(np.uint16)
-    print(segmented_image.shape, len(unique_values), segments.shape)
+    # now, object-based segmentation using quickshift
+    logger.log('Segmenting image...')
+    segments = quickshift(raster_data.transpose(1, 2, 0), kernel_size=3, max_dist=6, ratio=0.5).astype(np.uint16)
     
     logger.log('Generating polygons from segments...')
     bounding_mask = geometry_mask(bounding_polygons, out_shape=segments.shape, transform=profile['transform'], all_touched=True, invert=True)
-    geoms = [geom for geom, _ in shapes(segments, mask=bounding_mask, connectivity=4, transform=profile['transform'])]
+    geoms = [shapely.geometry.shape(geom) for geom, _ in shapes(segments, mask=bounding_mask, connectivity=4, transform=profile['transform'])]
     
     # use zonal statistics to get mean probabilities for each segment
     logger.log('Extracting zonal land cover probability means...')
-    lock = Lock()
-    n_cpus = cpu_count()
-    with MemoryFile(open(os.path.join(out_path, 'lc_probs.tif'), 'rb')) as memfile:
-        with rio.open(memfile) as src:
-            with ThreadPoolExecutor(4 * n_cpus) as executor:
-                class_means = []
-                results = executor.map(
-                    lambda geom: extract_zonal_mean(geom, src, lock),
-                    geoms,
-                )
-                with tqdm(total=len(geoms), desc='Extracting zonal land cover probability means', unit='geoms') as pbar:
-                    for res in results:
-                        class_means.append(res)
-                        pbar.update(1)
-                        # for j in range(class_mean.shape[0]):
-                        #     class_label = LEGEND_CLASSES[j + 1]
-                        #     features_gdf[class_label].iloc[i] = class_mean[j]
+    class_means = compute_zonal_means(lc_probs, geoms, lc_probs_transform)
     
     logger.log('Compiling to feature class')
-    # class_mean_shape = (N_geoms, N_classes)
     class_means = np.array(list(class_means)).T
-    print(class_means.shape)
     features_dict = {'geometry': geoms}
     for i in range(class_means.shape[0]):
         class_label = LEGEND_CLASSES[i + 1]
@@ -188,67 +169,19 @@ def main():
     
     for key, val in features_dict.items():
         print(key, len(val), val[0])
-    features_gdf = gpd.GeoDataFrame(features_dict, crs=profile['crs'])
+    features_gdf = gpd.GeoDataFrame(features_dict, crs=profile['crs'], geometry='geometry')
     
     logger.log(f'Saving features to {os.path.join(out_path, "features.gpkg")}...')
     features_gdf.to_file(os.path.join(out_path, 'features.gpkg'), driver='GPKG')
     
+    features_reduced_gdf = features_gdf[['predicted_class', 'geometry']]
+    features_reduced_gdf = features_reduced_gdf.dissolve(by='predicted_class')
     
-    
-    
-    
-    
-    # final_outputs = final_outputs.cpu().numpy()
-    # final_outputs = final_outputs[:, self.tile_size:-self.tile_size, self.tile_size:-self.tile_size]
-    # image_segments = mean_shift(self.raster_data.transpose(1, 2, 0)[self.tile_size:-self.tile_size, self.tile_size:-self.tile_size, :] * self.std + self.mean)
-    # segments_polys = segments_to_polygons(image_segments, self.profile['transform'])
-    # features_gdf = create_geodataframe(segments_polys, final_outputs, image_segments, self.profile['crs'])
-    # features_gdf.to_file(self.output_path.replace('.tif', '.gpkg'), driver='GPKG')
-    
-    # if self.logger:
-    #     self.logger.log('Saving results...')
-    
-    # # Save results
-    # profile = self.profile.copy()
-    # profile.update(count=1, dtype=rasterio.uint8)
-    
-    # if self.bounding_polygons:
-    #     if self.logger:
-    #         self.logger.log('Masking predictions by bounding polygons...')
-    #     geom_mask = geometry_mask(
-    #         self.bounding_polygons, 
-    #         out_shape=predictions.shape,
-    #         transform=profile['transform'],
-    #         all_touched=True
-    #     )
-    #     predictions[geom_mask] = 0
-    
-    # if self.logger:
-    #     self.logger.log(f'Writing results to {self.output_path}...')
-    # with rasterio.open(self.output_path, 'w', **profile) as dst:
-    #     dst.write(predictions, 1)
-    #     if self.colormap:
-    #         dst.write_colormap(1, self.colormap)
-    
-    # if self.bounding_polygons:
-    #     if self.logger:
-    #         self.logger.log('Clipping raster...')
-    #     with rasterio.open(self.output_path) as src:
-    #         clipped_data, clipped_transform = mask(src, self.bounding_polygons, crop=True)
-    #         profile = src.profile.copy()
-        
-    #     profile.update({
-    #         'transform': clipped_transform,
-    #         'height': clipped_data.shape[1],
-    #         'width': clipped_data.shape[2]
-    #     })
-        
-    #     if self.logger:
-    #         self.logger.log(f'Writing clipped results to {self.output_path}...')
-    #     with rasterio.open(self.output_path, 'w', **profile) as dst:
-    #         dst.write(clipped_data)
-    #         if self.colormap:
-    #             dst.write_colormap(1, self.colormap)
+    logger.log(f'Saving reduced features to {os.path.join(out_path, "features_reduced.gpkg")}...')
+    features_reduced_gdf.to_file(os.path.join(out_path, 'features_reduced.gpkg'), driver='GPKG')
+
+
+
 
 if __name__ == '__main__':
     main()
