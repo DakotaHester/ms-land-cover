@@ -3,7 +3,8 @@ $DAE_WEIGHTS_PATH = './weights/resnet152/dae.pth'
 $PYTHON_ENV = './.env/Scripts/activate.ps1'
 
 $pretrain_schemes = @('imagenet', 'dae', 'randinit')
-$ft_datas = @("./data/splits", "./data/cpb_tests/splits")
+# $ft_datas = @("./data/splits", "./data/cpb_tests/splits")
+$ft_datas = @("./data/splits") # , "./data/cpb_tests/splits")
 $freeze_encoders = @("", "--freeze_encoder")
 
 $PYTHON_ENV
@@ -14,7 +15,7 @@ foreach ($pretrain_scheme in $pretrain_schemes) {
 
             if ($pretrain_scheme -eq "randinit" -and $freeze_encoder -eq "--freeze_encoder") {
                 continue
-            })
+            }
 
             $TRAIN_DIR = "${ft_data}/train/"
             $VAL_DIR = "${ft_data}/val/"
