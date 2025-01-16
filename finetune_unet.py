@@ -330,8 +330,9 @@ def main() -> None:
             param.requires_grad = False
     
     if args.freeze_decoder:
-        for param in model.decoder.parameters():
-            param.requires_grad = False
+        for block in model.decoder_blocks:
+            for param in block.parameters():
+                param.requires_grad = False
     
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
