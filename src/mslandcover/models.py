@@ -1035,6 +1035,7 @@ class UNet(nn.Module):
         
         self.pretrained = pretrained
         weights = ResNet152_Weights.DEFAULT if pretrained else None
+        self.num_classes = num_classes
         
         self.encoder = resnet152(weights=weights)
         self.encoder.avgpool = nn.Identity()
@@ -1102,3 +1103,31 @@ class UNet(nn.Module):
             if key.split('.')[0] in ['incre_modules', 'downsamp_modules', 'final_layer', 'classifier', 'decoder', 'projection_head']:
                 del state_dict[key]
         self.encoder.load_state_dict(state_dict)
+    
+    
+    
+    def freeze_encoder(self):
+        for encoder_block in self.encoder_blocks:
+            for param in encoder_block.parameters():
+                param.requires_grad = False
+    
+    
+    
+    def unfreeze_encoder(self):
+        for encoder_block in self.encoder_blocks:
+            for param in encoder_block.parameters():
+                param.requires_grad = True
+    
+    
+    
+    def freeze_decoder(self):
+        for decoder_block in self.decoder_blocks:
+            for param in decoder_block.parameters():
+                param.requires_grad = False
+    
+    
+    
+    def unfreeze_decoder(self):
+        for decoder_block in self.decoder_blocks:
+            for param in decoder_block.parameters():
+                param.requires_grad = True

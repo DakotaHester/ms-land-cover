@@ -347,7 +347,11 @@ class GPURasterProcessor:
         X, Y = np.meshgrid(x, y)
         weights = np.exp(-(X**2 + Y**2)/(2*self.sigma**2))
         weights /= weights.max()
-        self.weights = torch.from_numpy(weights.astype(np.float32)).to(device)
+        weights = weights.astype(np.float32)
+        self.weights_cpu = torch.from_numpy(weights)
+        self.weights_gpu = torch.from_numpy(weights).unsqueeze(0).unsqueeze(0).to(device)
+        self.weights_cpu.requires_grad = False
+        self.weights_gpu.requires_grad = False
 
     def generate_tile_batches(self, raster_data: np.ndarray):
         height, width = raster_data.shape[1:]
@@ -396,7 +400,7 @@ class GPURasterProcessor:
         
         with torch.no_grad():
             probs = F.softmax(self.model(batch_tiles), dim=1)
-            weighted_probs = probs * self.weights.unsqueeze(0).unsqueeze(0)
+            weighted_probs = probs * self.weights_gpu
             
         return weighted_probs, batch_coords
 
@@ -433,8 +437,8 @@ class GPURasterProcessor:
         num_classes = self.model.num_classes
         
         # Initialize outputs
-        outputs = torch.zeros((num_classes, height, width), device=self.device)
-        weights_sum = torch.zeros((height, width), device=self.device)
+        outputs = torch.zeros((num_classes, height, width))
+        weights_sum = torch.zeros((height, width))
         
         # determine total number of batches
         total_batches = 0
@@ -447,14 +451,14 @@ class GPURasterProcessor:
             
             # Accumulate results
             for idx, (y, x) in enumerate(coords):
-                outputs[:, y:y+self.tile_size, x:x+self.tile_size] += weighted_probs[idx]
-                weights_sum[y:y+self.tile_size, x:x+self.tile_size] += self.weights
+                outputs[:, y:y+self.tile_size, x:x+self.tile_size] += weighted_probs[idx].to('cpu')
+                weights_sum[y:y+self.tile_size, x:x+self.tile_size] += self.weights_cpu
         
         # Remove padding
         outputs = outputs[:, self.pad_size:-self.pad_size, self.pad_size:-self.pad_size]
         weights_sum = weights_sum[self.pad_size:-self.pad_size, self.pad_size:-self.pad_size]
         
         # Get final probabilities
-        final_outputs = F.softmax(outputs / (weights_sum + 1e-10), dim=0).detach().cpu().numpy()
+        final_outputs = F.softmax(outputs / (weights_sum + 1e-10), dim=0)
         
         return final_outputs

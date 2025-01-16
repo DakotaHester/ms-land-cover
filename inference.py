@@ -18,48 +18,49 @@ from tqdm import tqdm
 
 
 from src.mslandcover.inference import GPURasterProcessor, compute_zonal_means
-from src.mslandcover.models import HRNetSegmentationModel
+from src.mslandcover.models import UNet
 from src.mslandcover.config import MSTM_PROJ4, HRNET_W18_CONFIG, LEGEND_COLORS_RGBA, LEGEND_CLASSES
 from src.mslandcover.utils import load_pth, get_torch_device, Logger
 
 
 def main():
     
-    log_dir = './data/inference_results/test'
+    model_weights_path = './weights/multistage_finetuning_stage2/imagenet/s1_frozen_encoder/s2_full_train/best_model.pth'
+    
+    if os.environ.get('MSLC_INFERENCE_COUNTY_INDEX') is not None:
+        county_index = int(os.environ.get('MSLC_INFERENCE_COUNTY_INDEX'))
+    else:
+        county_index = 74 # warren county
+    
+    log_dir = f'./data/inference_results/logs/{county_index}'
+    
     os.makedirs(log_dir, exist_ok=True)
     logger = Logger(os.path.join(log_dir, 'inference.log'))
-    
-    logger.log('Loading Starkville and Mississippi State boundary...')
-    census_ms_places_shp_path = './data/shapefiles/tl_2024_28_place/tl_2024_28_place.shp'
-    ms_places_gdf = gpd.read_file(census_ms_places_shp_path)
-    starville_msu_gdf = ms_places_gdf[ms_places_gdf['NAME'].isin(['Starkville', 'Mississippi State'])]
-    
-    starville_msu_reproj_gdf = starville_msu_gdf.to_crs(MSTM_PROJ4)
-    try:
-        starville_msu_geom = starville_msu_reproj_gdf.union_all()
-    except:
-        starville_msu_geom = starville_msu_reproj_gdf.unary_union
+    logger.log(f'Starting inference for county index {county_index}...')
 
-    # if multipolygon, convert to a list of polygons
-    if isinstance(starville_msu_geom, shapely.MultiPolygon):
-        bounding_polygons = [shapely.Polygon(geom.exterior) for geom in starville_msu_geom.geoms]
+    device = get_torch_device()
+    logger.log(f'Using device: {device}')
+    
+    logger.log('Loading county boundaries...')
+    ms_counties_gdf = gpd.read_file('./data/shapefiles/ms_counties.gpkg')
+    county_series = ms_counties_gdf.iloc[county_index]
+    
+    county_geom = county_series['geometry']
+    county_name = county_series['NAME']
+    county_fp_code = county_series['COUNTYFP']
+    raster_path = county_series['raster_path']
+    
+    if county_geom.geom_type == 'Polygon':
+        bounding_polygons = [shapely.Polygon(county_geom.exterior)]
     else:
-        bounding_polygons = [shapely.Polygon(starville_msu_geom)]
+        bounding_polygons = [shapely.Polygon(polygon.exterior) for polygon in county_geom.geoms]
+    
+    logger.log(f'Loaded county {county_name} with FIPS code {county_fp_code}')
     
     logger.log('Loading model...')
-    model = HRNetSegmentationModel(
-        config=HRNET_W18_CONFIG,
-        num_classes=8,
-        img_decoder_head=True,
-        use_simple_decoder=True,
-        use_se_decoder=False,
-        unet_like_decoder=False,
-        img_decoder_activation='softmax',
-    )
-    logger.log('Loading model weights...')
-    model.load_state_dict(load_pth('./weights/finetuned/hrnet_w18/dae/14/best_model.pth', map_location=torch.device('cpu')))
+    model = UNet().to(get_torch_device())
+    model.load_state_dict(load_pth(model_weights_path))
     model.eval()
-    model.to(get_torch_device())
     
     logger.log('Starting inference...')
     processor = GPURasterProcessor(
@@ -70,22 +71,20 @@ def main():
         batch_size=32,
         mean=load_pth('./weights/pretrain_mean.pth'),
         std=load_pth('./weights/pretrain_std.pth'),
-        device=get_torch_device(),
+        device=device,
     )
     
     logger.log('Loading raster data...')
-    raster_path = '/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023_reduced.tif'
+    # raster_path = '/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023_reduced.tif'
     with rio.open(raster_path) as src:
         profile = src.profile
         raster_data = src.read()
-    
-    
     
     logger.log('Processing raster data...')
     lc_probs = processor.process_raster(raster_data)
     print(lc_probs[:, 0, 0])
     
-    out_path = './data/inference_results/test/starkville_msu_2023_reduced'
+    out_path = f'./data/inference_results/{county_fp_code}'
     logger.log('Saving results...')
     os.makedirs(out_path, exist_ok=True)
     
