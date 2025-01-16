@@ -322,7 +322,7 @@ def main() -> None:
         model.load_encoder_weights(load_pth(args.encoder_weights))
     
     else:
-        model = UNet(num_classes=num_classes, pretrained=args.encoder_weights != 'imagenet').to(device)
+        model = UNet(num_classes=num_classes, pretrained=args.encoder_weights == 'imagenet').to(device)
     
     if args.freeze_encoder:
         for param in model.encoder.parameters():

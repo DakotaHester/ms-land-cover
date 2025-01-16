@@ -11,8 +11,8 @@ LEGEND_CLASSES = {
     2: 'Impervious (raised structures)',
     3: 'Impervious (paved surfaces)',
     4: 'Barren Land',
-    5: 'Forest',
-    6: 'Herbaceous',
+    5: 'Tree Canopy/Woody Vegetation',
+    6: 'Low Vegetation/Herbaceous',
     7: 'Cultivated Crops',
     8: 'Unclassified',
 }

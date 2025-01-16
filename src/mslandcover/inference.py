@@ -4,7 +4,7 @@ import multiprocessing as mp
 from multiprocessing.pool import Pool
 import rasterio
 from rasterio.mask import mask
-from rasterio.features import geometry_mask
+from rasterio.features import geometry_mask, rasterize
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -18,12 +18,73 @@ import cv2 as cv
 from shapely.geometry import shape
 import geopandas as gpd
 from src.mslandcover.config import LEGEND_CLASSES
+from multiprocessing import Pool, shared_memory, cpu_count
 
 
-def extract_zonal_mean(geom, src, lock):
-    with lock:
-        out_image, _ = mask(src, [geom], crop=True, all_touched=False, nodata=0)
-    return np.mean(out_image, axis=(1, 2))
+def process_geom(geom, shm_name, shape, dtype, transform):
+    """
+    Processes a single geometry by accessing shared memory and computing zonal stats.
+    """
+    # Access the shared memory block
+    existing_shm = shared_memory.SharedMemory(name=shm_name)
+    raster = np.ndarray(shape, dtype=dtype, buffer=existing_shm.buf)
+    
+    try:
+        # Rasterize the geometry
+        rasterized_mask = rasterize(
+            [(geom, 1)],
+            out_shape=raster.shape[1:],  # Match spatial dimensions
+            transform=transform,
+            fill=0,
+            all_touched=True,
+            dtype=np.uint8,
+        )
+        
+        # Extract masked values
+        masked_raster = raster[:, rasterized_mask == 1]
+        return masked_raster.mean(axis=1)  # Compute mean across bands
+    finally:
+        # Ensure the shared memory block is closed (but not unlinked)
+        existing_shm.close()
+
+
+
+def worker_wrapper(args):
+    """
+    Wrapper function for multiprocessing that unpacks arguments and calls process_geom.
+    """
+    return process_geom(*args)
+
+
+
+def compute_zonal_means(raster, geoms, transform, n_processes: int=cpu_count()):
+    """
+    Main function to compute zonal statistics using shared memory, avoiding globals.
+    """
+    # Create a shared memory block
+    shm = shared_memory.SharedMemory(create=True, size=raster.nbytes)
+    
+    try:
+        # Copy raster data into shared memory
+        shared_raster = np.ndarray(raster.shape, dtype=raster.dtype, buffer=shm.buf)
+        np.copyto(shared_raster, raster)
+        
+        # Prepare arguments for multiprocessing
+        args = [
+            (geom, shm.name, raster.shape, raster.dtype, transform) 
+            for geom in geoms
+        ]
+        
+        # Use multiprocessing pool
+        with Pool(processes=n_processes) as pool:  # Adjust the number of processes as needed
+            results = pool.map(worker_wrapper, args)
+        
+        return results
+
+    finally:
+        # Clean up shared memory
+        shm.close()
+        shm.unlink()
 
 
 
