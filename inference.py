@@ -17,7 +17,7 @@ from skimage.segmentation import quickshift
 from tqdm import tqdm
 
 
-from src.mslandcover.inference import GPURasterProcessor, compute_zonal_means
+from src.mslandcover.inference import GPURasterProcessor, compute_zonal_means, parallel_quickshift
 from src.mslandcover.models import UNet
 from src.mslandcover.config import MSTM_PROJ4, HRNET_W18_CONFIG, LEGEND_COLORS_RGBA, LEGEND_CLASSES
 from src.mslandcover.utils import load_pth, get_torch_device, Logger
@@ -55,6 +55,9 @@ def main():
     else:
         bounding_polygons = [shapely.Polygon(polygon.exterior) for polygon in county_geom.geoms]
     
+    # # use whole state for now
+    # bounding_polygons = [ms_counties_gdf.unary_union]
+    
     logger.log(f'Loaded county {county_name} with FIPS code {county_fp_code}')
     
     logger.log('Loading model...')
@@ -83,7 +86,6 @@ def main():
     
     logger.log('Processing raster data...')
     lc_probs = processor.process_raster(raster_data)
-    print(lc_probs[:, 0, 0])
     
     out_path = f'./data/inference_results/{county_fp_code}'
     logger.log('Saving results...')
@@ -147,7 +149,8 @@ def main():
     
     # now, object-based segmentation using quickshift
     logger.log('Segmenting image...')
-    segments = quickshift(raster_data.transpose(1, 2, 0), kernel_size=3, max_dist=6, ratio=0.5).astype(np.uint16)
+    # segments = quickshift(raster_data.transpose(1, 2, 0), kernel_size=3, max_dist=6, ratio=0.5).astype(np.uint16)
+    segments = parallel_quickshift(raster_data)
     
     logger.log('Generating polygons from segments...')
     bounding_mask = geometry_mask(bounding_polygons, out_shape=segments.shape, transform=profile['transform'], all_touched=True, invert=True)
@@ -167,8 +170,6 @@ def main():
     features_dict['predicted_class'] = [LEGEND_CLASSES[pred] for pred in np.argmax(class_means, axis=0) + 1]
     features_dict['confidence'] = np.max(class_means, axis=0)
     
-    for key, val in features_dict.items():
-        print(key, len(val), val[0])
     features_gdf = gpd.GeoDataFrame(features_dict, crs=profile['crs'], geometry='geometry')
     
     logger.log(f'Saving features to {os.path.join(out_path, "features.gpkg")}...')

@@ -1,4 +1,5 @@
 from functools import partial
+import math
 import numpy as np
 import multiprocessing as mp
 from multiprocessing.pool import Pool
@@ -20,6 +21,7 @@ import geopandas as gpd
 from src.mslandcover.config import LEGEND_CLASSES
 from multiprocessing import Pool, shared_memory, cpu_count
 from scipy.special import softmax
+from skimage.segmentation import quickshift, felzenszwalb
 
 
 def process_geom(geom, shm_name, shape, dtype, transform):
@@ -545,3 +547,132 @@ def get_probabilites(outputs, weights_sum, chunk_size=16384):
         final_outputs_shm.unlink()
     
     return result
+
+
+
+def create_shared_array(data):
+    """Create a shared memory array from input data."""
+    shm = shared_memory.SharedMemory(create=True, size=data.nbytes)
+    shared_array = np.ndarray(data.shape, dtype=data.dtype, buffer=shm.buf)
+    shared_array[:] = data[:]
+    return shm, shared_array
+
+def get_chunk_bounds(chunk_idx, chunk_size, max_size, overlap):
+    """
+    Calculate chunk boundaries with overlap, handling edge cases.
+    Returns start and end indices, and the actual chunk start and end without overlap.
+    """
+    chunk_start = chunk_idx * chunk_size
+    chunk_end = min(chunk_start + chunk_size, max_size)
+    
+    # Add overlap
+    start_with_overlap = max(0, chunk_start - overlap)
+    end_with_overlap = min(max_size, chunk_end + overlap)
+    
+    return (start_with_overlap, end_with_overlap, chunk_start, chunk_end)
+
+def process_chunk(args):
+    """Process a single chunk of the image using quickshift."""
+    y_bounds, x_bounds, shape, dtype, shm_name, kernel_size, max_dist, ratio = args
+    y_start, y_end, y_chunk_start, y_chunk_end = y_bounds
+    x_start, x_end, x_chunk_start, x_chunk_end = x_bounds
+    
+    # Attach to shared memory
+    existing_shm = shared_memory.SharedMemory(name=shm_name)
+    data = np.ndarray(shape, dtype=dtype, buffer=existing_shm.buf)
+    
+    # Extract chunk with overlap
+    chunk = data[:, y_start:y_end, x_start:x_end]  # (C, chunk_H, chunk_W)
+    chunk = chunk.transpose(1, 2, 0)  # Convert to (chunk_H, chunk_W, C) for quickshift
+    
+    # Process chunk
+    result = quickshift(chunk, kernel_size=kernel_size, 
+                       max_dist=max_dist, ratio=ratio)
+    
+    # Remove overlap regions from result
+    result = result[y_chunk_start-y_start:y_chunk_end-y_start,
+                   x_chunk_start-x_start:x_chunk_end-x_start]
+    
+    # Adjust segment labels to avoid conflicts between chunks
+    result = result.astype(np.uint32) + (y_chunk_start * shape[2] + x_chunk_start)
+    
+    # Clean up
+    existing_shm.close()
+    
+    return result, (y_chunk_start, y_chunk_end, x_chunk_start, x_chunk_end)
+
+def parallel_quickshift(raster_data, kernel_size=3, max_dist=6, ratio=0.5, chunk_size=None, n_processes=None):
+    """
+    Parallel implementation of quickshift segmentation using shared memory and square chunks.
+    
+    Parameters:
+    -----------
+    raster_data : numpy.ndarray
+        Input raster data with shape (channels, height, width)
+    kernel_size : int
+        Size of kernel for quickshift
+    max_dist : float
+        Maximum distance between pixels for quickshift
+    ratio : float
+        Ratio parameter for quickshift
+    chunk_size : int, optional
+        Size of square chunks. If None, calculated based on image size and n_processes
+    n_processes : int, optional
+        Number of processes to use. Defaults to CPU count
+        
+    Returns:
+    --------
+    numpy.ndarray
+        Segmented image with unique labels
+    """
+    if n_processes is None:
+        n_processes = mp.cpu_count()
+    
+    height, width = raster_data.shape[1:3]
+    
+    # Calculate chunk size if not provided
+    if chunk_size is None:
+        # Aim for roughly n_processes total chunks
+        chunk_size = int(np.sqrt((height * width) / n_processes))
+    
+    # Calculate overlap based on kernel_size and max_dist
+    overlap = max(kernel_size, int(max_dist))
+    
+    # Create shared memory for input data
+    shm, shared_array = create_shared_array(raster_data)
+    
+    # Calculate number of chunks in each dimension
+    n_chunks_y = math.ceil(height / chunk_size)
+    n_chunks_x = math.ceil(width / chunk_size)
+    
+    # Prepare arguments for each chunk
+    args = []
+    for i in range(n_chunks_y):
+        y_bounds = get_chunk_bounds(i, chunk_size, height, overlap)
+        for j in range(n_chunks_x):
+            x_bounds = get_chunk_bounds(j, chunk_size, width, overlap)
+            args.append((y_bounds, x_bounds, raster_data.shape, raster_data.dtype,
+                        shm.name, kernel_size, max_dist, ratio))
+    
+    # Process chunks in parallel
+    with mp.Pool(n_processes) as pool:
+        results = pool.map(process_chunk, args)
+    
+    # Clean up shared memory
+    shm.close()
+    shm.unlink()
+    
+    # Initialize final segments array
+    final_segments = np.zeros((height, width), dtype=np.uint32)
+    
+    # Combine results
+    for result, (y_start, y_end, x_start, x_end) in results:
+        final_segments[y_start:y_end, x_start:x_end] = result
+    
+    # Relabel segments to ensure continuity
+    unique_labels = np.unique(final_segments)
+    label_map = {old: new for new, old in enumerate(unique_labels)}
+    vectorized_map = np.vectorize(lambda x: label_map[x])
+    final_segments = vectorized_map(final_segments).astype(np.uint16)
+    
+    return final_segments
