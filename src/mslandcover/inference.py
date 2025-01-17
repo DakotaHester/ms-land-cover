@@ -491,7 +491,7 @@ def process_chunk_shared(args):
         final_shm.close()
 
 
-def get_probabilites(outputs, weights_sum, chunk_size=4096):
+def get_probabilites(outputs, weights_sum, chunk_size=16384):
     # Get final probabilities
     # split outputs and weights_sum into chunks to avoid memory issues
     # Define chunk size and create empty array for final outputs

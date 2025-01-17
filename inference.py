@@ -25,7 +25,7 @@ from src.mslandcover.utils import load_pth, get_torch_device, Logger
 
 def main():
     
-    model_weights_path = './weights/multistage_finetuning_stage2/imagenet/s1_frozen_encoder/s2_full_train/best_model.pth'
+    model_weights_path = './weights/multistage_finetuning_stage2/dae/s1_full_train/s2_decoder_train/best_model.pth'
     
     if os.environ.get('MSLC_INFERENCE_COUNTY_INDEX') is not None:
         county_index = int(os.environ.get('MSLC_INFERENCE_COUNTY_INDEX'))

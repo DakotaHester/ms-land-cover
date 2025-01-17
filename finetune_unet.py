@@ -312,10 +312,9 @@ def main() -> None:
     # if full model weights are provided, load them and replace the old
     if args.model_weights is not None:
         pretrained_model_classes = 7 if 'cpb' in args.model_weights else 8
-        model = UNet(num_classes=pretrained_model_classes)
-        model.load_state_dict(load_pth(args.model_weights, map_location='cpu'))
+        model = UNet(num_classes=pretrained_model_classes).to(device)
+        model.load_state_dict(load_pth(args.model_weights))
         model.classifier = torch.nn.Conv2d(64, num_classes, kernel_size=1)
-        model = model.to(device)
     
     # if encoder weights only are provided, load them and keep the random decoder
     elif args.encoder_weights is not None and args.encoder_weights != 'imagenet':
@@ -330,9 +329,8 @@ def main() -> None:
             param.requires_grad = False
     
     if args.freeze_decoder:
-        for block in model.decoder_blocks:
-            for param in block.parameters():
-                param.requires_grad = False
+        for param in model.decoder.parameters():
+            param.requires_grad = False
     
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -438,7 +436,7 @@ def main() -> None:
                     
                     with autocast_context_manager:
                         X, y = X.to(device), y.to(device)
-
+                
                         y_hat = model(X)
                         loss = criterion(y_hat, y)
                         
