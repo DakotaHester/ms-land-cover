@@ -8,13 +8,15 @@ MEMORY="256GB"
 TIME="240:00:00"
 MAIL_USER="dh2306@msstate.edu"
 
-SCRIPT_NAME="finetune_unet.py"
-PBS_LOG_DIR="./logs/ms_ft_stage2/pbs"
+SCRIPT_NAME="inference.py"
+PBS_LOG_DIR="./logs/inference"
 
 START=74
 END=75
 for ((i=START; i<END; i++))
 do
+    JOB_NAME="inference_$i"
+    PBS_SCRIPT="./pbs_scripts/$JOB_NAME.pbs"
     cat > "$PBS_SCRIPT" <<EOL
 #!/bin/bash
 #PBS -N $JOB_NAME
@@ -40,3 +42,4 @@ python finetune.py
 EOL
     # Submit the job
     qsub "$PBS_SCRIPT"
+done
