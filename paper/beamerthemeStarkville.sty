@@ -1,0 +1,264 @@
+%% beamerthemeStarkville.sty
+%% Copyright 2024 Dakota Hester (admin@dakotahester.com)
+%
+% This work may be distributed and/or modified under the
+% conditions of the LaTeX Project Public License, either version 1.3
+% of this license or (at your option) any later version.
+% The latest version of this license is in
+%   https://www.latex-project.org/lppl.txt
+% and version 1.3c or later is part of all distributions of LaTeX
+% version 2008 or later.
+%
+% This work has the LPPL maintenance status `maintained'.
+% 
+% The Current Maintainer of this work is Dakota Hester (admin@dakotahester.com).
+%
+% This work consists of the file beamerthemeStarkville.sty.
+% 
+% Theme modified from beamearoterthemesidebar.sty and beamerthemePaloAlto.sty
+% Redistributed under the terms of the LPPL license above.
+
+% \RequirePackage[dvipsnames]{xcolor}
+\usefonttheme{serif}
+
+\definecolor{MSStateMaroon}{RGB}{93, 23, 37}
+\definecolor{MSStateLightGrey}{RGB}{193, 198, 200}
+\definecolor{MSStateDarkGrey}{RGB}{117, 120, 123}
+
+\setbeamercolor*{structure}{bg=MSStateMaroon!20,fg=MSStateMaroon}
+
+\setbeamercolor*{palette primary}{use=structure,fg=MSStateLightGrey,bg=structure.fg}
+\setbeamercolor*{palette secondary}{use=structure,fg=MSStateLightGrey,bg=structure.fg!75}
+\setbeamercolor*{palette tertiary}{use=structure,fg=MSStateLightGrey,bg=structure.fg!50!black}
+\setbeamercolor*{palette quaternary}{fg=MSStateLightGrey,bg=black}
+
+\setbeamercolor{section in toc}{fg=black,bg=MSStateLightGrey}
+\setbeamercolor{alerted text}{use=structure,fg=structure.fg!50!black!80!black}
+
+\setbeamercolor{titlelike}{parent=palette primary,fg=structure.fg!50!black}
+\setbeamercolor{frametitle}{bg=MSStateDarkGrey!10!MSStateLightGrey,fg=MSStateMaroon}
+
+\setbeamercolor*{titlelike}{parent=palette primary}
+
+\setbeamercolor{alerted text}{fg=structure.fg}
+\setbeamerfont{alerted text}{series=\bfseries}
+
+\setbeamercolor{block title}{use=structure,fg=structure.fg,bg=MSStateLightGrey!50!white}
+\setbeamercolor{block body}{use=structure,fg=black,bg=MSStateLightGrey!50!white}
+
+\setbeamercolor{block title alerted}{use=structure,fg=white,bg=structure.fg}
+\setbeamercolor{block body alerted}{use=structure,fg=black,bg=MSStateLightGrey!50!white}
+
+\setbeamercolor{block title example}{use=example text,fg=white,bg=structure.fg}
+\setbeamercolor{block body example}{use=extample text,fg=white,bg=structure.fg}
+
+
+% Below source code taken from beamerouterthemesidebar.sty
+\let\beamer@storesize\@currsize
+\newdimen\beamer@sidebarwidth
+\def\beamersidebarwidth{\beamer@sidebarwidth}
+\newdimen\beamer@headheight
+\def\beamerheadheight{\beamer@headheight}
+\usebeamerfont{frametitle}
+\beamer@sidebarwidth=3.5\baselineskip
+\beamer@headheight=2.2\baselineskip
+\reset@font
+
+\def\beamer@lefttext{left}
+
+\DeclareOptionBeamer{hideothersubsections}[]{\beamer@nav@subsectionstyle{show/show/hide}}
+\DeclareOptionBeamer{hideallsubsections}[]{\beamer@nav@subsectionstyle{hide}}
+
+\DeclareOptionBeamer{width}{\beamer@sidebarwidth=#1}
+\DeclareOptionBeamer{height}{\beamer@headheight=#1}
+\DeclareOptionBeamer{left}{\def\beamer@sidebarside{left}}
+\DeclareOptionBeamer{right}{\def\beamer@sidebarside{right}}
+\ExecuteOptionsBeamer{right}
+\ProcessOptionsBeamer
+
+
+\mode<presentation>
+
+\ifdim\beamer@headheight>0pt
+% if head height is 0pt, use default frame title
+
+  \setbeamercolor*{frametitle}{parent=sidebar}
+
+  \defbeamertemplate*{frametitle}{sidebar theme}
+  {%
+    \nointerlineskip%
+    \ifbeamer@plainframe%
+      \hbox{\usebeamercolor[bg]{frametitle}%
+        \@tempdima\paperwidth\advance\@tempdima-\beamer@sidebarwidth
+        \hskip-\beamer@leftmargin\vrule height\beamer@headheight width\@tempdima\hskip-\beamer@rightmargin}%
+      \nointerlineskip%
+    \fi%
+    \vskip-\beamer@headheight%
+    \vbox to \beamer@headheight{%
+      \vfil
+      \leftskip=-\beamer@leftmargin%
+      \advance\leftskip by0.3cm%
+      \rightskip=-\beamer@rightmargin%
+      \advance\rightskip by0.3cm plus1fil%
+      {\usebeamercolor[fg]{frametitle}\usebeamerfont{frametitle}\strut\insertframetitle\par}%
+      \ifx\insertframesubtitle\@empty\else%
+        {\usebeamercolor[fg]{framesubtitle}\usebeamerfont{framesubtitle}\strut\insertframesubtitle\par}%
+      \fi%
+      \vbox{}%
+      \vskip-1em%
+      \vfil
+    }%
+  }
+
+  \defbeamertemplate*{headline}{sidebar theme}
+  {%
+    \begin{beamercolorbox}[wd=\paperwidth]{frametitle}
+      \ifx\beamer@sidebarside\beamer@lefttext%
+      \else%
+        \hfill%
+      \fi%
+      \ifdim\beamer@sidebarwidth>0pt%  
+        \usebeamercolor[bg]{logo}%
+        \vrule width\beamer@sidebarwidth height \beamer@headheight%
+        \hskip-\beamer@sidebarwidth%
+        \hbox to \beamer@sidebarwidth{\hss\vbox to
+          \beamer@headheight{\vss\hbox{\color{fg}\insertlogo}\vss}\hss}%
+      \else%
+        \vrule width0pt height \beamer@headheight%  
+      \fi%
+    \end{beamercolorbox}
+  }
+\fi
+
+
+\def\beamer@sidebarformat#1#2#3{%
+  \begin{beamercolorbox}[wd=\beamer@sidebarwidth,leftskip=#1,rightskip=1ex plus1fil,vmode]{#2}
+    \vbox{}%
+    #3\par%
+    \vbox{}%
+    \vskip-1.5ex%
+  \end{beamercolorbox}
+}
+
+\defbeamertemplate*{section in sidebar}{sidebar theme}
+{%
+  \vbox{%
+    \vskip1ex%
+    \beamer@sidebarformat{3pt}{section in sidebar}{\insertsectionhead}%
+  }%
+}
+
+\defbeamertemplate*{section in sidebar shaded}{sidebar theme}
+{%
+  \vbox{%
+    \vskip1ex%
+    \beamer@sidebarformat{3pt}{section in sidebar shaded}{\insertsectionhead}%
+  }%
+}
+
+\defbeamertemplate*{subsection in sidebar}{sidebar theme}
+{%
+  \beamer@sidebarformat{5pt}{subsection in sidebar}{\insertsubsectionhead}%
+}
+
+\defbeamertemplate*{subsection in sidebar shaded}{sidebar theme}
+{%
+  \beamer@sidebarformat{5pt}{subsection in sidebar shaded}{\insertsubsectionhead}%
+}
+
+\defbeamertemplate*{subsubsection in sidebar}{sidebar theme}
+{%
+  \beamer@sidebarformat{7pt}{subsubsection in sidebar}{\insertsubsubsectionhead}%
+}
+
+\defbeamertemplate*{subsubsection in sidebar shaded}{sidebar theme}
+{%
+  \beamer@sidebarformat{7pt}{subsubsection in sidebar shaded}{\insertsubsubsectionhead}%
+}
+
+
+\ifdim\beamer@sidebarwidth>0pt
+
+                                % Sidebar
+  \setbeamersize{sidebar width \beamer@sidebarside=\beamer@sidebarwidth}
+  \defbeamertemplate*{sidebar \beamer@sidebarside}{sidebar theme}
+  {
+    \beamer@tempdim=\beamer@sidebarwidth%
+    \advance\beamer@tempdim by -6pt%
+    {\usebeamerfont{title in sidebar}%
+      \vskip1.5em%
+      \hskip3pt%
+      \usebeamercolor[fg]{title in sidebar}%
+      \insertshorttitle[width=\beamer@tempdim,center,respectlinebreaks]\par%
+      \vskip1.25em%
+    }%
+    {%
+      \hskip3pt%
+      \usebeamercolor[fg]{author in sidebar}%
+      \usebeamerfont{author in sidebar}%
+      \insertshortauthor[width=\beamer@tempdim,center,respectlinebreaks]\par%
+      \vskip1.25em%
+    }%
+    \insertverticalnavigation{\beamer@sidebarwidth}%
+    \vfill
+    {
+        \hskip3pt%
+        \usebeamercolor[fg]{date in sidebar}%
+        \usebeamerfont{date in sidebar}%
+        \insertshortdate[width=\beamer@tempdim,center,respectlinebreaks]\par%
+        \vskip-1.25em%
+    }
+    \ifx\beamer@sidebarside\beamer@lefttext%
+    \else%
+      \usebeamercolor{normal text}%
+      \llap{\usebeamertemplate***{navigation symbols}\hskip0.1cm}%
+      \vskip2pt%
+    \fi%
+  }%
+  
+  \ifx\beamer@sidebarside\beamer@lefttext%
+    \defbeamertemplate*{sidebar right}{sidebar theme}
+    {%
+      \vfill%
+      \llap{\usebeamertemplate***{navigation symbols}\hskip0.1cm}%
+      \vskip2pt}
+  \fi
+                                % Margins
+  \setbeamersize{text margin left=0.5cm,text margin right=0.5cm}
+\fi
+
+\mode
+<all>
+
+\beamer@storesize
+
+% From beamerthemePaloAlto.sty
+\DeclareOptionBeamer{hideothersubsections}{\PassOptionsToPackage{hideothersubsections=#1}{beamerouterthemesidebar}}
+\DeclareOptionBeamer{hideallsubsections}{\PassOptionsToPackage{hideallsubsections=#1}{beamerouterthemesidebar}}
+
+\DeclareOptionBeamer{width}{\PassOptionsToPackage{width=#1}{beamerouterthemesidebar}}
+\DeclareOptionBeamer{left}{\PassOptionsToPackage{left}{beamerouterthemesidebar}}
+\DeclareOptionBeamer{right}{\PassOptionsToPackage{right}{beamerouterthemesidebar}}
+\ProcessOptionsBeamer
+
+\mode<presentation>
+
+% \useoutertheme{sidebar} 
+\useinnertheme[shadow=true]{rounded}
+% \usecolortheme{orchid}
+\usecolortheme{whale}
+
+\setbeamercolor*{frametitle}{parent=palette primary}
+\setbeamerfont{block title}{size={}}
+
+\mode
+<all>
+
+% Always highlight current section (even in subsections)
+% https://tex.stackexchange.com/a/65028
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd{\insertverticalnavigation}%
+{\ifx\beamer@nav@css\beamer@hidetext{\usebeamertemplate{section in sidebar}}\else{\usebeamertemplate{section in sidebar shaded}}\fi}%
+{{\usebeamertemplate{section in sidebar}}}{}{}
+\makeatother

@@ -1,17 +1,17 @@
 \documentclass[aspectratio=169]{beamer}
 
 \usepackage[backend=bibtex, sorting=none, style=numeric-comp]{biblatex}
-% \addbibresource{bibliography}
+\addbibresource{bibliography_pres}
 
-% \usetheme{Starkville}
+\usetheme{Starkville}
 \setbeamertemplate{caption}[numbered]
-\setbeamertemplate{bibliography item}{\insertbiblabel}
+% \setbeamertemplate{bibliography item}{\insertbiblabel}
 \setlength\abovecaptionskip{-3pt}
 
 \title{Land Use and Land Cover Classification at Very High Spatial Resolution Using Semantic Segmentation}
 \author{Dakota Hester}
 \institute{Mississippi State University\\Department of Agricultural and Biological Engineering}
-\date{\today}
+\date{January 23, 2025}
 \logo{\includegraphics[height=5\baselineskip]{images/affiliation_logos/ABE_Logo_Vertical_White.png}}
 
 \begin{document}
@@ -20,6 +20,224 @@
     \titlepage
 \end{frame}
 
+\section{Introduction}
 
+\begin{frame}{About me}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \begin{figure}
+                \begin{center}
+                    \includegraphics[width=0.8\textwidth]{images/tish_state_park.jpg}
+                    \caption{Tishomingo State Park}\label{fig:tish}
+                \end{center}
+            \end{figure}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \begin{itemize}
+                \item<1-> From Tishomingo, MS
+                \item<2-> Lived in Starkville since 2018
+                \item<3-> Hobbies \& interests: cycling, aviation, coding
+            \end{itemize}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\begin{frame}{Academic background}
+    \small
+    \begin{itemize}
+        \item<1-> Graduated from MSU in 2021 with a B.S. in Computer Science (minor in mathematics)
+        \item<2-> Started grad school in MSU Department of Sustainable Bioproducts in 2022
+        \begin{itemize}
+            \item<3-> Research focus --- deep learning for wood species identification 
+            % \item<5-> Interest --- representation learning of tangential scans of wood imagery
+        \end{itemize}
+        \item<4-> Started PhD in Engineering with concentration in Biosystems Engineering in 2023
+        \begin{itemize}
+            \item<5-> Research focus --- deep learning for land cover classification at high spatial resolution
+            % \item<8-> Interest --- reducing amount of data necessary for training accurate classifiers
+        \end{itemize}
+        \item<6-> January --- June 2024: Machine Learning Scientist Co-op with Bayer Crop Science R\&D
+        \begin{itemize}
+            \item<7-> Analytic Pipeline Development --- data science and AI for supporting decision-making in an advanced plant breeding pipeline 
+            \item<8-> Specific investigations --- improving spatial and temporal availability of key soil quality indicators using high spatial resolution satellite imagery and machine learning
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Geospatial Computational Environmental Research Lab}
+    
+\end{frame}
+
+\section{Background}
+
+\subsection{A gentle overview of land use and land cover classification}
+
+\begin{frame}{Land use and land cover}
+    \begin{itemize}
+        \item<1-> Land use and land cover (LULC) data are among the most common and informative types of geospatial data with respect to environmental monitoring and management.
+        \item<2-> \alert{Land cover} refers to the biophysical material covering the Earth's surface (e.g., water, vegetation, soil, structures, etc.).
+        \item<3-> \alert{Land use} refers to the human interaction with the land cover (e.g., agriculture, forest practices, urban development, etc.).
+        \item<4-> LULC data are used in a wide range of disciplines, including agriculture, forestry, urban planning, and environmental science.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Land use and land cover}
+    \begin{figure}
+        \centering
+        % \includegraphics[width=0.8\textwidth]{images/land_use_land_cover.png}
+        \caption{USGS 2023 National Land Cover Database (NLCD) data over Mississippi.}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Classifying LULC}
+    \begin{itemize}
+        \item<1-> Prior to the advent of GIS, LULC data was human-interpreted from aerial photographs.
+        \item<2-> With advent of satellite remote sensing in 1980s, researchers and practitioners began using automated algorithms to classify LULC.
+        \item<3-> Most "classical" approaches to LULC classification paradigms were pixel-wise statistical models that used coarse resolution multispectral data.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Pixel-wise classification}
+    
+\end{frame}
+
+\begin{frame}{Artificial Neural Networks}
+    
+\end{frame}
+
+\begin{frame}{Backpropagation}
+
+\end{frame}
+
+\subsection{Hurdles to overcome for high spatial resolution data}
+
+\begin{frame}{Very High Spatial Resolution Data}
+    \begin{figure}
+        \centering
+        \vspace{-7.5pt}
+        \includegraphics[height=0.9\textheight]{images/fancy_res_compare_v2.pdf}
+        \caption{High resolution land cover maps reveal \alert{fine details} about the Earth's surface that are not visible at coarser resolutions.}
+        \label{fig:res_compare}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Increased local variance}
+
+\end{frame}
+
+\begin{frame}{Decreased Class Discriminability}
+    Classifying pixels gets \alert{more difficult} as spatial resolution \alert{increases}~\cite{markhamLandCoverClassification1981,woodcockFactorScaleRemote1987}.
+    \vspace{-9pt}
+    \begin{figure}
+        \centering
+        \includegraphics[height=0.8\textheight]{images/inter_intra_class_variation.jpg}
+        \vspace{-3pt}
+        \caption{As spatial resolution increases, inter-class variance decreases \cite{woodcockFactorScaleRemote1987}.}\label{fig:variance}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Object-Based Image Analysis}
+
+\end{frame}
+
+\begin{frame}{OBIA Drawbacks}
+
+\end{frame}
+
+\subsection{Deep learning methods}
+
+\subsubsection{Convolutional Neural Networks}
+
+\begin{frame}{Modifying Neural Networks for Image Processing}
+
+\end{frame}
+
+\begin{frame}{Spatial Feature Extraction through Convolution}
+
+\end{frame}
+
+\begin{frame}{}
+    
+\end{frame}
+
+\subsubsection{Semantic Segmentation}
+
+\begin{frame}{Pixel-wise Classification with CNNs}
+
+\end{frame}
+
+\begin{frame}{Encoder-Decoder Architectures}
+    
+\end{frame}
+
+\subsubsection{Transfer Learning}
+
+\section{Methodology}
+
+\subsection{Data Sources}
+
+\begin{frame}{USDA NAIP Imagery}
+
+\end{frame}
+
+\begin{frame}{Chesapeake Bay Land Cover Data}
+    
+\end{frame}
+
+\begin{frame}{Data Annotation}
+
+\end{frame}
+
+\subsection{Pretraining}
+
+\begin{frame}{Self-supervised Pretraining}
+    
+\end{frame}
+
+\begin{frame}{U-Net}
+
+\end{frame}
+
+\begin{frame}{Parameter Transfer}
+    
+\end{frame}
+
+\subsection{Model Architecture}
+
+\begin{frame}{ResNet-152}
+    
+\end{frame}
+
+\begin{frame}{U-Net}
+    
+\end{frame}
+
+\section{Results}
+
+\begin{frame}{Mississippi Land Cover Classification Task}
+    
+\end{frame}
+
+\begin{frame}{Warren County Land Cover}
+
+\section{Future Works}
+
+\begin{frame}{Scaling to Statewide Level}
+
+\end{frame}
+
+\begin{frame}{Super-Resolution of Sentinel-2 Imagery}
+    
+\end{frame}
+
+\section{Conclusion}
+
+\begin{frame}{Summary}
+
+\end{frame}
+
+\begin{frame}{Acknowledgements}
+
+\end{frame}
 
 \end{document}
