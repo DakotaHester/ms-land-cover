@@ -54,6 +54,22 @@ def main():
         bounding_polygons = [shapely.Polygon(county_geom.exterior)]
     else:
         bounding_polygons = [shapely.Polygon(polygon.exterior) for polygon in county_geom.geoms]
+
+    census_ms_places_shp_path = './data/shapefiles/tl_2024_28_place/tl_2024_28_place.shp'
+    ms_places_gdf = gpd.read_file(census_ms_places_shp_path)
+    starville_msu_gdf = ms_places_gdf[ms_places_gdf['NAME'].isin(['Starkville', 'Mississippi State'])]
+    
+    starville_msu_reproj_gdf = starville_msu_gdf.to_crs(MSTM_PROJ4)
+    try:
+        starville_msu_geom = starville_msu_reproj_gdf.union_all()
+    except:
+        starville_msu_geom = starville_msu_reproj_gdf.unary_union
+
+    # if multipolygon, convert to a list of polygons
+    if isinstance(starville_msu_geom, shapely.MultiPolygon):
+        bounding_polygons = [shapely.Polygon(geom.exterior) for geom in starville_msu_geom.geoms]
+    else:
+        bounding_polygons = [shapely.Polygon(starville_msu_geom)]
     
     # # use whole state for now
     # bounding_polygons = [ms_counties_gdf.unary_union]
@@ -78,8 +94,8 @@ def main():
     )
     
     logger.log('Loading raster data...')
-    # raster_path = '/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023_reduced.tif'
-    # raster_path = r"G:\mslc_inf_test\starkville_msu_2023_reduced.tif"
+    # raster_path = '/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023.tif'
+    raster_path = r"G:\mslc_inf_test\starkville_msu_2023.tif"
     with rio.open(raster_path) as src:
         profile = src.profile
         raster_data = src.read()
