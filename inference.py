@@ -31,7 +31,8 @@ def main():
     if os.environ.get('MSLC_INFERENCE_COUNTY_INDEX') is not None:
         county_index = int(os.environ.get('MSLC_INFERENCE_COUNTY_INDEX'))
     else:
-        county_index = 74 # warren county
+        # county_index = 74 # warren county
+        county_index = 52 # oktibbeha county
     
     log_dir = f'./data/inference_results/logs/{county_index}'
     
@@ -82,9 +83,18 @@ def main():
     # raster_path = '/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023_reduced.tif'
     # raster_path = r"G:\mslc_inf_test\starkville_msu_2023_reduced.tif"
     # raster_path = '/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023_even_less_reduced.tif'
+    raster_path = r"Z:\guser\dh\NAIP_MS_2023\ortho_1-1_hc_s_ms105_2023_1\ortho_1-1_hc_s_ms105_2023_1_1m.tif"
     with rio.open(raster_path) as src:
         profile = src.profile
         raster_data = src.read()
+    
+    profile.update({
+        'BIGTIFF': 'YES',
+        'compress': 'LZW',
+        'tiled': 'true',
+        'blockxsize': 256,
+        'blockysize': 256,
+    })
     
     logger.log('Processing raster data...')
     lc_probs = processor.process_raster(raster_data)
