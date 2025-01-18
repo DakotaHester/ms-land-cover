@@ -45,6 +45,7 @@ def process_geom(geom, shm_name, shape, dtype, transform):
         
         # Extract masked values
         masked_raster = raster[:, rasterized_mask == 1]
+        
         return masked_raster.mean(axis=1)  # Compute mean across bands
     finally:
         # Ensure the shared memory block is closed (but not unlinked)
@@ -481,7 +482,7 @@ def process_chunk_shared(args):
         # Process chunk
         chunk_outputs = outputs[:, y_start:y_end, x_start:x_end]
         chunk_weights = weights[y_start:y_end, x_start:x_end]
-        result = softmax(chunk_outputs / (chunk_weights + 1e-10)[np.newaxis, :, :], axis=0)
+        result = chunk_outputs / (chunk_weights + 1e-10)[np.newaxis, :, :]
 
         # Write result back to shared memory
         final_outputs[:, y_start:y_end, x_start:x_end] = result
