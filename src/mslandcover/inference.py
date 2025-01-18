@@ -229,7 +229,7 @@ class RasterProcessor:
             tile = tile.to(model_device)
         
         with torch.no_grad():
-            probs = F.softmax(model(tile.unsqueeze(0)), dim=1).cpu()
+            probs = model(tile.unsqueeze(0)).cpu()
         
         return probs.squeeze(0).numpy() * weights
 
@@ -403,7 +403,7 @@ class GPURasterProcessor:
         batch_tiles = batch_tiles.to(self.device)
         
         with torch.no_grad():
-            probs = F.softmax(self.model(batch_tiles), dim=1)
+            probs = self.model(batch_tiles)
             weighted_probs = probs * self.weights_gpu
             
         return weighted_probs, batch_coords
