@@ -89,10 +89,10 @@ def main():
         # raster_data = src.read()
         raster_data, transform = mask(
             src,
-            [county_geom.buffer(processor.tile_size * 1.5)], # clip to county boundary for now
+            [county_geom.buffer(processor.tile_size * 1.5)], # clip to county boundary for now TODO account for multipolygonsor polygons with holes???
             crop=True,
             all_touched=True,
-            invert=True,
+            invert=False,
         )
     # raster_data = raster_data[:, mask[0], mask[1]]
     
