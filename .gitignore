@@ -44,3 +44,4 @@ data/inference_results
 /data/NAIP_MS_2023
 data/landsat_examples
 /data/resnet_152_deep_features.hdf5.bak
+/data/resnet_152_deep_features.hdf5
