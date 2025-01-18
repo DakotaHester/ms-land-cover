@@ -73,7 +73,7 @@ def main():
         tile_size=256,
         stride=32,
         gaussian_sigma=192,
-        batch_size=64,
+        batch_size=32,
         mean=load_pth('./weights/pretrain_mean.pth'),
         std=load_pth('./weights/pretrain_std.pth'),
         device=device,
@@ -86,7 +86,15 @@ def main():
     raster_path = r"Z:\guser\dh\NAIP_MS_2023\ortho_1-1_hc_s_ms105_2023_1\ortho_1-1_hc_s_ms105_2023_1_1m.tif"
     with rio.open(raster_path) as src:
         profile = src.profile
-        raster_data = src.read()
+        # raster_data = src.read()
+        raster_data, transform = mask(
+            src,
+            [county_geom.buffer(512)], # clip to county boundary for now
+            crop=True,
+            all_touched=True,
+            invert=True,
+        )
+    # raster_data = raster_data[:, mask[0], mask[1]]
     
     profile.update({
         'BIGTIFF': 'YES',
@@ -94,6 +102,7 @@ def main():
         'tiled': 'true',
         'blockxsize': 256,
         'blockysize': 256,
+        'transform': transform,
     })
     
     logger.log('Processing raster data...')
