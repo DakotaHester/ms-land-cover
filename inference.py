@@ -26,6 +26,7 @@ from src.mslandcover.utils import load_pth, get_torch_device, Logger
 def main():
     
     model_weights_path = './weights/multistage_finetuning_stage2/dae/s1_full_train/s2_decoder_train/best_model.pth'
+    # model_weights_path = './weights/multistage_unet/best_model.pth'
     
     if os.environ.get('MSLC_INFERENCE_COUNTY_INDEX') is not None:
         county_index = int(os.environ.get('MSLC_INFERENCE_COUNTY_INDEX'))
@@ -55,23 +56,23 @@ def main():
     else:
         bounding_polygons = [shapely.Polygon(polygon.exterior) for polygon in county_geom.geoms]
     
-    # # use whole state for now
+    # use whole state for now
     # bounding_polygons = [ms_counties_gdf.unary_union]
     
     logger.log(f'Loaded county {county_name} with FIPS code {county_fp_code}')
     
     logger.log('Loading model...')
     model = UNet().to(get_torch_device())
-    model.load_state_dict(load_pth(model_weights_path))
+    model.load_state_dict(load_pth(model_weights_path, map_location=device))
     model.eval()
     
     logger.log('Starting inference...')
     processor = GPURasterProcessor(
         model=model,
         tile_size=256,
-        stride=64,
+        stride=32,
         gaussian_sigma=192,
-        batch_size=16,
+        batch_size=64,
         mean=load_pth('./weights/pretrain_mean.pth'),
         std=load_pth('./weights/pretrain_std.pth'),
         device=device,
@@ -80,6 +81,7 @@ def main():
     logger.log('Loading raster data...')
     # raster_path = '/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023_reduced.tif'
     # raster_path = r"G:\mslc_inf_test\starkville_msu_2023_reduced.tif"
+    # raster_path = '/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023_even_less_reduced.tif'
     with rio.open(raster_path) as src:
         profile = src.profile
         raster_data = src.read()
@@ -88,6 +90,7 @@ def main():
     lc_probs = processor.process_raster(raster_data)
     
     out_path = f'./data/inference_results/{county_fp_code}'
+    # out_path = f'./data/inference_results/starkville_msu_2023_less_reduced'
     logger.log('Saving results...')
     os.makedirs(out_path, exist_ok=True)
     
@@ -175,11 +178,11 @@ def main():
     logger.log(f'Saving features to {os.path.join(out_path, "features.gpkg")}...')
     features_gdf.to_file(os.path.join(out_path, 'features.gpkg'), driver='GPKG')
     
-    features_reduced_gdf = features_gdf[['predicted_class', 'geometry']]
-    features_reduced_gdf = features_reduced_gdf.dissolve(by='predicted_class')
+    features_dissolved_gdf = features_gdf[['predicted_class', 'geometry']]
+    features_dissolved_gdf = features_dissolved_gdf.dissolve(by='predicted_class')
     
-    logger.log(f'Saving reduced features to {os.path.join(out_path, "features_reduced.gpkg")}...')
-    features_reduced_gdf.to_file(os.path.join(out_path, 'features_reduced.gpkg'), driver='GPKG')
+    logger.log(f'Saving reduced features to {os.path.join(out_path, "features_dissolved.gpkg")}...')
+    features_dissolved_gdf.to_file(os.path.join(out_path, 'features_dissolved.gpkg'), driver='GPKG')
 
 
 
