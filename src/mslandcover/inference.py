@@ -633,7 +633,7 @@ def parallel_quickshift(raster_data, kernel_size=3, max_dist=6, ratio=0.5, chunk
     
     # Calculate chunk size if not provided
     if chunk_size is None:
-        # Aim for roughly  n_processes total chunks
+        # Aim for roughly n_processes total chunks
         chunk_size = int(np.sqrt((height * width) / n_processes))
     
     # Calculate overlap based on kernel_size and max_dist
