@@ -429,13 +429,6 @@ class GPURasterProcessor:
             raster_data = np.transpose(raster_data, (1, 2, 0))
             raster_data = (raster_data - self.mean) / self.std
             raster_data = np.transpose(raster_data, (2, 0, 1))
-
-        # Pad the input
-        raster_data = np.pad(
-            raster_data, 
-            ((0,0), (self.pad_size, self.pad_size), (self.pad_size, self.pad_size)), 
-            mode='reflect'
-        )
         
         height, width = raster_data.shape[1:]
         num_classes = self.model.num_classes
@@ -458,12 +451,8 @@ class GPURasterProcessor:
                 outputs[:, y:y+self.tile_size, x:x+self.tile_size] += weighted_probs[idx].to('cpu')
                 weights_sum[y:y+self.tile_size, x:x+self.tile_size] += self.weights_cpu
         
-        # Remove padding
-        outputs = outputs[:, self.pad_size:-self.pad_size, self.pad_size:-self.pad_size].numpy()
-        weights_sum = weights_sum[self.pad_size:-self.pad_size, self.pad_size:-self.pad_size].numpy()
-        
         # Get final probabilities
-        return get_probabilites(outputs, weights_sum)
+        return get_probabilites(outputs.numpy(), weights_sum.numpy())
 
 def process_chunk_shared(args):
     (y_start, y_end, x_start, x_end), outputs_name, weights_name, final_name, output_shape, weights_shape = args
