@@ -24,71 +24,113 @@ from scipy.special import softmax
 from skimage.segmentation import quickshift, felzenszwalb
 
 
-def process_geom(geom, shm_name, shape, dtype, transform):
+def process_batch(args):
     """
-    Processes a single geometry by accessing shared memory and computing zonal stats.
+    Process a batch of segment IDs using shared memory.
+    
+    Args:
+        args: Tuple containing:
+            - segment_ids: List of segment IDs to process
+            - shm_raster_name: Name of shared memory for raster data
+            - shm_segments_name: Name of shared memory for segments array
+            - raster_shape: Shape of raster array
+            - segments_shape: Shape of segments array
+            - raster_dtype: Dtype of raster array
     """
-    # Access the shared memory block
-    existing_shm = shared_memory.SharedMemory(name=shm_name)
-    raster = np.ndarray(shape, dtype=dtype, buffer=existing_shm.buf)
+    segment_ids, shm_raster_name, shm_segments_name, raster_shape, segments_shape, raster_dtype, segments_dtype = args
+    
+    # Access shared memory
+    raster_shm = shared_memory.SharedMemory(name=shm_raster_name)
+    segments_shm = shared_memory.SharedMemory(name=shm_segments_name)
+    
+    raster = np.ndarray(raster_shape, dtype=raster_dtype, buffer=raster_shm.buf)
+    segments = np.ndarray(segments_shape, dtype=np.uint16, buffer=segments_shm.buf)
     
     try:
-        # Rasterize the geometry
-        rasterized_mask = rasterize(
-            [(geom, 1)],
-            out_shape=raster.shape[1:],  # Match spatial dimensions
-            transform=transform,
-            fill=0,
-            all_touched=True,
-            dtype=np.uint8,
-        )
-        
-        # Extract masked values
-        masked_raster = raster[:, rasterized_mask == 1]
-        
-        return masked_raster.mean(axis=1)  # Compute mean across bands
-    finally:
-        # Ensure the shared memory block is closed (but not unlinked)
-        existing_shm.close()
-
-
-
-def worker_wrapper(args):
-    """
-    Wrapper function for multiprocessing that unpacks arguments and calls process_geom.
-    """
-    return process_geom(*args)
-
-
-
-def compute_zonal_means(raster, geoms, transform, n_processes: int=cpu_count()):
-    """
-    Main function to compute zonal statistics using shared memory, avoiding globals.
-    """
-    # Create a shared memory block
-    shm = shared_memory.SharedMemory(create=True, size=raster.nbytes)
-    
-    try:
-        # Copy raster data into shared memory
-        shared_raster = np.ndarray(raster.shape, dtype=raster.dtype, buffer=shm.buf)
-        np.copyto(shared_raster, raster)
-        
-        # Prepare arguments for multiprocessing
-        args = [
-            (geom, shm.name, raster.shape, raster.dtype, transform) 
-            for geom in geoms
-        ]
-        
-        # Use multiprocessing pool
-        with Pool(processes=n_processes) as pool:  # Adjust the number of processes as needed
-            results = pool.map(worker_wrapper, args)
+        results = []
+        for segment_id in segment_ids:
+            mask = segments == segment_id
+            if mask.any():
+                # Compute mean across spatial dimensions for each class
+                means = raster[:, mask].mean(axis=1)
+                results.append((segment_id, means))
+            else:
+                results.append((segment_id, np.zeros(raster_shape[0])))
         
         return results
-
+    
     finally:
-        # Clean up shared memory
-        shm.close()
-        shm.unlink()
+        raster_shm.close()
+        segments_shm.close()
+
+def compute_segment_means(raster, segments, n_processes=None, batch_size=None):
+    """
+    Compute mean values for each segment in parallel using shared memory.
+    
+    Args:
+        raster: Input raster array (classes, height, width)
+        segments: Segmentation array (height, width) with unique IDs
+        n_processes: Number of processes (defaults to CPU count)
+        batch_size: Number of segments to process in each batch
+    
+    Returns:
+        Dict mapping segment IDs to their mean class probabilities
+    """
+    if n_processes is None:
+        n_processes = cpu_count()
+    
+    # Create shared memory for input arrays
+    raster_shm = shared_memory.SharedMemory(create=True, size=raster.nbytes)
+    segments_shm = shared_memory.SharedMemory(create=True, size=segments.nbytes)
+    
+    shared_raster = np.ndarray(raster.shape, dtype=raster.dtype, buffer=raster_shm.buf)
+    shared_segments = np.ndarray(segments.shape, dtype=segments.dtype, buffer=segments_shm.buf)
+    
+    np.copyto(shared_raster, raster)
+    np.copyto(shared_segments, segments)
+    
+    try:
+        # Get unique segment IDs and create batches
+        unique_segments = np.unique(segments)
+        if unique_segments[0] == 0:  # Skip background if present
+            unique_segments = unique_segments[1:]
+        
+        if batch_size is None:
+            batch_size = len(unique_segments) // n_processes
+        
+        batch_args = []
+        for i in range(0, len(unique_segments), batch_size):
+            batch_segments = unique_segments[i:i + batch_size]
+            batch_args.append((
+                batch_segments,
+                raster_shm.name,
+                segments_shm.name,
+                raster.shape,
+                segments.shape,
+                raster.dtype,
+                segments.dtype
+            ))
+        
+        # Process batches in parallel
+        results = {}
+        with Pool(n_processes) as pool:
+            for batch_results in tqdm(
+                pool.imap_unordered(process_batch, batch_args),
+                total=len(batch_args),
+                desc="Computing segment means",
+                unit="batches",
+                unit_scale=batch_size,
+            ):                
+                for segment_id, means in batch_results:
+                    results[segment_id] = means
+        
+        return results
+    
+    finally:
+        raster_shm.close()
+        raster_shm.unlink()
+        segments_shm.close()
+        segments_shm.unlink()
 
 
 

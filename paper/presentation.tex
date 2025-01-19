@@ -64,10 +64,6 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Geospatial Computational Environmental Research Lab}
-    
-\end{frame}
-
 \section{Background}
 
 \subsection{A gentle overview of land use and land cover classification}
@@ -84,8 +80,8 @@
 \begin{frame}{Land use and land cover}
     \begin{figure}
         \centering
-        % \includegraphics[width=0.8\textwidth]{images/land_use_land_cover.png}
-        \caption{USGS 2023 National Land Cover Database (NLCD) data over Mississippi.}
+        \includegraphics[width=0.8\textwidth]{images/ms_lc_map.pdf}
+        \caption{USGS National Land Cover Database (NLCD) data over Mississippi.}
     \end{figure}
 \end{frame}
 
@@ -110,6 +106,21 @@
         \item<7-> Non-parametric, supervised classifiers are often used (e.g., Decision Trees, Random Forests, Support Vector Machines, etc.)
 \end{frame}
 
+
+\begin{frame}{Pixel-wise classification}
+    \begin{itemize}
+        \item<1-> Traditional classifiers usually operate by transforming a feature vector into output class probabilities for a given pixel.
+        \item<2-> Common data sources include:
+        \begin{itemize}
+            \item<3-> Surface reflectance data
+            \item<4-> Derived spectral indices (i.e., NDVI, EVI, NDWI, etc.)
+            \item<5-> Textural information (e.g., gray-level co-occurrence matrices)
+            \item<6-> Ancillary information (i.e., topograhy, soil, etc)
+        \end{itemize}
+        \item<7-> Non-parametric, supervised classifiers are often used (e.g., Decision Trees, Random Forests, Support Vector Machines, etc.)
+\end{frame}
+
+
 \subsection{Hurdles to overcome for high spatial resolution data}
 
 \begin{frame}{Very High Spatial Resolution Data}
@@ -120,10 +131,6 @@
         \caption{High resolution land cover maps reveal \alert{fine details} about the Earth's surface that are not visible at coarser resolutions.}
         \label{fig:res_compare}
     \end{figure}
-\end{frame}
-
-\begin{frame}{Increased local variance}
-
 \end{frame}
 
 \begin{frame}{Decreased Class Discriminability}
@@ -137,8 +144,34 @@
     \end{figure}
 \end{frame}
 
-\begin{frame}{Object-Based Image Analysis}
+\begin{frame}{Decreased Class Discriminability}
+    \vspace{-9pt}
+    \begin{figure}
+        \centering
+        \includegraphics[height=0.8\textheight]{images/inter_intra_class_variation.jpg}
+        \vspace{-3pt}
+        \caption{As spatial resolution increases, inter-class variance decreases \cite{woodcockFactorScaleRemote1987}.}\label{fig:variance}
+    \end{figure}
+\end{frame}
 
+\begin{frame}
+    % TODO show salt and pepper noise from lc classification. Simple one, just use the same image as in OBIA slide.
+\end{frame}
+
+\begin{frame}{Object-Based Image Analysis}
+    \begin{itemize}
+        \item<1-> One approach to classifying high spatial resolution data is to use \aelrt{segmentation} to group neighboring pixels that share similar spectral characteristics into \alert{objects}.
+        \item<2-> Then, instead of classifying individual pixels, the classifier operates on the objects.
+        \item<3-> Object-based image analysis (OBIA) addresses local variance concerns and produces cleaner, more accurate classification maps.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Object-Based Image Analysis}
+    \begin{itemize}
+        \item<1-> One approach to classifying high spatial resolution data is to use \aelrt{segmentation} to group neighboring pixels that share similar spectral characteristics into \alert{objects}.
+        \item<2-> Then, instead of classifying individual pixels, the classifier operates on the objects.
+        \item<3-> Object-based image analysis (OBIA) addresses local variance concerns and produces cleaner, more accurate classification maps.
+    \end{itemize}
 \end{frame}
 
 \begin{frame}{OBIA Drawbacks}
@@ -149,12 +182,20 @@
 
 \subsubsection{Convolutional Neural Networks}
 
-\begin{frame}{Artificial Neural Networks}
-    
+\begin{frame}{"Why do we need deep models?"}
+    \begin{itemize}
+        \item<1-> Deep learning modles are complex, resource intensive, and more difficult to train compared to traditional classifiers.
+        \item<2-> However, deep models have several advantages:
+        \begin{enumerate}
+            \item<3-> \alert{Feature extraction} --- deep models can learn complex \alert{spatial} hierarchies of features that are difficult to engineer by hand.
+            \item<4-> \alert{Flexibility} --- the nature of deep learning architectures allows them to be applied to a wide range of tasks across different modalities, and can be modified to best suit a given task.
+            \item<5-> \alert[End-to-end learning] --- unlike traditional methods, deep models can be trained in an end-to-end fashion, where little to no pre-processing or post-processing is required.
+        \end{enumerate}
+    \end{itemize}
 \end{frame}
 
-\begin{frame}{Backpropagation}
-
+\begin{frame}{Artificial Neural Networks}
+    
 \end{frame}
 
 \begin{frame}{Modifying Neural Networks for Image Processing}
@@ -171,35 +212,83 @@
 
 \subsubsection{Semantic Segmentation}
 
-\begin{frame}{Pixel-wise Classification with CNNs}
-
+\begin{frame}{Semantic Segmentation}
+    \begin{itemize}
+        \item<1-> Most CNNs are designed for classification tasks, where the output is simple a single label for the entire image
+        \item<2-> An naive approach to land cover classification would be to assign a single label to each tile that is passed through a CNN, where this label represents the dominant land cover class in the tile.
+        \item<3-> However, the feature maps learned by the CNN inherently \alert{spatially structured}, and these feature maps can be leveraged to produce dense, pixel-wise classification maps through a process called \alert{semantic segmentation}.
+    \end{itemize}
 \end{frame}
 
 \begin{frame}{Encoder-Decoder Architectures}
+    \begin{itemize}
+        \item<1-> In an encoder-decoder architecture, an \alert{encoder} CNN extracts features from the input such that a \alert{decoder} network can upsample the features to the original input resolution.
+        \item<2-> The decoder network learns to generate a pixel-wise classification map from the features extracted by the encoder.
+        \item<3-> The most popular encoder-decoder network Architecture is U-Net\cite{wangUNetFormerUNetlikeTransformer2022}.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{U-Net}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.8\textwidth]{images/unet_architecture.png}
+        \caption{U-Net architecture. Note the "skip" connections between the encoder and the decoder networks. \cite{ronnebergerUNetConvolutionalNetworks2015}.}
+    \end{figure}
+\end{frame}
+
     
 \end{frame}
 
-\subsubsection{Transfer Learning}
+\begin{frame}{Denoising Autoencoder}
+    \begin{itemize}
+        \item<1-> In addition to semantic segmentation, encoder-decoder networks can be used for denoising images.
+        \item<2-> In effect, we can add random noise to an input image, then train the network to predict the original image from the noisy image.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Transfer Learning}
+    
+\end{frame}
 
 \section{Methodology}
 
 \subsection{Data Sources}
 
-\begin{frame}{USDA NAIP Imagery}
-
+\begin{frame}{USDA National Agricultural Imagery Program}
+    \begin{itemize}
+        \item<1-> USDA NAIP imagery covers CONUS with 3-year revisit cycle at 0.6 m spatial resolution.
+        \item<2-> NAIP imagery is available in 4 spectral bands (RGB + NIR).
+        \item<3-> Our study uses 2023 NAIP imagery over Mississippi clipped
+        \begin{itemize}
+            \item<4-> Color infrared composites (Red, Green, and NIR bands) resampled to 1m spatial resolution
+            \item<5-> Imagery is clipped into tiles of 256x256 pixels
+            \item<6-> 20\% of images places in pretraining set, and 5\% in pretraining validation set (377,913 and 94,480 tiles, respectively)
+            \item<7-> For fine-tuning, 250 tiles total were selected to be labelled (119 in training set, 61 in validation set, and 70 in test set)
+        \end{itemize}
+    \end{itemize}
 \end{frame}
 
 \begin{frame}{Chesapeake Bay Land Cover Data}
-    
-\end{frame}
-
-\begin{frame}{Data Annotation}
-
+    \begin{itemize}
+        \item<1-> In order to enhance the model's ability to fit the data, we introduce a second pre-training stage using fully annotated data from the Chesapeake Bay Land Cover dataset.
+        \item<2-> 2018 NAIP tiles and corresponding land cover data extracted from Fairfax County, VA.
+        \item<3-> Why Fairfax County? 
+        \begin{itemize}
+            \item<4-> High density of hard-to-classify impervious land cover types (i.e., roads, buildings, etc.) 
+        \end{itemize}
+        \item<5-> Why not directly apply these tiles to the fine-tuning stage?
+        \begin{itemize}
+            \item<6-> The land cover legend is for Chesapeake Bay --- for examnple, it lacks a Cultivated Crops class.
+            \item<7-> High resolution ancillary canopy height data was used to construct the data, which we do not have for Mississippi.
+            \item<8-> Generalization of the model to Mississippi is not guaranteed with data from Chesapeake Bay Watershed. 
+        \end{itemize}
+        \item<5-> 10,220 tiles used for training and 5,110 used for validation.
+    \end{itemize}
 \end{frame}
 
 \subsection{Pretraining}
 
-\begin{frame}{Self-supervised Pretraining}
+\begin{frame}{Self-supervised Pretraining using Denoising Au}
     
 \end{frame}
 
@@ -229,14 +318,6 @@
 
 \begin{frame}{Warren County Land Cover}
 
-\section{Future Works}
-
-\begin{frame}{Scaling to Statewide Level}
-
-\end{frame}
-
-\begin{frame}{Super-Resolution of Sentinel-2 Imagery}
-    
 \end{frame}
 
 \section{Conclusion}
