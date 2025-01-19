@@ -25,7 +25,7 @@ from src.mslandcover.config import MSTM_PROJ4, HRNET_W18_CONFIG, LEGEND_COLORS_R
 from src.mslandcover.utils import load_pth, get_torch_device, Logger
 
 # if land cover probabilities are already computed, set this to True to skip inference
-SKIP_INFERENCE = False
+SKIP_INFERENCE = True
 
 def main():
     
@@ -145,7 +145,7 @@ def main():
     else:
         logger.log('Land cover probabilities already computed. Skipping inference...')
         with rio.open(os.path.join(out_path, 'lc_probs.tif')) as src:
-            lc_probs = src.read()
+            lc_probs = src.read().astype(np.float32) / 100
     
     # out_path = f'./data/inference_results/starkville_msu_2023_less_reduced'
     if SKIP_INFERENCE and os.path.exists(os.path.join(out_path, 'lc_classes.tif')):
@@ -205,43 +205,89 @@ def main():
                 dst.write(clipped_data)
                 dst.write_colormap(1, LEGEND_COLORS_RGBA)
     
-    # now, object-based segmentation using quickshift
-    logger.log('Segmenting image...')
-    # segments = quickshift(raster_data.transpose(1, 2, 0), kernel_size=3, max_dist=6, ratio=0.5).astype(np.uint16)
-    segments = parallel_quickshift(raster_data).astype(np.int32)
+    features_gdfs = []
+    bounding_mask = geometry_mask(bounding_polygons, out_shape=raster_data.shape[1:], transform=profile['transform'], all_touched=True, invert=True)
+
+    # chunk the arrays into 10k x 10k pixel chunks for processing
+    for i in tqdm(range(0, lc_probs.shape[2], 10000), desc='Inferring features', unit='chunks'):
+        for j in range(0, lc_probs.shape[1], 10000):
+            
+            lc_probs_chunk = lc_probs[:, j:j+10000, i:i+10000]
+            raster_data_chunk = raster_data[:, j:j+10000, i:i+10000]
+            
+            segments_chunk = parallel_quickshift(raster_data_chunk)
+            class_means_chunk = compute_segment_means(lc_probs_chunk, segments_chunk)
+            
+            chunk_transform = rio.Affine.translation(i, j) * profile['transform']
+            geoms_chunk = shapes(segments_chunk.astype(np.float64), mask=bounding_mask[j:j+10000, i:i+10000], transform=chunk_transform)
+            geoms_chunk = [(geom, int(id)) for geom, id in geoms_chunk]
+            
+            features_dict_chunk = {
+                'geometry': [],
+                'predicted_class': [],
+                'confidence': [],
+            }
+            for i in range(1, len(LEGEND_CLASSES)):
+                features_dict_chunk[LEGEND_CLASSES[i]] = []
+            
+            for i, (g, segment_id) in enumerate(tqdm(geoms_chunk, desc='Compiling features', unit='geometries')):
+                if segment_id not in class_means_chunk.keys():
+                    logger.log(f'Segment ID {segment_id} not found in class means! Skipping...')
+                    continue
+                
+                features_dict_chunk['geometry'].append(shapely.geometry.shape(g))
+                probs = class_means_chunk[segment_id]
+                for j, prob in enumerate(probs):
+                    class_label = LEGEND_CLASSES[j + 1]
+                    features_dict_chunk[class_label].append(prob)
+                features_dict_chunk['predicted_class'].append(LEGEND_CLASSES[np.argmax(probs) + 1])
+                features_dict_chunk['confidence'].append(np.max(probs))
+
+                features_gdf_chunk = gpd.GeoDataFrame(features_dict_chunk, crs=profile['crs'], geometry='geometry')
+                features_gdfs.append(features_gdf_chunk)
+            
+            
+            
+    # # now, object-based segmentation using quickshift
+    # logger.log('Segmenting image...')
+    # # segments = quickshift(raster_data.transpose(1, 2, 0), kernel_size=3, max_dist=6, ratio=0.5).astype(np.uint16)
+    # segments = parallel_quickshift(raster_data).astype(np.int32)
     
-    # use zonal statistics to get mean probabilities for each segment
-    logger.log('Extracting zonal land cover probability means...')
-    class_means = compute_segment_means(lc_probs, segments) # Dict[int, np.ndarray]
+    # # use zonal statistics to get mean probabilities for each segment
+    # logger.log('Extracting zonal land cover probability means...')
+    # class_means = compute_segment_means(lc_probs, segments) # Dict[int, np.ndarray]
     
-    logger.log('Generating polygons from segments...')
-    bounding_mask = geometry_mask(bounding_polygons, out_shape=segments.shape, transform=profile['transform'], all_touched=True, invert=True)
-    geoms = [(geom, int(id)) for geom, id in shapes(segments.astype(np.float64), mask=bounding_mask, connectivity=4, transform=profile['transform'])]
+    # logger.log('Generating polygons from segments...')
+    # bounding_mask = geometry_mask(bounding_polygons, out_shape=segments.shape, transform=profile['transform'], all_touched=True, invert=True)
+    # geoms = [(geom, int(id)) for geom, id in shapes(segments.astype(np.float64), mask=bounding_mask, connectivity=4, transform=profile['transform'])]
     
-    logger.log('Compiling to feature class')
-    features_dict = {
-        'geometry': [],
-        'predicted_class': [],
-        'confidence': [],
-    }
-    for i in range(1, len(LEGEND_CLASSES)):
-        features_dict[LEGEND_CLASSES[i]] = []
+    # logger.log('Compiling to feature class')
+    # features_dict = {
+    #     'geometry': [],
+    #     'predicted_class': [],
+    #     'confidence': [],
+    # }
+    # for i in range(1, len(LEGEND_CLASSES)):
+    #     features_dict[LEGEND_CLASSES[i]] = []
     
-    for i, (g, segment_id) in enumerate(tqdm(geoms, desc='Compiling features', unit='geometries')):
-        if segment_id not in class_means.keys():
-            logger.log(f'Segment ID {segment_id} not found in class means! Skipping...')
-            continue
+    # for i, (g, segment_id) in enumerate(tqdm(geoms, desc='Compiling features', unit='geometries')):
+    #     if segment_id not in class_means.keys():
+    #         logger.log(f'Segment ID {segment_id} not found in class means! Skipping...')
+    #         continue
         
-        features_dict['geometry'].append(shapely.geometry.shape(g))
-        probs = class_means[segment_id]
-        for j, prob in enumerate(probs):
-            class_label = LEGEND_CLASSES[j + 1]
-            features_dict[class_label].append(prob)
-        features_dict['predicted_class'].append(LEGEND_CLASSES[np.argmax(probs) + 1])
-        features_dict['confidence'].append(np.max(probs))
+    #     features_dict['geometry'].append(shapely.geometry.shape(g))
+    #     probs = class_means[segment_id]
+    #     for j, prob in enumerate(probs):
+    #         class_label = LEGEND_CLASSES[j + 1]
+    #         features_dict[class_label].append(prob)
+    #     features_dict['predicted_class'].append(LEGEND_CLASSES[np.argmax(probs) + 1])
+    #     features_dict['confidence'].append(np.max(probs))
     
     
-    features_gdf = gpd.GeoDataFrame(features_dict, crs=profile['crs'], geometry='geometry')
+    # features_gdf = gpd.GeoDataFrame(features_dict, crs=profile['crs'], geometry='geometry')
+    
+    
+    features_gdf = pd.concat(features_gdfs)
     
     logger.log(f'Saving features to {os.path.join(out_path, "features.gpkg")}...')
     features_gdf.to_file(os.path.join(out_path, 'features.gpkg'), driver='GPKG')
