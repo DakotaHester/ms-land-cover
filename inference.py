@@ -35,8 +35,8 @@ def main():
     if os.environ.get('MSLC_INFERENCE_COUNTY_INDEX') is not None:
         county_index = int(os.environ.get('MSLC_INFERENCE_COUNTY_INDEX'))
     else:
-        # county_index = 74 # warren county
-        county_index = 52 # oktibbeha county
+        county_index = 74 # warren county
+        # county_index = 52 # oktibbeha county
     
     log_dir = f'./data/inference_results/logs/{county_index}'
     
@@ -59,16 +59,16 @@ def main():
     
     # load starkville and msu countuy geom
     # okt_raster_path = '/Volumes/dhester_ssd/NAIP_MS_2023/ortho_1-1_hc_s_ms105_2023_1/ortho_1-1_hc_s_ms105_2023_1_1m.tif'
-    census_ms_places_shp_path = './data/shapefiles/tl_2024_28_place/tl_2024_28_place.shp'
+    # census_ms_places_shp_path = './data/shapefiles/tl_2024_28_place/tl_2024_28_place.shp'
     #census_usa_counties_shp_path = '/Users/dak/Downloads/tl_2024_us_county/tl_2024_us_county.shp'
 
     # census_counties_gdf = gpd.read_file(census_usa_counties_shp_path).to_crs(ms_counties_gdf.crs)
-    ms_places_gdf = gpd.read_file(census_ms_places_shp_path).to_crs(ms_counties_gdf.crs)
-    # okt_county_geom = census_counties_gdf[(census_counties_gdf['STATEFP'] == '28') & (census_counties_gdf['COUNTYFP'] == '105')]['geometry'].values[0]
-    okt_county_places = ms_places_gdf[ms_places_gdf.intersects(county_geom)]
-    starville_msu_gdf = okt_county_places[okt_county_places['NAME'].isin(['Starkville', 'Mississippi State'])]
-    starville_msu_gdf = starville_msu_gdf.dissolve()
-    county_geom = shapely.geometry.Polygon(starville_msu_gdf.loc[0, 'geometry'].exterior)
+    # ms_places_gdf = gpd.read_file(census_ms_places_shp_path).to_crs(ms_counties_gdf.crs)
+    # # okt_county_geom = census_counties_gdf[(census_counties_gdf['STATEFP'] == '28') & (census_counties_gdf['COUNTYFP'] == '105')]['geometry'].values[0]
+    # okt_county_places = ms_places_gdf[ms_places_gdf.intersects(county_geom)]
+    # starville_msu_gdf = okt_county_places[okt_county_places['NAME'].isin(['Starkville', 'Mississippi State'])]
+    # starville_msu_gdf = starville_msu_gdf.dissolve()
+    # county_geom = shapely.geometry.Polygon(starville_msu_gdf.loc[0, 'geometry'].exterior)
     # county_geom = county_geom.buffer(-1000)
     
     
@@ -104,8 +104,8 @@ def main():
     # raster_path = '/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023_reduced.tif'
     # raster_path = r"G:\mslc_inf_test\starkville_msu_2023_reduced.tif"
     # raster_path = '/Volumes/dhester_ssd/NAIP_MS_2023/ortho_1-1_hc_s_ms105_2023_1/ortho_1-1_hc_s_ms105_2023_1_1m.tif'
-    # raster_path = './data/NAIP_MS/ortho_1-1_hc_s_ms149_2023_1/ortho_1-1_hc_s_ms149_2023_1_1m.tif'
-    raster_path = r"Z:\guser\dh\NAIP_MS_2023\ortho_1-1_hc_s_ms105_2023_1\ortho_1-1_hc_s_ms105_2023_1_1m.tif"
+    raster_path = './data/NAIP_MS/ortho_1-1_hc_s_ms149_2023_1/ortho_1-1_hc_s_ms149_2023_1_1m.tif'
+    # raster_path = r"Z:\guser\dh\NAIP_MS_2023\ortho_1-1_hc_s_ms105_2023_1\ortho_1-1_hc_s_ms105_2023_1_1m.tif"
     with rio.open(raster_path) as src:
         profile = src.profile.copy()
         # raster_data = src.read()
