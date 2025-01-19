@@ -159,7 +159,9 @@ def main():
         updated_profile.update({
             'transform': lc_probs_transform,
             'height': lc_probs.shape[1],
-            'width': lc_probs.shape[2]
+            'width': lc_probs.shape[2],
+            'BIGTIFF': 'YES',
+            'count': lc_probs.shape[0],
         })
         with rio.open(os.path.join(out_path, 'lc_probs_clipped.tif'), 'w', **updated_profile) as dst:
             dst.write(lc_probs)
@@ -175,7 +177,8 @@ def main():
         updated_profile.update({
             'transform': clipped_transform,
             'height': clipped_data.shape[1],
-            'width': clipped_data.shape[2]
+            'width': clipped_data.shape[2],
+            'BIGTIFF': 'YES',
         })
         with rio.open(os.path.join(out_path, 'lc_classes_clipped.tif'), 'w', **updated_profile) as dst:
             dst.write(clipped_data)
