@@ -243,11 +243,33 @@
     \begin{itemize}
         \item<1-> In addition to semantic segmentation, encoder-decoder networks can be used for denoising images.
         \item<2-> In effect, we can add random noise to an input image, then train the network to predict the original image from the noisy image.
+        \item<3-> The network needs to learn \alert{features} that are \alert{robust} to noise while being meaningful for reconstruction.
     \end{itemize}
 \end{frame}
 
 \begin{frame}{Transfer Learning}
+    \begin{itemize}
+        \item<1-> While deep learning networks are powerful, their primary drawback is the amount of data required to train them.
+        \item<2-> For land cover, this is especcially problematic, as high resolution data is complex and difficult to annotate at scale.
+        \item<3-> One approach to mitigate this issue is to use \alert{transfer learning}, where a network can be \alert{pre-trained} on a related task with a large amount of data, then \alert{fine-tuned} on the target task with a smaller amount of data.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Transfer Learning Paradigm}
     
+\end{frame}
+
+\begin{frame}{Our goal}
+    \begin{itemize}
+        \item<1-> Use pre-training strategies in such a way as to reduce the amount of labeled data required for training a deep semantic segmentation model for land cover classification.
+        \item<2-> Specifically, we aim to show that land cover classification at very high spatial resolution can be achieved with a small amount of labeled data via the following steps:
+        \begin{enumerate}
+            \item<3-> Pre-train a denoising autoencoder on a large dataset of high resolution imagery from the area of interest.
+            \item<4-> Extract the encoder portion of the autoencoder network and use it as the encoder for a U-Net model.
+            \item<5-> Perform subsequent pre-training on a smaller dataset of high resolution imagery from a different area with fully annotated land cover data.
+            \item<6-> Finally, fine-tune the decoder on a very small dataset of high resolution imagery from the area of interest with fully annotated land cover data.
+        \end{enumerate}
+    \end{itemize}
 \end{frame}
 
 \section{Methodology}
@@ -288,12 +310,23 @@
 
 \subsection{Pretraining}
 
-\begin{frame}{Self-supervised Pretraining using Denoising Au}
-    
+\begin{frame}{Our Denoising Autoencoder}
+    \begin{itemize}
+        \item<1-> Our encoder network of choice is a ResNet-152 architecture.
+        \item<2-> For the Denoising Autoencoder, we extract feature maps produced by each of the four stages of the encoder network, resample these to the oringal input size, concatenate them, and pass them through a single convolutional 1 \(\times\) 1 convolutional layer to produce the input reconstruction.
+        \item<3-> While the shallow decoder network inhibits the ability of the network to produce high quality reconstructions, it helps ensure that the encoder learns to extract features.
+        \item<4-> To speed up training, our encoder network has been pre-trained on ImageNet, a large corpus of ``natural'' images.
+        \item<5-> To evaluate the efficacy of this stage, we compare the performance of our self-supervised model to one that has been only been pre-trained using ImageNet as well as a randomly initialized model.
+    \end{itemize}
 \end{frame}
 
-\begin{frame}{U-Net}
-
+\begin{frame}{Supervised Pretraining Stage}
+    \begin{itemize}
+        \item<1-> Once the encoder has been trained, we place it in a U-Net architecture and train the network on the Fairfax County land cover data.
+        \item<2-> One important note is that we have the option to \alert{freeze} the encoder during this stage. In doing so, we can reduce the amount of data required to train the full network, but lose the some ability to learn a more task-specific feature representation.
+        \item<3-> In our case, we found that there was enough data in the Fairfax County dataset to train the full network without freezing the encoder parameters.
+        % \item<3-> In addition to our prior baselines in the pre-training stage, we also compare the performance of our final network against models that have not undergonme this second stage of pre-training, as well as evalutate the effects of freezing the encoder layers.
+    \end{itemize}
 \end{frame}
 
 \begin{frame}{Parameter Transfer}
