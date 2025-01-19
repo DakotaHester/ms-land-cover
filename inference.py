@@ -25,12 +25,12 @@ from src.mslandcover.config import MSTM_PROJ4, HRNET_W18_CONFIG, LEGEND_COLORS_R
 from src.mslandcover.utils import load_pth, get_torch_device, Logger
 
 # if land cover probabilities are already computed, set this to True to skip inference
-SKIP_INFERENCE = False
+SKIP_INFERENCE = True
 
 def main():
     
-    # model_weights_path = './weights/multistage_finetuning_stage2/dae/s1_full_train/s2_decoder_train/best_model.pth'
-    model_weights_path = './weights/multistage_unet/best_model.pth'
+    model_weights_path = './weights/multistage_finetuning_stage2/dae/s1_full_train/s2_decoder_train/best_model.pth'
+    # model_weights_path = './weights/multistage_unet/best_model.pth'
     
     if os.environ.get('MSLC_INFERENCE_COUNTY_INDEX') is not None:
         county_index = int(os.environ.get('MSLC_INFERENCE_COUNTY_INDEX'))
@@ -59,16 +59,16 @@ def main():
     
     # load starkville and msu countuy geom
     # okt_raster_path = '/Volumes/dhester_ssd/NAIP_MS_2023/ortho_1-1_hc_s_ms105_2023_1/ortho_1-1_hc_s_ms105_2023_1_1m.tif'
-    census_ms_places_shp_path = '/Users/dak/Downloads/tl_2024_28_place/tl_2024_28_place.shp'
-    census_usa_counties_shp_path = '/Users/dak/Downloads/tl_2024_us_county/tl_2024_us_county.shp'
+    # census_ms_places_shp_path = '/Users/dak/Downloads/tl_2024_28_place/tl_2024_28_place.shp'
+    #census_usa_counties_shp_path = '/Users/dak/Downloads/tl_2024_us_county/tl_2024_us_county.shp'
 
-    census_counties_gdf = gpd.read_file(census_usa_counties_shp_path).to_crs(ms_counties_gdf.crs)
-    ms_places_gdf = gpd.read_file(census_ms_places_shp_path).to_crs(ms_counties_gdf.crs)
-    okt_county_geom = census_counties_gdf[(census_counties_gdf['STATEFP'] == '28') & (census_counties_gdf['COUNTYFP'] == '105')]['geometry'].values[0]
-    okt_county_places = ms_places_gdf[ms_places_gdf.intersects(okt_county_geom)]
-    starville_msu_gdf = okt_county_places[okt_county_places['NAME'].isin(['Starkville', 'Mississippi State'])]
-    starville_msu_gdf = starville_msu_gdf.dissolve()
-    county_geom = shapely.geometry.Polygon(starville_msu_gdf.loc[0, 'geometry'].exterior)
+    # census_counties_gdf = gpd.read_file(census_usa_counties_shp_path).to_crs(ms_counties_gdf.crs)
+    # ms_places_gdf = gpd.read_file(census_ms_places_shp_path).to_crs(ms_counties_gdf.crs)
+    # okt_county_geom = census_counties_gdf[(census_counties_gdf['STATEFP'] == '28') & (census_counties_gdf['COUNTYFP'] == '105')]['geometry'].values[0]
+    # okt_county_places = ms_places_gdf[ms_places_gdf.intersects(okt_county_geom)]
+    # starville_msu_gdf = okt_county_places[okt_county_places['NAME'].isin(['Starkville', 'Mississippi State'])]
+    # starville_msu_gdf = starville_msu_gdf.dissolve()
+    # county_geom = shapely.geometry.Polygon(starville_msu_gdf.loc[0, 'geometry'].exterior)
     # # county_geom = county_geom.buffer(-2000)
     
     
@@ -92,19 +92,19 @@ def main():
     processor = GPURasterProcessor(
         model=model,
         tile_size=256,
-        stride=64,
+        stride=32,
         gaussian_sigma=192,
-        batch_size=32,
+        batch_size=64,
         mean=load_pth('./weights/pretrain_mean.pth'),
         std=load_pth('./weights/pretrain_std.pth'),
         device=device,
     )
     
     logger.log('Loading raster data...')
-    raster_path = '/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023_reduced.tif'
+    # raster_path = '/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023_reduced.tif'
     # raster_path = r"G:\mslc_inf_test\starkville_msu_2023_reduced.tif"
     # raster_path = '/Volumes/dhester_ssd/NAIP_MS_2023/ortho_1-1_hc_s_ms105_2023_1/ortho_1-1_hc_s_ms105_2023_1_1m.tif'
-    # raster_path = 
+    raster_path = './data/NAIP_MS/ortho_1-1_hc_s_ms149_2023_1/ortho_1-1_hc_s_ms149_2023_1_1m.tif'
     with rio.open(raster_path) as src:
         profile = src.profile.copy()
         # raster_data = src.read()
@@ -165,43 +165,43 @@ def main():
         del lc_classes, lc_confidence
     
     # now, mask outputs by polygon boundary
-    logger.log('Masking predictions by bounding polygons...')
-    
-    with rio.open(os.path.join(out_path, 'lc_probs.tif')) as src:
-        lc_probs_clipped, lc_probs_transform_clipped = mask(
-            src,
-            bounding_polygons, 
-            crop=True,
-            all_touched=True
-        )
-        updated_profile = src.profile.copy()
-        updated_profile.update({
-            'transform': lc_probs_transform_clipped,
-            'height': lc_probs_clipped.shape[1],
-            'width': lc_probs_clipped.shape[2],
-            'BIGTIFF': 'YES',
-            'count': lc_probs.shape[0],
-        })
-        with rio.open(os.path.join(out_path, 'lc_probs_clipped.tif'), 'w', **updated_profile) as dst:
-            dst.write(lc_probs_clipped)
-    
-    with rio.open(os.path.join(out_path, 'lc_classes.tif')) as src:
-        clipped_data, clipped_transform = mask(
-            src,
-            bounding_polygons, 
-            crop=True,
-            all_touched=True
-        )
-        updated_profile = src.profile.copy()
-        updated_profile.update({
-            'transform': clipped_transform,
-            'height': clipped_data.shape[1],
-            'width': clipped_data.shape[2],
-            'BIGTIFF': 'YES',
-        })
-        with rio.open(os.path.join(out_path, 'lc_classes_clipped.tif'), 'w', **updated_profile) as dst:
-            dst.write(clipped_data)
-            dst.write_colormap(1, LEGEND_COLORS_RGBA)
+    if not SKIP_INFERENCE:
+        logger.log('Masking predictions by bounding polygons...')
+        with rio.open(os.path.join(out_path, 'lc_probs.tif')) as src:
+            lc_probs_clipped, lc_probs_transform_clipped = mask(
+                src,
+                bounding_polygons, 
+                crop=True,
+                all_touched=True
+            )
+            updated_profile = src.profile.copy()
+            updated_profile.update({
+                'transform': lc_probs_transform_clipped,
+                'height': lc_probs_clipped.shape[1],
+                'width': lc_probs_clipped.shape[2],
+                'BIGTIFF': 'YES',
+                'count': lc_probs.shape[0],
+            })
+            with rio.open(os.path.join(out_path, 'lc_probs_clipped.tif'), 'w', **updated_profile) as dst:
+                dst.write(lc_probs_clipped)
+
+        with rio.open(os.path.join(out_path, 'lc_classes.tif')) as src:
+            clipped_data, clipped_transform = mask(
+                src,
+                bounding_polygons, 
+                crop=True,
+                all_touched=True
+            )
+            updated_profile = src.profile.copy()
+            updated_profile.update({
+                'transform': clipped_transform,
+                'height': clipped_data.shape[1],
+                'width': clipped_data.shape[2],
+                'BIGTIFF': 'YES',
+            })
+            with rio.open(os.path.join(out_path, 'lc_classes_clipped.tif'), 'w', **updated_profile) as dst:
+                dst.write(clipped_data)
+                dst.write_colormap(1, LEGEND_COLORS_RGBA)
     
     # now, object-based segmentation using quickshift
     logger.log('Segmenting image...')
