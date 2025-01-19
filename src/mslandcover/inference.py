@@ -44,7 +44,7 @@ def process_batch(args):
     segments_shm = shared_memory.SharedMemory(name=shm_segments_name)
     
     raster = np.ndarray(raster_shape, dtype=raster_dtype, buffer=raster_shm.buf)
-    segments = np.ndarray(segments_shape, dtype=np.uint16, buffer=segments_shm.buf)
+    segments = np.ndarray(segments_shape, dtype=segments_dtype, buffer=segments_shm.buf)
     
     try:
         results = []
