@@ -48,14 +48,13 @@ def process_batch(args):
     
     try:
         results = []
-        for segment_id in segment_ids:
-            mask = segments == segment_id
-            if mask.any():
-                # Compute mean across spatial dimensions for each class
-                means = raster[:, mask].mean(axis=1)
-                results.append((segment_id, means))
-            else:
-                results.append((segment_id, np.zeros(raster_shape[0])))
+        # Create a mask for all segment_ids at once
+        masks = np.stack([(segments == segment_id) for segment_id in segment_ids])
+        # Compute means for all segments in one operation
+        means = np.array([raster[:, mask].mean(axis=1) if mask.any() else np.zeros(raster_shape[0]) 
+                         for mask in masks])
+        # Create results list
+        results = list(zip(segment_ids, means))
         
         return results
     
