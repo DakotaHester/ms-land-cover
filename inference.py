@@ -206,7 +206,7 @@ def main():
     # now, object-based segmentation using quickshift
     logger.log('Segmenting image...')
     # segments = quickshift(raster_data.transpose(1, 2, 0), kernel_size=3, max_dist=6, ratio=0.5).astype(np.uint16)
-    segments = parallel_quickshift(raster_data).astype(np.uint16)
+    segments = parallel_quickshift(raster_data).astype(np.int32)
     
     # use zonal statistics to get mean probabilities for each segment
     logger.log('Extracting zonal land cover probability means...')
@@ -237,12 +237,6 @@ def main():
         features_dict['predicted_class'].append(LEGEND_CLASSES[np.argmax(probs) + 1])
         features_dict['confidence'].append(np.max(probs))
     
-    # for i in range(class_means.shape[0]):
-    #     class_label = LEGEND_CLASSES[i + 1]
-    #     features_dict[class_label] = class_means[i]
-    
-    # features_dict['predicted_class'] = [LEGEND_CLASSES[pred] for pred in np.argmax(class_means, axis=0) + 1]
-    # features_dict['confidence'] = np.max(class_means, axis=0)
     
     features_gdf = gpd.GeoDataFrame(features_dict, crs=profile['crs'], geometry='geometry')
     
