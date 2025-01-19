@@ -91,22 +91,23 @@
 
 \begin{frame}{Classifying LULC}
     \begin{itemize}
-        \item<1-> Prior to the advent of GIS, LULC data was human-interpreted from aerial photographs.
+        \item<1-> Prior to the advent of GIS, LULC data was human-interpreted from aerial photography.
         \item<2-> With advent of satellite remote sensing in 1980s, researchers and practitioners began using automated algorithms to classify LULC.
         \item<3-> Most "classical" approaches to LULC classification paradigms were pixel-wise statistical models that used coarse resolution multispectral data.
     \end{itemize}
 \end{frame}
 
 \begin{frame}{Pixel-wise classification}
-    
-\end{frame}
-
-\begin{frame}{Artificial Neural Networks}
-    
-\end{frame}
-
-\begin{frame}{Backpropagation}
-
+    \begin{itemize}
+        \item<1-> Traditional classifiers usually operate by transforming a feature vector into output class probabilities for a given pixel.
+        \item<2-> Common data sources include:
+        \begin{itemize}
+            \item<3-> Surface reflectance data
+            \item<4-> Derived spectral indices (i.e., NDVI, EVI, NDWI, etc.)
+            \item<5-> Textural information (e.g., gray-level co-occurrence matrices)
+            \item<6-> Ancillary information (i.e., topograhy, soil, etc)
+        \end{itemize}
+        \item<7-> Non-parametric, supervised classifiers are often used (e.g., Decision Trees, Random Forests, Support Vector Machines, etc.)
 \end{frame}
 
 \subsection{Hurdles to overcome for high spatial resolution data}
@@ -147,6 +148,14 @@
 \subsection{Deep learning methods}
 
 \subsubsection{Convolutional Neural Networks}
+
+\begin{frame}{Artificial Neural Networks}
+    
+\end{frame}
+
+\begin{frame}{Backpropagation}
+
+\end{frame}
 
 \begin{frame}{Modifying Neural Networks for Image Processing}
 

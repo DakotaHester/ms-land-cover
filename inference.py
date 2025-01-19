@@ -25,8 +25,8 @@ from src.mslandcover.utils import load_pth, get_torch_device, Logger
 
 def main():
     
-    model_weights_path = './weights/multistage_finetuning_stage2/dae/s1_full_train/s2_decoder_train/best_model.pth'
-    # model_weights_path = './weights/multistage_unet/best_model.pth'
+    # model_weights_path = './weights/multistage_finetuning_stage2/dae/s1_full_train/s2_decoder_train/best_model.pth'
+    model_weights_path = './weights/multistage_unet/best_model.pth'
     
     if os.environ.get('MSLC_INFERENCE_COUNTY_INDEX') is not None:
         county_index = int(os.environ.get('MSLC_INFERENCE_COUNTY_INDEX'))
@@ -52,10 +52,24 @@ def main():
     county_fp_code = county_series['COUNTYFP']
     raster_path = county_series['raster_path']
     
+    # load starkville and msu countuy geom
+    # okt_raster_path = '/Volumes/dhester_ssd/NAIP_MS_2023/ortho_1-1_hc_s_ms105_2023_1/ortho_1-1_hc_s_ms105_2023_1_1m.tif'
+    census_ms_places_shp_path = '/Users/dak/Downloads/tl_2024_28_place/tl_2024_28_place.shp'
+    census_usa_counties_shp_path = '/Users/dak/Downloads/tl_2024_us_county/tl_2024_us_county.shp'
+
+    census_counties_gdf = gpd.read_file(census_usa_counties_shp_path).to_crs(ms_counties_gdf.crs)
+    ms_places_gdf = gpd.read_file(census_ms_places_shp_path).to_crs(ms_counties_gdf.crs)
+    okt_county_geom = census_counties_gdf[(census_counties_gdf['STATEFP'] == '28') & (census_counties_gdf['COUNTYFP'] == '105')]['geometry'].values[0]
+    okt_county_places = ms_places_gdf[ms_places_gdf.intersects(okt_county_geom)]
+    starville_msu_gdf = okt_county_places[okt_county_places['NAME'].isin(['Starkville', 'Mississippi State'])]
+    starville_msu_gdf = starville_msu_gdf.dissolve().to_crs(ms_counties_gdf.crs)
+    county_geom = shapely.geometry.Polygon(starville_msu_gdf.loc[0, 'geometry'].exterior)
+    
+    
     if county_geom.geom_type == 'Polygon':
-        bounding_polygons = [shapely.Polygon(county_geom.exterior)]
+        bounding_polygons = [shapely.geometry.Polygon(county_geom.exterior)]
     else:
-        bounding_polygons = [shapely.Polygon(polygon.exterior) for polygon in county_geom.geoms]
+        bounding_polygons = [shapely.geometry.Polygon(polygon.exterior) for polygon in county_geom.geoms]
     
     # use whole state for now
     # bounding_polygons = [ms_counties_gdf.unary_union]
@@ -71,7 +85,7 @@ def main():
     processor = GPURasterProcessor(
         model=model,
         tile_size=256,
-        stride=32,
+        stride=192,
         gaussian_sigma=192,
         batch_size=32,
         mean=load_pth('./weights/pretrain_mean.pth'),
@@ -82,18 +96,18 @@ def main():
     logger.log('Loading raster data...')
     # raster_path = '/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023_reduced.tif'
     # raster_path = r"G:\mslc_inf_test\starkville_msu_2023_reduced.tif"
-    # raster_path = '/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023_even_less_reduced.tif'
-    raster_path = r"Z:\guser\dh\NAIP_MS_2023\ortho_1-1_hc_s_ms105_2023_1\ortho_1-1_hc_s_ms105_2023_1_1m.tif"
+    raster_path = '/Volumes/dhester_ssd/NAIP_MS_2023/ortho_1-1_hc_s_ms105_2023_1/ortho_1-1_hc_s_ms105_2023_1_1m.tif'
+    # raster_path = 
     with rio.open(raster_path) as src:
-        profile = src.profile
+        profile = src.profile.copy()
         # raster_data = src.read()
         raster_data, transform = mask(
             src,
             [county_geom.buffer(processor.tile_size * 1.5)], # clip to county boundary for now TODO account for multipolygonsor polygons with holes???
             crop=True,
             all_touched=True,
-            invert=False,
         )
+        print(raster_data.shape)
     # raster_data = raster_data[:, mask[0], mask[1]]
     
     profile.update({
@@ -104,6 +118,7 @@ def main():
         'blockysize': 256,
         'transform': transform,
     })
+    print(profile)
     
     logger.log('Processing raster data...')
     lc_probs = processor.process_raster(raster_data)
