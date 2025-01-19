@@ -59,17 +59,17 @@ def main():
     
     # load starkville and msu countuy geom
     # okt_raster_path = '/Volumes/dhester_ssd/NAIP_MS_2023/ortho_1-1_hc_s_ms105_2023_1/ortho_1-1_hc_s_ms105_2023_1_1m.tif'
-    # census_ms_places_shp_path = '/Users/dak/Downloads/tl_2024_28_place/tl_2024_28_place.shp'
+    census_ms_places_shp_path = './data/shapefiles/tl_2024_28_place/tl_2024_28_place.shp'
     #census_usa_counties_shp_path = '/Users/dak/Downloads/tl_2024_us_county/tl_2024_us_county.shp'
 
     # census_counties_gdf = gpd.read_file(census_usa_counties_shp_path).to_crs(ms_counties_gdf.crs)
-    # ms_places_gdf = gpd.read_file(census_ms_places_shp_path).to_crs(ms_counties_gdf.crs)
+    ms_places_gdf = gpd.read_file(census_ms_places_shp_path).to_crs(ms_counties_gdf.crs)
     # okt_county_geom = census_counties_gdf[(census_counties_gdf['STATEFP'] == '28') & (census_counties_gdf['COUNTYFP'] == '105')]['geometry'].values[0]
-    # okt_county_places = ms_places_gdf[ms_places_gdf.intersects(okt_county_geom)]
-    # starville_msu_gdf = okt_county_places[okt_county_places['NAME'].isin(['Starkville', 'Mississippi State'])]
-    # starville_msu_gdf = starville_msu_gdf.dissolve()
-    # county_geom = shapely.geometry.Polygon(starville_msu_gdf.loc[0, 'geometry'].exterior)
-    county_geom = county_geom.buffer(-5000)
+    okt_county_places = ms_places_gdf[ms_places_gdf.intersects(county_geom)]
+    starville_msu_gdf = okt_county_places[okt_county_places['NAME'].isin(['Starkville', 'Mississippi State'])]
+    starville_msu_gdf = starville_msu_gdf.dissolve()
+    county_geom = shapely.geometry.Polygon(starville_msu_gdf.loc[0, 'geometry'].exterior)
+    # county_geom = county_geom.buffer(-1000)
     
     
     if county_geom.geom_type == 'Polygon':
@@ -209,42 +209,58 @@ def main():
     bounding_mask = geometry_mask(bounding_polygons, out_shape=raster_data.shape[1:], transform=profile['transform'], all_touched=True, invert=True)
 
     # chunk the arrays into 10k x 10k pixel chunks for processing
-    for i in tqdm(range(0, lc_probs.shape[2], 10000), desc='Inferring features', unit='chunks'):
-        for j in range(0, lc_probs.shape[1], 10000):
+    chunk_size = 2500
+    print(raster_data.shape, lc_probs.shape)
+    for i in tqdm(range(0, lc_probs.shape[2], chunk_size), desc='Inferring features', unit='chunks'):
+        for j in range(0, lc_probs.shape[1], chunk_size):
             
-            lc_probs_chunk = lc_probs[:, j:j+10000, i:i+10000]
-            raster_data_chunk = raster_data[:, j:j+10000, i:i+10000]
+            lc_probs_chunk = lc_probs[:, j:j+chunk_size, i:i+chunk_size]
+            raster_data_chunk = raster_data[:, j:j+chunk_size, i:i+chunk_size]
+            
+            if (raster_data_chunk == 0).all():
+                # logger.log(f'Chunk {i}, {j} is all zeros. Skipping...')
+                continue
             
             segments_chunk = parallel_quickshift(raster_data_chunk)
             class_means_chunk = compute_segment_means(lc_probs_chunk, segments_chunk)
             
-            chunk_transform = rio.Affine.translation(i, j) * profile['transform']
-            geoms_chunk = shapes(segments_chunk.astype(np.float64), mask=bounding_mask[j:j+10000, i:i+10000], transform=chunk_transform)
+            chunk_transform = rio.Affine.translation(i, -j) * profile['transform']
+            geoms_chunk = shapes(segments_chunk.astype(np.float64), mask=bounding_mask[j:j+chunk_size, i:i+chunk_size], transform=chunk_transform)
             geoms_chunk = [(geom, int(id)) for geom, id in geoms_chunk]
+            # print(len(geoms_chunk), len(class_means_chunk.keys()))
+            if len(geoms_chunk) == 0:
+                continue
             
             features_dict_chunk = {
                 'geometry': [],
                 'predicted_class': [],
                 'confidence': [],
             }
-            for i in range(1, len(LEGEND_CLASSES)):
-                features_dict_chunk[LEGEND_CLASSES[i]] = []
+            for k in range(1, len(LEGEND_CLASSES)):
+                features_dict_chunk[LEGEND_CLASSES[k]] = []
             
-            for i, (g, segment_id) in enumerate(tqdm(geoms_chunk, desc='Compiling features', unit='geometries')):
+            for k, (g, segment_id) in enumerate(tqdm(geoms_chunk, desc='Compiling features', unit='geometries', leave=False)):
+                
+                if segment_id == 0:
+                    continue
+                
                 if segment_id not in class_means_chunk.keys():
                     logger.log(f'Segment ID {segment_id} not found in class means! Skipping...')
                     continue
                 
                 features_dict_chunk['geometry'].append(shapely.geometry.shape(g))
                 probs = class_means_chunk[segment_id]
-                for j, prob in enumerate(probs):
-                    class_label = LEGEND_CLASSES[j + 1]
+                for l, prob in enumerate(probs):
+                    class_label = LEGEND_CLASSES[l + 1]
                     features_dict_chunk[class_label].append(prob)
                 features_dict_chunk['predicted_class'].append(LEGEND_CLASSES[np.argmax(probs) + 1])
                 features_dict_chunk['confidence'].append(np.max(probs))
 
-                features_gdf_chunk = gpd.GeoDataFrame(features_dict_chunk, crs=profile['crs'], geometry='geometry')
-                features_gdfs.append(features_gdf_chunk)
+            features_gdf_chunk = gpd.GeoDataFrame(features_dict_chunk, crs=profile['crs'], geometry='geometry')
+            features_gdfs.append(features_gdf_chunk)
+            features_gdf = pd.concat(features_gdfs)
+            features_gdf.to_file(os.path.join(out_path, 'features_running.gpkg'), driver='GPKG')
+                
             
             
             
