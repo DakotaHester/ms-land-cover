@@ -25,7 +25,7 @@ from src.mslandcover.config import MSTM_PROJ4, HRNET_W18_CONFIG, LEGEND_COLORS_R
 from src.mslandcover.utils import load_pth, get_torch_device, Logger
 
 # if land cover probabilities are already computed, set this to True to skip inference
-SKIP_INFERENCE = True
+SKIP_INFERENCE = False
 
 def main():
     
@@ -35,8 +35,8 @@ def main():
     if os.environ.get('MSLC_INFERENCE_COUNTY_INDEX') is not None:
         county_index = int(os.environ.get('MSLC_INFERENCE_COUNTY_INDEX'))
     else:
-        county_index = 74 # warren county
-        # county_index = 52 # oktibbeha county
+        # county_index = 74 # warren county
+        county_index = 52 # oktibbeha county
     
     log_dir = f'./data/inference_results/logs/{county_index}'
     
@@ -69,7 +69,7 @@ def main():
     # starville_msu_gdf = okt_county_places[okt_county_places['NAME'].isin(['Starkville', 'Mississippi State'])]
     # starville_msu_gdf = starville_msu_gdf.dissolve()
     # county_geom = shapely.geometry.Polygon(starville_msu_gdf.loc[0, 'geometry'].exterior)
-    # # county_geom = county_geom.buffer(-2000)
+    county_geom = county_geom.buffer(-5000)
     
     
     if county_geom.geom_type == 'Polygon':
@@ -104,7 +104,8 @@ def main():
     # raster_path = '/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023_reduced.tif'
     # raster_path = r"G:\mslc_inf_test\starkville_msu_2023_reduced.tif"
     # raster_path = '/Volumes/dhester_ssd/NAIP_MS_2023/ortho_1-1_hc_s_ms105_2023_1/ortho_1-1_hc_s_ms105_2023_1_1m.tif'
-    raster_path = './data/NAIP_MS/ortho_1-1_hc_s_ms149_2023_1/ortho_1-1_hc_s_ms149_2023_1_1m.tif'
+    # raster_path = './data/NAIP_MS/ortho_1-1_hc_s_ms149_2023_1/ortho_1-1_hc_s_ms149_2023_1_1m.tif'
+    raster_path = r"Z:\guser\dh\NAIP_MS_2023\ortho_1-1_hc_s_ms105_2023_1\ortho_1-1_hc_s_ms105_2023_1_1m.tif"
     with rio.open(raster_path) as src:
         profile = src.profile.copy()
         # raster_data = src.read()
@@ -137,7 +138,8 @@ def main():
         lc_probs_profile = profile.copy()
         lc_probs_profile.update(count=lc_probs.shape[0], dtype=rio.uint8)
         with rio.open(os.path.join(out_path, 'lc_probs.tif'), 'w', **lc_probs_profile) as dst:
-            dst.write(np.clip((lc_probs * 100).astype(rio.uint8), 1, 100))
+            for band in range(lc_probs.shape[0]):
+                dst.write(np.clip((lc_probs[band] * 100), 1, 100).astype(rio.uint8), band + 1)
         logger.log(f'Saved land cover probabilities to {os.path.join(out_path, "lc_probs.tif")}')
 
     else:
@@ -214,7 +216,7 @@ def main():
     
     logger.log('Generating polygons from segments...')
     bounding_mask = geometry_mask(bounding_polygons, out_shape=segments.shape, transform=profile['transform'], all_touched=True, invert=True)
-    geoms = [(geom, int(id)) for geom, id in shapes(segments, mask=bounding_mask, connectivity=4, transform=profile['transform'])]
+    geoms = [(geom, int(id)) for geom, id in shapes(segments.astype(np.float64), mask=bounding_mask, connectivity=4, transform=profile['transform'])]
     
     logger.log('Compiling to feature class')
     features_dict = {
@@ -226,7 +228,8 @@ def main():
         features_dict[LEGEND_CLASSES[i]] = []
     
     for i, (g, segment_id) in enumerate(tqdm(geoms, desc='Compiling features', unit='geometries')):
-        if segment_id == 0:
+        if segment_id not in class_means.keys():
+            logger.log(f'Segment ID {segment_id} not found in class means! Skipping...')
             continue
         
         features_dict['geometry'].append(shapely.geometry.shape(g))

@@ -63,7 +63,7 @@ def process_batch(args):
         raster_shm.close()
         segments_shm.close()
 
-def compute_segment_means(raster, segments, n_processes=None, batch_size=None):
+def compute_segment_means(raster, segments, n_processes=None, batch_size=1000):
     """
     Compute mean values for each segment in parallel using shared memory.
     
@@ -626,14 +626,14 @@ def process_chunk(args):
                    x_chunk_start-x_start:x_chunk_end-x_start]
     
     # Adjust segment labels to avoid conflicts between chunks
-    result = result.astype(np.uint32) + (y_chunk_start * shape[2] + x_chunk_start)
+    result = result.astype(np.int32) + (y_chunk_start * shape[2] + x_chunk_start)
     
     # Clean up
     existing_shm.close()
     
     return result, (y_chunk_start, y_chunk_end, x_chunk_start, x_chunk_end)
 
-def parallel_quickshift(raster_data, kernel_size=3, max_dist=6, ratio=0.5, chunk_size=None, n_processes=None):
+def parallel_quickshift(raster_data, kernel_size=3, max_dist=6, ratio=0.5, chunk_size=1000, n_processes=None):
     """
     Parallel implementation of quickshift segmentation using shared memory and square chunks.
     
@@ -695,7 +695,7 @@ def parallel_quickshift(raster_data, kernel_size=3, max_dist=6, ratio=0.5, chunk
     shm.unlink()
     
     # Initialize final segments array
-    final_segments = np.zeros((height, width), dtype=np.uint32)
+    final_segments = np.zeros((height, width), dtype=np.int32)
     
     # Combine results
     for result, (y_start, y_end, x_start, x_end) in results:
@@ -705,6 +705,6 @@ def parallel_quickshift(raster_data, kernel_size=3, max_dist=6, ratio=0.5, chunk
     unique_labels = np.unique(final_segments)
     label_map = {old: new for new, old in enumerate(unique_labels)}
     vectorized_map = np.vectorize(lambda x: label_map[x])
-    final_segments = vectorized_map(final_segments).astype(np.uint16)
+    final_segments = vectorized_map(final_segments)
     
     return final_segments
