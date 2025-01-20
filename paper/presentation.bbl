@@ -1,5 +1,5 @@
 % $ biblatex auxiliary file $
-% $ biblatex bbl format version 3.3 $
+% $ biblatex bbl format version 3.2 $
 % Do not modify the above lines!
 %
 % This is an auxiliary file used by the 'biblatex' package.
@@ -16,8 +16,8 @@
   {}
 \endgroup
 
-\datalist[entry]{none/global//global/global/global}
-  \entry{townshendLandCover1992}{article}{}{}
+\datalist[entry]{none/global//global/global}
+  \entry{townshendLandCover1992}{article}{}
     \name{author}{1}{}{%
       {{hash=TJR}{%
          family={Townshend},
@@ -34,7 +34,17 @@
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    European efforts in the use of remote sensing from satellites were initially largely derivative from United States systems and information extraction techniques. Increasingly, independent capabilities have been developed, in part associated with European sensor development and data reception and distribution capabilities. A wide range of applications of land cover data derived from satellites has been developed. In many cases, however, the quality of the results is inadequate for operational use. The latter will become more feasible with the application of new information extraction techniques, the use of data from new sensors, notably spaceborne radars, improved preprocessing of data and better co-ordination of research efforts.%
+    European efforts in the use of remote sensing from satellites were
+  initially largely derivative from United States systems and information
+  extraction techniques. Increasingly, independent capabilities have been
+  developed, in part associated with European sensor development and data
+  reception and distribution capabilities. A wide range of applications of land
+  cover data derived from satellites has been developed. In many cases,
+  however, the quality of the results is inadequate for operational use. The
+  latter will become more feasible with the application of new information
+  extraction techniques, the use of data from new sensors, notably spaceborne
+  radars, improved preprocessing of data and better co-ordination of research
+  efforts.%
     }
     \verb{doi}
     \verb 10.1080/01431169208904193
@@ -58,7 +68,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{andersonLanduseClassificationSchemes1971}{article}{}{}
+  \entry{andersonLanduseClassificationSchemes1971}{article}{}
     \name{author}{1}{}{%
       {{hash=AJR}{%
          family={Anderson},
@@ -80,7 +90,7 @@
     \field{year}{1971}
   \endentry
 
-  \entry{andersonLandUseLand1976}{book}{}{}
+  \entry{andersonLandUseLand1976}{book}{}
     \name{author}{1}{}{%
       {{hash=AJR}{%
          family={Anderson},
@@ -96,7 +106,8 @@
     \strng{fullhash}{AJR3}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
-    \field{title}{A Land Use and Land Cover Classification System for Use with Remote Sensor Data}
+    \field{title}{A Land Use and Land Cover Classification System for Use with
+  Remote Sensor Data}
     \field{volume}{964}
     \verb{file}
     \verb /Users/dak/Zotero/storage/EIKAMXSD/Anderson - 1976 - A land use and l
@@ -105,7 +116,7 @@
     \field{year}{1976}
   \endentry
 
-  \entry{lovelandDevelopmentGlobalLand2000}{article}{}{}
+  \entry{lovelandDevelopmentGlobalLand2000}{article}{}
     \name{author}{7}{}{%
       {{hash=LTR}{%
          family={Loveland},
@@ -158,7 +169,34 @@
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    Researchers from the U.S. Geological Survey, University of Nebraska-Lincoln and the European Commission's Joint Research Centre, Ispra, Italy produced a 1 km resolution global land cover characteristics database for use in a wide range of continental-to global-scale environmental studies. This database provides a unique view of the broad patterns of the biogeographical and ecoclimatic diversity of the global land surface, and presents a detailed interpretation of the extent of human development. The project was carried out as an International Geosphere-Biosphere Programme, Data and Information Systems (IGBP-DIS) initiative. The IGBP DISCover global land cover product is an integral component of the global land cover database. DISCover includes 17 general land cover classes defined to meet the needs of IGBP core science projects. A formal accuracy assessment of the DISCover data layer will be completed in 1998. The 1 km global land cover database was developed through a continent-by-continent unsupervised classification of 1 km monthly Advanced Very High Resolution Radiometer (AVHRR) Normalized Difference Vegetation Index (NDVI) composites covering 1992-1993. Extensive post-classification stratification was necessary to resolve spectral/temporal confusion between disparate land cover types. The complete global database consists of 961 seasonal land cover regions that capture patterns of land cover, seasonality and relative primary productivity. The seasonal land cover regions were aggregated to produce seven separate land cover data sets used for global environmental modelling and assessment. The data sets include IGBP DISCover, U.S. Geological Survey Anderson System, Simple Biosphere Model, Simple Biosphere Model 2, Biosphere-Atmosphere Transfer Scheme, Olson Ecosystems and Running Global Remote Sensing Land Cover. The database also includes all digital sources that were used in the classification. The complete database can be sourced from the website: http://edcwww.cr.usgs.gov/landdaac/glcc/glcc.html.%
+    Researchers from the U.S. Geological Survey, University of Nebraska-Lincoln
+  and the European Commission's Joint Research Centre, Ispra, Italy produced a
+  1 km resolution global land cover characteristics database for use in a wide
+  range of continental-to global-scale environmental studies. This database
+  provides a unique view of the broad patterns of the biogeographical and
+  ecoclimatic diversity of the global land surface, and presents a detailed
+  interpretation of the extent of human development. The project was carried
+  out as an International Geosphere-Biosphere Programme, Data and Information
+  Systems (IGBP-DIS) initiative. The IGBP DISCover global land cover product is
+  an integral component of the global land cover database. DISCover includes 17
+  general land cover classes defined to meet the needs of IGBP core science
+  projects. A formal accuracy assessment of the DISCover data layer will be
+  completed in 1998. The 1 km global land cover database was developed through
+  a continent-by-continent unsupervised classification of 1 km monthly Advanced
+  Very High Resolution Radiometer (AVHRR) Normalized Difference Vegetation
+  Index (NDVI) composites covering 1992-1993. Extensive post-classification
+  stratification was necessary to resolve spectral/temporal confusion between
+  disparate land cover types. The complete global database consists of 961
+  seasonal land cover regions that capture patterns of land cover, seasonality
+  and relative primary productivity. The seasonal land cover regions were
+  aggregated to produce seven separate land cover data sets used for global
+  environmental modelling and assessment. The data sets include IGBP DISCover,
+  U.S. Geological Survey Anderson System, Simple Biosphere Model, Simple
+  Biosphere Model 2, Biosphere-Atmosphere Transfer Scheme, Olson Ecosystems and
+  Running Global Remote Sensing Land Cover. The database also includes all
+  digital sources that were used in the classification. The complete database
+  can be sourced from the website:
+  http://edcwww.cr.usgs.gov/landdaac/glcc/glcc.html.%
     }
     \verb{doi}
     \verb 10.1080/014311600210191
@@ -166,7 +204,8 @@
     \field{issn}{0143-1161}
     \field{number}{6-7}
     \field{pages}{1303\bibrangedash 1330}
-    \field{title}{Development of a Global Land Cover Characteristics Database and {{IGBP DISCover}} from 1 Km {{AVHRR}} Data}
+    \field{title}{Development of a Global Land Cover Characteristics Database
+  and {{IGBP DISCover}} from 1 Km {{AVHRR}} Data}
     \field{volume}{21}
     \verb{file}
     \verb /Users/dak/Zotero/storage/K92JGCMY/Loveland et al. - 2000 - Developme
@@ -183,7 +222,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{grekousisOverview21Global2015}{article}{}{}
+  \entry{grekousisOverview21Global2015}{article}{}
     \name{author}{3}{}{%
       {{hash=GG}{%
          family={Grekousis},
@@ -212,7 +251,25 @@
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    Land-cover (LC) products, especially at the regional and global scales, comprise essential data for a wide range of environmental studies affecting biodiversity, climate, and human health. This review builds on previous compartmentalized efforts by summarizing 23 global and 41 regional LC products. Characteristics related to spatial resolution, overall accuracy, time of data acquisition, sensor used, classification scheme and method, support for LC change detection, download location, and key corresponding references are provided. Operational limitations and uncertainties are discussed, mostly as a result of different original modelling outcomes. Upcoming products are presented and future prospects towards increasing usability of different LC products are offered. Despite the common realization of product usage by non-experts, the remote-sensing community has not fully addressed the challenge. Algorithmic development for the effective representation of inherent product limitations to facilitate proper usage by non-experts is necessary. Further emphasis should be placed on international coordination and harmonization initiatives for compatible LC product generation. We expect the applicability of current and future LC products to increase, especially as our environmental understanding increases through multi-temporal studies.%
+    Land-cover (LC) products, especially at the regional and global scales,
+  comprise essential data for a wide range of environmental studies affecting
+  biodiversity, climate, and human health. This review builds on previous
+  compartmentalized efforts by summarizing 23 global and 41 regional LC
+  products. Characteristics related to spatial resolution, overall accuracy,
+  time of data acquisition, sensor used, classification scheme and method,
+  support for LC change detection, download location, and key corresponding
+  references are provided. Operational limitations and uncertainties are
+  discussed, mostly as a result of different original modelling outcomes.
+  Upcoming products are presented and future prospects towards increasing
+  usability of different LC products are offered. Despite the common
+  realization of product usage by non-experts, the remote-sensing community has
+  not fully addressed the challenge. Algorithmic development for the effective
+  representation of inherent product limitations to facilitate proper usage by
+  non-experts is necessary. Further emphasis should be placed on international
+  coordination and harmonization initiatives for compatible LC product
+  generation. We expect the applicability of current and future LC products to
+  increase, especially as our environmental understanding increases through
+  multi-temporal studies.%
     }
     \verb{doi}
     \verb 10.1080/01431161.2015.1093195
@@ -220,7 +277,8 @@
     \field{issn}{0143-1161}
     \field{number}{21}
     \field{pages}{5309\bibrangedash 5335}
-    \field{title}{An Overview of 21 Global and 43 Regional Land-Cover Mapping Products}
+    \field{title}{An Overview of 21 Global and 43 Regional Land-Cover Mapping
+  Products}
     \field{volume}{36}
     \verb{file}
     \verb /Users/dak/Zotero/storage/ZDN5T2KG/Grekousis et al. - 2015 - An overv
@@ -237,7 +295,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{wulderLandCover2018}{article}{}{}
+  \entry{wulderLandCover2018}{article}{}
     \name{author}{5}{}{%
       {{hash=WMA}{%
          family={Wulder},
@@ -295,7 +353,7 @@
     \field{urlyear}{2023}
   \endentry
 
-  \entry{andersonLandUseLand1977}{article}{}{}
+  \entry{andersonLandUseLand1977}{article}{}
     \name{author}{1}{}{%
       {{hash=AJR}{%
          family={Anderson},
@@ -309,12 +367,24 @@
     \field{labelnamesource}{author}
     \field{labeltitlesource}{shorttitle}
     \field{abstract}{%
-    Information on the rate and kind of change in the use of land resources is essential to-the proper planning, management, and regulation of the use of such resources. Starting in 1975, the U.S. Geological Survey has been engaged in mapping and inventory of land use and land cover at a scale of 1:250000 with plans to change to new 1:100000 base maps as they become available. Such scales are-appropriate for acquiring benchmark or baseline data on land use and land cover on a nationwide basis with a reasonable degree of standardization and accuracy, within a practical time frame of 6 to 7 years, and at a reasonable level of detail in categorization. Changes in land use and land cover occur at highly variable rates from place to place. Thus variations, in the intervals between updates of land use and land cover data should be carefully evaluated in order to provide...%
+    Information on the rate and kind of change in the use of land resources is
+  essential to-the proper planning, management, and regulation of the use of
+  such resources. Starting in 1975, the U.S. Geological Survey has been engaged
+  in mapping and inventory of land use and land cover at a scale of 1:250000
+  with plans to change to new 1:100000 base maps as they become available. Such
+  scales are-appropriate for acquiring benchmark or baseline data on land use
+  and land cover on a nationwide basis with a reasonable degree of
+  standardization and accuracy, within a practical time frame of 6 to 7 years,
+  and at a reasonable level of detail in categorization. Changes in land use
+  and land cover occur at highly variable rates from place to place. Thus
+  variations, in the intervals between updates of land use and land cover data
+  should be carefully evaluated in order to provide...%
     }
     \field{number}{2}
     \field{pages}{143\bibrangedash 153}
     \field{shorttitle}{Land Use and Land Cover Changes}
-    \field{title}{Land Use and Land Cover Changes: {{A}} Framework for Monitoring}
+    \field{title}{Land Use and Land Cover Changes: {{A}} Framework for
+  Monitoring}
     \field{volume}{5}
     \field{langid}{english}
     \verb{file}
@@ -330,7 +400,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{scarpace1980land}{article}{}{}
+  \entry{scarpace1980land}{article}{}
     \name{author}{2}{}{%
       {{hash=SFL}{%
          family={Scarpace},
@@ -351,7 +421,8 @@
     \field{labeltitlesource}{title}
     \field{number}{8}
     \field{pages}{1059\bibrangedash 1065}
-    \field{title}{Land-Cover Classification Using Digital Processing of Aerial Imagery}
+    \field{title}{Land-Cover Classification Using Digital Processing of Aerial
+  Imagery}
     \field{volume}{46}
     \verb{file}
     \verb /Users/dak/Zotero/storage/MT5LKVNH/Scarpace and Quirk - 1980 - Land-c
@@ -361,7 +432,7 @@
     \field{year}{1980}
   \endentry
 
-  \entry{gislasonRandomForestsLand2006}{article}{}{}
+  \entry{gislasonRandomForestsLand2006}{article}{}
     \name{author}{3}{}{%
       {{hash=GPO}{%
          family={Gislason},
@@ -382,13 +453,29 @@
          giveni={J\bibinitperiod\bibinitdelim R\bibinitperiod},
       }}%
     }
-    \keyw{Classification,Decision trees,Multisource remote sensing data,Random Forests}
+    \keyw{Classification,Decision trees,Multisource remote sensing data,Random
+  Forests}
     \strng{namehash}{GPOBJASJR1}
     \strng{fullhash}{GPOBJASJR1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    Random Forests are considered for classification of multisource remote sensing and geographic data. Various ensemble classification methods have been proposed in recent years. These methods have been proven to improve classification accuracy considerably. The most widely used ensemble methods are boosting and bagging. Boosting is based on sample re-weighting but bagging uses bootstrapping. The Random Forest classifier uses bagging, or bootstrap aggregating, to form an ensemble of classification and regression tree (CART)-like classifiers. In addition, it searches only a random subset of the variables for a split at each CART node, in order to minimize the correlation between the classifiers in the ensemble. This method is not sensitive to noise or overtraining, as the resampling is not based on weighting. Furthermore, it is computationally much lighter than methods based on boosting and somewhat lighter than simple bagging. In the paper, the use of the Random Forest classifier for land cover classification is explored. We compare the accuracy of the Random Forest classifier to other better-known ensemble methods on multisource remote sensing and geographic data.%
+    Random Forests are considered for classification of multisource remote
+  sensing and geographic data. Various ensemble classification methods have
+  been proposed in recent years. These methods have been proven to improve
+  classification accuracy considerably. The most widely used ensemble methods
+  are boosting and bagging. Boosting is based on sample re-weighting but
+  bagging uses bootstrapping. The Random Forest classifier uses bagging, or
+  bootstrap aggregating, to form an ensemble of classification and regression
+  tree (CART)-like classifiers. In addition, it searches only a random subset
+  of the variables for a split at each CART node, in order to minimize the
+  correlation between the classifiers in the ensemble. This method is not
+  sensitive to noise or overtraining, as the resampling is not based on
+  weighting. Furthermore, it is computationally much lighter than methods based
+  on boosting and somewhat lighter than simple bagging. In the paper, the use
+  of the Random Forest classifier for land cover classification is explored. We
+  compare the accuracy of the Random Forest classifier to other better-known
+  ensemble methods on multisource remote sensing and geographic data.%
     }
     \verb{doi}
     \verb 10.1016/j.patrec.2005.08.011
@@ -396,7 +483,8 @@
     \field{issn}{0167-8655}
     \field{number}{4}
     \field{pages}{294\bibrangedash 300}
-    \field{series}{Pattern {{Recognition}} in {{Remote Sensing}} ({{PRRS}} 2004)}
+    \field{series}{Pattern {{Recognition}} in {{Remote Sensing}} ({{PRRS}}
+  2004)}
     \field{title}{Random {{Forests}} for Land Cover Classification}
     \field{volume}{27}
     \verb{file}
@@ -413,7 +501,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{bakerAdvancesClassificationLand1991}{article}{}{}
+  \entry{bakerAdvancesClassificationLand1991}{article}{}
     \name{author}{7}{}{%
       {{hash=BJR}{%
          family={BAKER},
@@ -449,7 +537,8 @@
          family={TOWNSHEND},
          familyi={T\bibinitperiod},
          given={J.\bibnamedelima R.\bibnamedelima G.},
-         giveni={J\bibinitperiod\bibinitdelim R\bibinitperiod\bibinitdelim G\bibinitperiod},
+         giveni={J\bibinitperiod\bibinitdelim R\bibinitperiod\bibinitdelim
+  G\bibinitperiod},
       }}%
       {{hash=WBK}{%
          family={WYATT},
@@ -466,7 +555,18 @@
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    High-resolution data from the HRV (High Resolution Visible) sensors onboard the SPOT-1 satellite have been utilized for mapping semi-natural and agricultural land cover using automated digital image classification algorithms. Two methods for improving classification performance are discussed. The first technique involves the use of digital terrain information to reduce the effects of topography on spectral information while the second technique involves the classification of land-cover types using training data derived from spectral feature space. Test areas in Snowdonia and the Somerset Levels were used to evaluate the methodology and promising results were achieved. However, the low classification accuracies obtained suggest that spectral classification alone is not a suitable tool to use in the mapping of semi-natural cover types.%
+    High-resolution data from the HRV (High Resolution Visible) sensors onboard
+  the SPOT-1 satellite have been utilized for mapping semi-natural and
+  agricultural land cover using automated digital image classification
+  algorithms. Two methods for improving classification performance are
+  discussed. The first technique involves the use of digital terrain
+  information to reduce the effects of topography on spectral information while
+  the second technique involves the classification of land-cover types using
+  training data derived from spectral feature space. Test areas in Snowdonia
+  and the Somerset Levels were used to evaluate the methodology and promising
+  results were achieved. However, the low classification accuracies obtained
+  suggest that spectral classification alone is not a suitable tool to use in
+  the mapping of semi-natural cover types.%
     }
     \verb{doi}
     \verb 10.1080/01431169108929711
@@ -474,7 +574,8 @@
     \field{issn}{0143-1161}
     \field{number}{5}
     \field{pages}{1071\bibrangedash 1085}
-    \field{title}{Advances in Classification for Land Cover Mapping Using {{SPOT HRV}} Imagery}
+    \field{title}{Advances in Classification for Land Cover Mapping Using
+  {{SPOT HRV}} Imagery}
     \field{volume}{12}
     \field{journaltitle}{International Journal of Remote Sensing}
     \field{annotation}{%
@@ -487,7 +588,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{kavzogluEffectsAuxiliaryAncillary2023}{article}{}{}
+  \entry{kavzogluEffectsAuxiliaryAncillary2023}{article}{}
     \name{author}{2}{}{%
       {{hash=KT}{%
          family={Kavzoglu},
@@ -502,13 +603,37 @@
          giveni={F\bibinitperiod},
       }}%
     }
-    \keyw{Ancillary data,Artificial Intelligence,Auxiliary data,Feature selection,Genetic algorithm,HSIC-Lasso,Relief-F}
+    \keyw{Ancillary data,Artificial Intelligence,Auxiliary data,Feature
+  selection,Genetic algorithm,HSIC-Lasso,Relief-F}
     \strng{namehash}{KTBF1}
     \strng{fullhash}{KTBF1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    Land use and land cover (LULC) maps, providing crucial information for monitoring the Earth's surface, are one of the most essential products for numerous studies. Using only the spectral information in the classification process might cause poor performances in the areas with heterogeneous landscape characteristics. To overcome this problem, auxiliary and ancillary data are usually employed to improve classification accuracy. The objective of this study is to integrate auxiliary data (topographic and climatic features) and ancillary data (spectral indices and texture measures) into spectral bands of Sentinel-2A imagery and evaluate the performances of advanced feature selection methods. In this context, genetic algorithm-based random forest (GA-RF), HSIC-Lasso, and Relief-F feature selection approaches were utilized to determine the most informative features for the classification process from a high-dimensional dataset consisting of 102 features. Whilst the GA-RF algorithm selected 65 features, HSIC-Lasso chose 38 features, and Relief-F determined 51 features as ideal subsets. These feature subsets together with the whole data were inputted into a supervised classification process using the random forest (RF) classifier, whose parameters were optimized using random search algorithm. The highest overall accuracy of the produced thematic maps was estimated as 91.05\% for the subset determined by the HSIC-Lasso algorithm, which was also the fastest algorithm (5.71~s). McNemar's statistical significance test confirmed the superiority of the HSIC-Lasso method over the GA-RF and Relief-F algorithms. SHapley Additive exPlanations method was also applied to analyze the relative importance of a feature according to the model output.%
+    Land use and land cover (LULC) maps, providing crucial information for
+  monitoring the Earth's surface, are one of the most essential products for
+  numerous studies. Using only the spectral information in the classification
+  process might cause poor performances in the areas with heterogeneous
+  landscape characteristics. To overcome this problem, auxiliary and ancillary
+  data are usually employed to improve classification accuracy. The objective
+  of this study is to integrate auxiliary data (topographic and climatic
+  features) and ancillary data (spectral indices and texture measures) into
+  spectral bands of Sentinel-2A imagery and evaluate the performances of
+  advanced feature selection methods. In this context, genetic algorithm-based
+  random forest (GA-RF), HSIC-Lasso, and Relief-F feature selection approaches
+  were utilized to determine the most informative features for the
+  classification process from a high-dimensional dataset consisting of 102
+  features. Whilst the GA-RF algorithm selected 65 features, HSIC-Lasso chose
+  38 features, and Relief-F determined 51 features as ideal subsets. These
+  feature subsets together with the whole data were inputted into a supervised
+  classification process using the random forest (RF) classifier, whose
+  parameters were optimized using random search algorithm. The highest overall
+  accuracy of the produced thematic maps was estimated as 91.05\% for the
+  subset determined by the HSIC-Lasso algorithm, which was also the fastest
+  algorithm (5.71~s). McNemar's statistical significance test confirmed the
+  superiority of the HSIC-Lasso method over the GA-RF and Relief-F algorithms.
+  SHapley Additive exPlanations method was also applied to analyze the relative
+  importance of a feature according to the model output.%
     }
     \verb{doi}
     \verb 10.1007/s12145-022-00874-9
@@ -516,7 +641,9 @@
     \field{issn}{1865-0481}
     \field{number}{1}
     \field{pages}{415\bibrangedash 435}
-    \field{title}{Effects of Auxiliary and Ancillary Data on {{LULC}} Classification in a Heterogeneous Environment Using Optimized Random Forest Algorithm}
+    \field{title}{Effects of Auxiliary and Ancillary Data on {{LULC}}
+  Classification in a Heterogeneous Environment Using Optimized Random Forest
+  Algorithm}
     \field{volume}{16}
     \field{langid}{english}
     \field{journaltitle}{Earth Science Informatics}
@@ -530,7 +657,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{markhamLandCoverClassification1981}{book}{}{}
+  \entry{markhamLandCoverClassification1981}{book}{}
     \name{author}{2}{}{%
       {{hash=MBL}{%
          family={Markham},
@@ -542,7 +669,8 @@
          family={Townshend},
          familyi={T\bibinitperiod},
          given={J.\bibnamedelima R.\bibnamedelima G.},
-         giveni={J\bibinitperiod\bibinitdelim R\bibinitperiod\bibinitdelim G\bibinitperiod},
+         giveni={J\bibinitperiod\bibinitdelim R\bibinitperiod\bibinitdelim
+  G\bibinitperiod},
       }}%
     }
     \keyw{Earth Resources And Remote Sensing}
@@ -551,14 +679,30 @@
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    The benefits obtained from sensor systems for monitoring earth resources will depend on the application and interpretation methods used. A frequently used analysis method is supervised per-pixel multispectral classification with a typical application being land cover classification. An investigation is conducted to evaluate the effect of spatial resolution on the ability to classify land cover types with per-pixel digital image classification techniques. Attention is also given to the documentation of changes in scene noise and the percentage of boundary pixels as a function of spatial resolution, in order to improve the understanding of the interrelationship between classification accuracy and spatial resolution. It is found that scene noise varies considerably between land cover categories. Changes in scene noise with coarsening resolution occur at different rates for different categories.%
+    The benefits obtained from sensor systems for monitoring earth resources
+  will depend on the application and interpretation methods used. A frequently
+  used analysis method is supervised per-pixel multispectral classification
+  with a typical application being land cover classification. An investigation
+  is conducted to evaluate the effect of spatial resolution on the ability to
+  classify land cover types with per-pixel digital image classification
+  techniques. Attention is also given to the documentation of changes in scene
+  noise and the percentage of boundary pixels as a function of spatial
+  resolution, in order to improve the understanding of the interrelationship
+  between classification accuracy and spatial resolution. It is found that
+  scene noise varies considerably between land cover categories. Changes in
+  scene noise with coarsening resolution occur at different rates for different
+  categories.%
     }
-    \field{title}{Land Cover Classification Accuracy as a Function of Sensor Spatial Resolution}
+    \field{title}{Land Cover Classification Accuracy as a Function of Sensor
+  Spatial Resolution}
     \verb{file}
     \verb /Users/dak/Zotero/storage/MQC6QYR6/19820044130.html
     \endverb
     \field{annotation}{%
-    NTRS Author Affiliations: NASA Goddard Space Flight Center\\ NTRS Meeting Information: In: International Symposium on Remote Sensing of Environment; 1981-05-11 to 1981-05-15; undefined\\ NTRS Document ID: 19820044130\\ NTRS Research Center: Legacy CDMS (CDMS)%
+    NTRS Author Affiliations: NASA Goddard Space Flight Center\\ NTRS Meeting
+  Information: In: International Symposium on Remote Sensing of Environment;
+  1981-05-11 to 1981-05-15; undefined\\ NTRS Document ID: 19820044130\\ NTRS
+  Research Center: Legacy CDMS (CDMS)%
     }
     \field{month}{01}
     \field{year}{1981}
@@ -567,7 +711,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{woodcockFactorScaleRemote1987}{article}{}{}
+  \entry{woodcockFactorScaleRemote1987}{article}{}
     \name{author}{2}{}{%
       {{hash=WCE}{%
          family={Woodcock},
@@ -612,7 +756,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{blaschkeObjectOrientedImageProcessing2000a}{inproceedings}{}{}
+  \entry{blaschkeObjectOrientedImageProcessing2000a}{inproceedings}{}
     \name{author}{5}{}{%
       {{hash=BT}{%
          family={Blaschke},
@@ -653,11 +797,38 @@
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    While remote sensing has made enormous progress over recent years and a variety of sensors now deliver medium and high resolution data on an operational basis, a vast majority of applications still rely on basic image processing concepts developed in the early 70s: classification of single pixels in a multi-dimensional feature space. Although the techniques are well developed and sophisticated variations include soft classifiers, sub-pixel classifiers and spectral un-mixing techniques, it is argued that they do not make use of spatial concepts. Looking at high-resolution images it is very likely that a neighbouring pixel belongs to the same land cover class as the pixel under consideration. Algorithms in physics or mechanical engineering developed over the last twenty years successfully delineate objects based on context-information in an image on the basis of texture or fractal dimension. With the advent of high-resolution satellite imagery, the in- creasing use of airborne digital data and radar data the need for context-based algorithms and object-oriented image processing is increasing. Recently available commercial prod- ucts reflect this demand. In a case study, 'traditional' pixel based classification methods and context-based methods are compared. Experiences are encouraging and it is hy- pothesised that object-based image analysis will trigger new developments towards a full integration of GIS and remote sensing functions. If the resulting objects prove to be 'meaningful', subsequent application specific analysis can take the attributes of these objects into account. The meaning of object dimension is discussed with a special focus on applications for environmental monitoring.%
+    While remote sensing has made enormous progress over recent years and a
+  variety of sensors now deliver medium and high resolution data on an
+  operational basis, a vast majority of applications still rely on basic image
+  processing concepts developed in the early 70s: classification of single
+  pixels in a multi-dimensional feature space. Although the techniques are well
+  developed and sophisticated variations include soft classifiers, sub-pixel
+  classifiers and spectral un-mixing techniques, it is argued that they do not
+  make use of spatial concepts. Looking at high-resolution images it is very
+  likely that a neighbouring pixel belongs to the same land cover class as the
+  pixel under consideration. Algorithms in physics or mechanical engineering
+  developed over the last twenty years successfully delineate objects based on
+  context-information in an image on the basis of texture or fractal dimension.
+  With the advent of high-resolution satellite imagery, the in- creasing use of
+  airborne digital data and radar data the need for context-based algorithms
+  and object-oriented image processing is increasing. Recently available
+  commercial prod- ucts reflect this demand. In a case study, 'traditional'
+  pixel based classification methods and context-based methods are compared.
+  Experiences are encouraging and it is hy- pothesised that object-based image
+  analysis will trigger new developments towards a full integration of GIS and
+  remote sensing functions. If the resulting objects prove to be 'meaningful',
+  subsequent application specific analysis can take the attributes of these
+  objects into account. The meaning of object dimension is discussed with a
+  special focus on applications for environmental monitoring.%
     }
-    \field{booktitle}{Umweltinformation F\{{\textbackslash}"u\}r {{Planung}}, {{Politik}} Und \{{\textbackslash}"\vphantom\}{{O}}\vphantom\{\}ffentlichkeit / {{Environmental Information}} for {{Planning}}, {{Politics}} and the {{Public}}}
+    \field{booktitle}{Umweltinformation F\{{\textbackslash}"u\}r {{Planung}},
+  {{Politik}} Und \{{\textbackslash}"\vphantom\}{{O}}\vphantom\{\}ffentlichkeit
+  / {{Environmental Information}} for {{Planning}}, {{Politics}} and the
+  {{Public}}}
     \field{pages}{555\bibrangedash 570}
-    \field{title}{Object-{{Oriented Image Processing}} in an {{Integrated GIS}}/{{Remote Sensing Environment}} and {{Perspectives}} for {{Environmental Applications}}}
+    \field{title}{Object-{{Oriented Image Processing}} in an {{Integrated
+  GIS}}/{{Remote Sensing Environment}} and {{Perspectives}} for {{Environmental
+  Applications}}}
     \field{volume}{2}
     \field{langid}{english}
     \verb{file}
@@ -667,7 +838,7 @@
     \field{year}{2000}
   \endentry
 
-  \entry{blaschkeObjectBasedImage2010}{article}{}{}
+  \entry{blaschkeObjectBasedImage2010}{article}{}
     \name{author}{1}{}{%
       {{hash=BT}{%
          family={Blaschke},
@@ -702,7 +873,7 @@
     \field{urlyear}{2023}
   \endentry
 
-  \entry{hossainSegmentationObjectBasedImage2019}{article}{}{}
+  \entry{hossainSegmentationObjectBasedImage2019}{article}{}
     \name{author}{2}{}{%
       {{hash=HMD}{%
          family={Hossain},
@@ -717,21 +888,43 @@
          giveni={D\bibinitperiod},
       }}%
     }
-    \keyw{Geographic object,High spatial resolution,Image segmentation,OBIA,Remote sensing}
+    \keyw{Geographic object,High spatial resolution,Image
+  segmentation,OBIA,Remote sensing}
     \strng{namehash}{HMDCD1}
     \strng{fullhash}{HMDCD1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{shorttitle}
     \field{abstract}{%
-    Image segmentation is a critical and important step in (GEographic) Object-Based Image Analysis (GEOBIA or OBIA). The final feature extraction and classification in OBIA is highly dependent on the quality of image segmentation. Segmentation has been used in remote sensing image processing since the advent of the Landsat-1 satellite. However, after the launch of the high-resolution IKONOS satellite in 1999, the paradigm of image analysis moved from pixel-based to object-based. As a result, the purpose of segmentation has been changed from helping pixel labeling to object identification. Although several articles have reviewed segmentation algorithms, it is unclear if some segmentation algorithms are generally more suited for (GE)OBIA than others. This article has conducted an extensive state-of-the-art survey on OBIA techniques, discussed different segmentation techniques and their applicability to OBIA. Conceptual details of those techniques are explained along with the strengths and weaknesses. The available tools and software packages for segmentation are also summarized. The key challenge in image segmentation is to select optimal parameters and algorithms that can general image objects matching with the meaningful geographic objects. Recent research indicates an apparent movement towards the improvement of segmentation algorithms, aiming at more accurate, automated, and computationally efficient techniques.%
+    Image segmentation is a critical and important step in (GEographic)
+  Object-Based Image Analysis (GEOBIA or OBIA). The final feature extraction
+  and classification in OBIA is highly dependent on the quality of image
+  segmentation. Segmentation has been used in remote sensing image processing
+  since the advent of the Landsat-1 satellite. However, after the launch of the
+  high-resolution IKONOS satellite in 1999, the paradigm of image analysis
+  moved from pixel-based to object-based. As a result, the purpose of
+  segmentation has been changed from helping pixel labeling to object
+  identification. Although several articles have reviewed segmentation
+  algorithms, it is unclear if some segmentation algorithms are generally more
+  suited for (GE)OBIA than others. This article has conducted an extensive
+  state-of-the-art survey on OBIA techniques, discussed different segmentation
+  techniques and their applicability to OBIA. Conceptual details of those
+  techniques are explained along with the strengths and weaknesses. The
+  available tools and software packages for segmentation are also summarized.
+  The key challenge in image segmentation is to select optimal parameters and
+  algorithms that can general image objects matching with the meaningful
+  geographic objects. Recent research indicates an apparent movement towards
+  the improvement of segmentation algorithms, aiming at more accurate,
+  automated, and computationally efficient techniques.%
     }
     \verb{doi}
     \verb 10.1016/j.isprsjprs.2019.02.009
     \endverb
     \field{issn}{0924-2716}
     \field{pages}{115\bibrangedash 134}
-    \field{shorttitle}{Segmentation for {{Object-Based Image Analysis}} ({{OBIA}})}
-    \field{title}{Segmentation for {{Object-Based Image Analysis}} ({{OBIA}}): {{A}} Review of Algorithms and Challenges from Remote Sensing Perspective}
+    \field{shorttitle}{Segmentation for {{Object-Based Image Analysis}}
+  ({{OBIA}})}
+    \field{title}{Segmentation for {{Object-Based Image Analysis}} ({{OBIA}}):
+  {{A}} Review of Algorithms and Challenges from Remote Sensing Perspective}
     \field{volume}{150}
     \verb{file}
     \verb /Users/dak/Zotero/storage/8ZFBQMFK/Hossain and Chen - 2019 - Segmenta
@@ -749,7 +942,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{kaplanScalingLawsNeural2020}{misc}{}{}
+  \entry{kaplanScalingLawsNeural2020}{misc}{}
     \name{author}{10}{}{%
       {{hash=KJ}{%
          family={Kaplan},
@@ -821,7 +1014,17 @@
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    We study empirical scaling laws for language model performance on the cross-entropy loss. The loss scales as a power-law with model size, dataset size, and the amount of compute used for training, with some trends spanning more than seven orders of magnitude. Other architectural details such as network width or depth have minimal effects within a wide range. Simple equations govern the dependence of overfitting on model/dataset size and the dependence of training speed on model size. These relationships allow us to determine the optimal allocation of a fixed compute budget. Larger models are significantly more sample-efficient, such that optimally compute-efficient training involves training very large models on a relatively modest amount of data and stopping significantly before convergence.%
+    We study empirical scaling laws for language model performance on the
+  cross-entropy loss. The loss scales as a power-law with model size, dataset
+  size, and the amount of compute used for training, with some trends spanning
+  more than seven orders of magnitude. Other architectural details such as
+  network width or depth have minimal effects within a wide range. Simple
+  equations govern the dependence of overfitting on model/dataset size and the
+  dependence of training speed on model size. These relationships allow us to
+  determine the optimal allocation of a fixed compute budget. Larger models are
+  significantly more sample-efficient, such that optimally compute-efficient
+  training involves training very large models on a relatively modest amount of
+  data and stopping significantly before convergence.%
     }
     \verb{doi}
     \verb 10.48550/arXiv.2001.08361
@@ -845,7 +1048,7 @@
     \field{urlyear}{2025}
   \endentry
 
-  \entry{joginFeatureExtractionUsing2018}{inproceedings}{}{}
+  \entry{joginFeatureExtractionUsing2018}{inproceedings}{}
     \name{author}{6}{}{%
       {{hash=JM}{%
          family={Jogin},
@@ -882,20 +1085,50 @@
          giveni={S},
       }}%
     }
-    \keyw{Activation Function Layer,Biological neural networks,Classification algorithms,Convolution Neural Network,Feature extraction,Fully Connected Layer,Image classification,kNN Classifier,Linear Classifier,Neurons,Pool Layer,Soft-max Classifier,Support vector machines,Training}
+    \keyw{Activation Function Layer,Biological neural networks,Classification
+  algorithms,Convolution Neural Network,Feature extraction,Fully Connected
+  Layer,Image classification,kNN Classifier,Linear Classifier,Neurons,Pool
+  Layer,Soft-max Classifier,Support vector machines,Training}
     \strng{namehash}{JM+1}
     \strng{fullhash}{JMMMMSDGDMRKAS1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    The Image classification is one of the preliminary processes, which humans learn as infants. The fundamentals of image classification lie in identifying basic shapes and geometry of objects around us. It is a process which involves the following tasks of pre-processing the image (normalization), image segmentation, extraction of key features and identification of the class. The current image classification techniques are much faster in run time and more accurate than ever before, they can be used for extensive applications including, security features, face recognition for authentication and authorization, traffic identification, medical diagnosis and other fields. The idea of image classification can be solved by different approaches. But the machine learning algorithms are the best among them. These algorithms are based on the idea proposed years ago, but couldn't be implemented due to lack of computational power. With the idea of deep learning, the models are trained better and are able to identify different levels of image representation. The convolutional neural networks revolutionized this field by learning the basic shapes in the first layers and evolving to learn features of the image in the deeper layers, resulting in more accurate image classification. The idea of Convolutional neural network was inspired by the hierarchical representation of neurons by Hubel and Wiesel in 1962, their work was based on the study of stimuli of the visual cortex in cat. It was a fundamental breakthrough in the field of computer vision in understanding the working of visual cortex in humans and animals. In this paper feature of an images is extracted using convolution neural network using the concept of deep learning. Further classification algorithms are implemented for various applications.%
+    The Image classification is one of the preliminary processes, which humans
+  learn as infants. The fundamentals of image classification lie in identifying
+  basic shapes and geometry of objects around us. It is a process which
+  involves the following tasks of pre-processing the image (normalization),
+  image segmentation, extraction of key features and identification of the
+  class. The current image classification techniques are much faster in run
+  time and more accurate than ever before, they can be used for extensive
+  applications including, security features, face recognition for
+  authentication and authorization, traffic identification, medical diagnosis
+  and other fields. The idea of image classification can be solved by different
+  approaches. But the machine learning algorithms are the best among them.
+  These algorithms are based on the idea proposed years ago, but couldn't be
+  implemented due to lack of computational power. With the idea of deep
+  learning, the models are trained better and are able to identify different
+  levels of image representation. The convolutional neural networks
+  revolutionized this field by learning the basic shapes in the first layers
+  and evolving to learn features of the image in the deeper layers, resulting
+  in more accurate image classification. The idea of Convolutional neural
+  network was inspired by the hierarchical representation of neurons by Hubel
+  and Wiesel in 1962, their work was based on the study of stimuli of the
+  visual cortex in cat. It was a fundamental breakthrough in the field of
+  computer vision in understanding the working of visual cortex in humans and
+  animals. In this paper feature of an images is extracted using convolution
+  neural network using the concept of deep learning. Further classification
+  algorithms are implemented for various applications.%
     }
-    \field{booktitle}{2018 3rd {{IEEE International Conference}} on {{Recent Trends}} in {{Electronics}}, {{Information}} \& {{Communication Technology}} ({{RTEICT}})}
+    \field{booktitle}{2018 3rd {{IEEE International Conference}} on {{Recent
+  Trends}} in {{Electronics}}, {{Information}} \& {{Communication Technology}}
+  ({{RTEICT}})}
     \verb{doi}
     \verb 10.1109/RTEICT42901.2018.9012507
     \endverb
     \field{pages}{2319\bibrangedash 2323}
-    \field{title}{Feature {{Extraction}} Using {{Convolution Neural Networks}} ({{CNN}}) and {{Deep Learning}}}
+    \field{title}{Feature {{Extraction}} Using {{Convolution Neural Networks}}
+  ({{CNN}}) and {{Deep Learning}}}
     \verb{file}
     \verb /Users/dak/Zotero/storage/WXC2ZNMP/9012507.html
     \endverb
@@ -909,7 +1142,7 @@
     \field{urlyear}{2025}
   \endentry
 
-  \entry{hongMoreDiverseMeans2021}{article}{}{}
+  \entry{hongMoreDiverseMeans2021}{article}{}
     \name{author}{7}{}{%
       {{hash=HD}{%
          family={Hong},
@@ -954,13 +1187,40 @@
          giveni={B\bibinitperiod},
       }}%
     }
-    \keyw{Classification,convolutional neural networks (CNNS),cross modality,deep learning (DL),Earth,Feature extraction,feature learning,fusion,hyperspectral,Laser radar,light detection and ranging (LiDAR),Machine learning,multimodal,multispectral,network architecture,Remote sensing,remote sensing (RS),Synthetic aperture radar,synthetic aperture radar (SAR),Task analysis}
+    \keyw{Classification,convolutional neural networks (CNNS),cross
+  modality,deep learning (DL),Earth,Feature extraction,feature
+  learning,fusion,hyperspectral,Laser radar,light detection and ranging
+  (LiDAR),Machine learning,multimodal,multispectral,network architecture,Remote
+  sensing,remote sensing (RS),Synthetic aperture radar,synthetic aperture radar
+  (SAR),Task analysis}
     \strng{namehash}{HD+1}
     \strng{fullhash}{HDGLYNYJCJDQZB1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{shorttitle}
     \field{abstract}{%
-    Classification and identification of the materials lying over or beneath the earth's surface have long been a fundamental but challenging research topic in geoscience and remote sensing (RS), and have garnered a growing concern owing to the recent advancements of deep learning techniques. Although deep networks have been successfully applied in single-modality-dominated classification tasks, yet their performance inevitably meets the bottleneck in complex scenes that need to be finely classified, due to the limitation of information diversity. In this work, we provide a baseline solution to the aforementioned difficulty by developing a general multimodal deep learning (MDL) framework. In particular, we also investigate a special case of multi-modality learning (MML)-cross-modality learning (CML) that exists widely in RS image classification applications. By focusing on ``what,'' ``where,'' and ``how'' to fuse, we show different fusion strategies as well as how to train deep networks and build the network architecture. Specifically, five fusion architectures are introduced and developed, further being unified in our MDL framework. More significantly, our framework is not only limited to pixel-wise classification tasks but also applicable to spatial information modeling with convolutional neural networks (CNNs). To validate the effectiveness and superiority of the MDL framework, extensive experiments related to the settings of MML and CML are conducted on two different multimodal RS data sets. Furthermore, the codes and data sets will be available at https://github.com/danfenghong/IEEE\_TGRS\_MDL-RS, contributing to the RS community.%
+    Classification and identification of the materials lying over or beneath
+  the earth's surface have long been a fundamental but challenging research
+  topic in geoscience and remote sensing (RS), and have garnered a growing
+  concern owing to the recent advancements of deep learning techniques.
+  Although deep networks have been successfully applied in
+  single-modality-dominated classification tasks, yet their performance
+  inevitably meets the bottleneck in complex scenes that need to be finely
+  classified, due to the limitation of information diversity. In this work, we
+  provide a baseline solution to the aforementioned difficulty by developing a
+  general multimodal deep learning (MDL) framework. In particular, we also
+  investigate a special case of multi-modality learning (MML)-cross-modality
+  learning (CML) that exists widely in RS image classification applications. By
+  focusing on ``what,'' ``where,'' and ``how'' to fuse, we show different
+  fusion strategies as well as how to train deep networks and build the network
+  architecture. Specifically, five fusion architectures are introduced and
+  developed, further being unified in our MDL framework. More significantly,
+  our framework is not only limited to pixel-wise classification tasks but also
+  applicable to spatial information modeling with convolutional neural networks
+  (CNNs). To validate the effectiveness and superiority of the MDL framework,
+  extensive experiments related to the settings of MML and CML are conducted on
+  two different multimodal RS data sets. Furthermore, the codes and data sets
+  will be available at https://github.com/danfenghong/IEEE\_TGRS\_MDL-RS,
+  contributing to the RS community.%
     }
     \verb{doi}
     \verb 10.1109/TGRS.2020.3016820
@@ -969,7 +1229,8 @@
     \field{number}{5}
     \field{pages}{4340\bibrangedash 4354}
     \field{shorttitle}{More {{Diverse Means Better}}}
-    \field{title}{More {{Diverse Means Better}}: {{Multimodal Deep Learning Meets Remote-Sensing Imagery Classification}}}
+    \field{title}{More {{Diverse Means Better}}: {{Multimodal Deep Learning
+  Meets Remote-Sensing Imagery Classification}}}
     \field{volume}{59}
     \verb{file}
     \verb /Users/dak/Zotero/storage/4MX7YMFU/Hong et al. - 2021 - More Diverse
@@ -987,7 +1248,7 @@
     \field{urlyear}{2025}
   \endentry
 
-  \entry{kotaridisRemoteSensingImage2021}{article}{}{}
+  \entry{kotaridisRemoteSensingImage2021}{article}{}
     \name{author}{2}{}{%
       {{hash=KI}{%
          family={Kotaridis},
@@ -1002,20 +1263,41 @@
          giveni={M\bibinitperiod},
       }}%
     }
-    \keyw{Image segmentation,Meta-analysis,Remote sensing,Review,Semantic segmentation}
+    \keyw{Image segmentation,Meta-analysis,Remote sensing,Review,Semantic
+  segmentation}
     \strng{namehash}{KILM1}
     \strng{fullhash}{KILM1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{shorttitle}
     \field{abstract}{%
-    The advances in remote sensing sensors during the last two decades have led to the production of very high spatial resolution multispectral images. In order to adapt to this rapid development and handle these data, object-based analysis has emerged. A critical part of such an analysis is image segmentation. The selection of optimal segmentation parameters' values generates a qualitative segmentation output and has a direct impact on feature extraction and subsequent overall classification accuracy. Even though several image segmentation methods have been developed and suggested in the literature, each of them has advantages and disadvantages. This article presents the conceptual characteristics of image segmentation methods with a special focus on semantic segmentation. In addition, a meta-analysis was conducted through a comprehensive review of recent image segmentation case studies. It includes statistics and quantitative data regarding the applied segmentation algorithm, the software utilized and the data source among others. Since there is no miraculous segmentation algorithm, the statistical results depict only the recent trend. Finally, a few interesting subjects are addressed, including identification of current problems, image segmentation on non-traditional data and hot topics for future research. {\copyright} 2021 International Society for Photogrammetry and Remote Sensing, Inc. (ISPRS)%
+    The advances in remote sensing sensors during the last two decades have led
+  to the production of very high spatial resolution multispectral images. In
+  order to adapt to this rapid development and handle these data, object-based
+  analysis has emerged. A critical part of such an analysis is image
+  segmentation. The selection of optimal segmentation parameters' values
+  generates a qualitative segmentation output and has a direct impact on
+  feature extraction and subsequent overall classification accuracy. Even
+  though several image segmentation methods have been developed and suggested
+  in the literature, each of them has advantages and disadvantages. This
+  article presents the conceptual characteristics of image segmentation methods
+  with a special focus on semantic segmentation. In addition, a meta-analysis
+  was conducted through a comprehensive review of recent image segmentation
+  case studies. It includes statistics and quantitative data regarding the
+  applied segmentation algorithm, the software utilized and the data source
+  among others. Since there is no miraculous segmentation algorithm, the
+  statistical results depict only the recent trend. Finally, a few interesting
+  subjects are addressed, including identification of current problems, image
+  segmentation on non-traditional data and hot topics for future research.
+  {\copyright} 2021 International Society for Photogrammetry and Remote
+  Sensing, Inc. (ISPRS)%
     }
     \verb{doi}
     \verb 10.1016/j.isprsjprs.2021.01.020
     \endverb
     \field{pages}{309\bibrangedash 322}
     \field{shorttitle}{Remote Sensing Image Segmentation Advances}
-    \field{title}{Remote Sensing Image Segmentation Advances: {{A}} Meta-Analysis}
+    \field{title}{Remote Sensing Image Segmentation Advances: {{A}}
+  Meta-Analysis}
     \field{volume}{173}
     \verb{file}
     \verb /Users/dak/Zotero/storage/HKCBDUKY/Kotaridis - 2021 - Remote sensing
@@ -1030,7 +1312,7 @@
     \field{year}{2021}
   \endentry
 
-  \entry{neupaneDeepLearningBasedSemantic2021}{article}{}{}
+  \entry{neupaneDeepLearningBasedSemantic2021}{article}{}
     \name{author}{3}{}{%
       {{hash=NB}{%
          family={Neupane},
@@ -1054,13 +1336,28 @@
     \list{publisher}{1}{%
       {Multidisciplinary Digital Publishing Institute}%
     }
-    \keyw{deep learning,remote sensing,review,semantic segmentation,urban image classification}
+    \keyw{deep learning,remote sensing,review,semantic segmentation,urban image
+  classification}
     \strng{namehash}{NBHTAJ1}
     \strng{fullhash}{NBHTAJ1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{shorttitle}
     \field{abstract}{%
-    Availability of very high-resolution remote sensing images and advancement of deep learning methods have shifted the paradigm of image classification from pixel-based and object-based methods to deep learning-based semantic segmentation. This shift demands a structured analysis and revision of the current status on the research domain of deep learning-based semantic segmentation. The focus of this paper is on urban remote sensing images. We review and perform a meta-analysis to juxtapose recent papers in terms of research problems, data source, data preparation methods including pre-processing and augmentation techniques, training details on architectures, backbones, frameworks, optimizers, loss functions and other hyper-parameters and performance comparison. Our detailed review and meta-analysis show that deep learning not only outperforms traditional methods in terms of accuracy, but also addresses several challenges previously faced. Further, we provide future directions of research in this domain.%
+    Availability of very high-resolution remote sensing images and advancement
+  of deep learning methods have shifted the paradigm of image classification
+  from pixel-based and object-based methods to deep learning-based semantic
+  segmentation. This shift demands a structured analysis and revision of the
+  current status on the research domain of deep learning-based semantic
+  segmentation. The focus of this paper is on urban remote sensing images. We
+  review and perform a meta-analysis to juxtapose recent papers in terms of
+  research problems, data source, data preparation methods including
+  pre-processing and augmentation techniques, training details on
+  architectures, backbones, frameworks, optimizers, loss functions and other
+  hyper-parameters and performance comparison. Our detailed review and
+  meta-analysis show that deep learning not only outperforms traditional
+  methods in terms of accuracy, but also addresses several challenges
+  previously faced. Further, we provide future directions of research in this
+  domain.%
     }
     \verb{doi}
     \verb 10.3390/rs13040808
@@ -1068,8 +1365,10 @@
     \field{issn}{2072-4292}
     \field{number}{4}
     \field{pages}{808}
-    \field{shorttitle}{Deep {{Learning-Based Semantic Segmentation}} of {{Urban Features}} in {{Satellite Images}}}
-    \field{title}{Deep {{Learning-Based Semantic Segmentation}} of {{Urban Features}} in {{Satellite Images}}: {{A Review}} and {{Meta-Analysis}}}
+    \field{shorttitle}{Deep {{Learning-Based Semantic Segmentation}} of {{Urban
+  Features}} in {{Satellite Images}}}
+    \field{title}{Deep {{Learning-Based Semantic Segmentation}} of {{Urban
+  Features}} in {{Satellite Images}}: {{A Review}} and {{Meta-Analysis}}}
     \field{volume}{13}
     \field{langid}{english}
     \verb{file}
@@ -1087,7 +1386,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{zangLandUseMappingHighSpatial2021}{article}{}{}
+  \entry{zangLandUseMappingHighSpatial2021}{article}{}
     \name{author}{6}{}{%
       {{hash=ZN}{%
          family={Zang},
@@ -1126,28 +1425,53 @@
          giveni={P\bibinitperiod\bibinitdelim T\bibinitperiod},
       }}%
     }
-    \keyw{Buildings,Deep learning (DL),high-spatial resolution remote sensing images (HSR-RSIs),Image segmentation,land-use mapping (LUM),Meters,Remote sensing,Satellites,semantic segmentation,Semantics,Spatial resolution}
+    \keyw{Buildings,Deep learning (DL),high-spatial resolution remote sensing
+  images (HSR-RSIs),Image segmentation,land-use mapping (LUM),Meters,Remote
+  sensing,Satellites,semantic segmentation,Semantics,Spatial resolution}
     \strng{namehash}{ZN+1}
     \strng{fullhash}{ZNCYWYHBZLMPT1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{shorttitle}
     \field{abstract}{%
-    Land-use mapping (LUM) using high-spatial resolution remote sensing images (HSR-RSIs) is a challenging and crucial technology. However, due to the characteristics of HSR-RSIs, such as different image acquisition conditions and massive, detailed information, and performing LUM faces unique scientific challenges. With the emergence of new deep learning (DL) algorithms in recent years, methods to LUM with DL have achieved huge breakthroughs, which offer novel opportunities for the development of LUM for HSR-RSIs. This article aims to provide a thorough review of recent achievements in this field. Existing high spatial resolution datasets in the research of semantic segmentation and single-object segmentation are presented first. Next, we introduce several basic DL approaches that are frequently adopted for LUM. After reviewing DL-based LUM methods comprehensively, which highlights the contributions of researchers in the field of LUM for HSR-RSIs, we summarize these DL-based approaches based on two LUM criteria. Individually, the first one has supervised learning, semisupervised learning, or unsupervised learning, while another one is pixel-based or object-based. We then briefly review the fundamentals and the developments of the development of semantic segmentation and single-object segmentation. At last, quantitative results that experiment on the dataset of ISPRS Vaihingen and ISPRS Potsdam are given for several representative models such as fully convolutional network (FCN) and U-Net, following up with a comparison and discussion of the results.%
+    Land-use mapping (LUM) using high-spatial resolution remote sensing images
+  (HSR-RSIs) is a challenging and crucial technology. However, due to the
+  characteristics of HSR-RSIs, such as different image acquisition conditions
+  and massive, detailed information, and performing LUM faces unique scientific
+  challenges. With the emergence of new deep learning (DL) algorithms in recent
+  years, methods to LUM with DL have achieved huge breakthroughs, which offer
+  novel opportunities for the development of LUM for HSR-RSIs. This article
+  aims to provide a thorough review of recent achievements in this field.
+  Existing high spatial resolution datasets in the research of semantic
+  segmentation and single-object segmentation are presented first. Next, we
+  introduce several basic DL approaches that are frequently adopted for LUM.
+  After reviewing DL-based LUM methods comprehensively, which highlights the
+  contributions of researchers in the field of LUM for HSR-RSIs, we summarize
+  these DL-based approaches based on two LUM criteria. Individually, the first
+  one has supervised learning, semisupervised learning, or unsupervised
+  learning, while another one is pixel-based or object-based. We then briefly
+  review the fundamentals and the developments of the development of semantic
+  segmentation and single-object segmentation. At last, quantitative results
+  that experiment on the dataset of ISPRS Vaihingen and ISPRS Potsdam are given
+  for several representative models such as fully convolutional network (FCN)
+  and U-Net, following up with a comparison and discussion of the results.%
     }
     \verb{doi}
     \verb 10.1109/JSTARS.2021.3078631
     \endverb
     \field{issn}{2151-1535}
     \field{pages}{5372\bibrangedash 5391}
-    \field{shorttitle}{Land-{{Use Mapping}} for {{High-Spatial Resolution Remote Sensing Image Via Deep Learning}}}
-    \field{title}{Land-{{Use Mapping}} for {{High-Spatial Resolution Remote Sensing Image Via Deep Learning}}: {{A Review}}}
+    \field{shorttitle}{Land-{{Use Mapping}} for {{High-Spatial Resolution
+  Remote Sensing Image Via Deep Learning}}}
+    \field{title}{Land-{{Use Mapping}} for {{High-Spatial Resolution Remote
+  Sensing Image Via Deep Learning}}: {{A Review}}}
     \field{volume}{14}
     \verb{file}
     \verb /Users/dak/Zotero/storage/8UE44MSG/Zang et al. - 2021 - Land-Use Mapp
     \verb ing for High-Spatial Resolution Remot.pdf;/Users/dak/Zotero/storage/G
     \verb KZQ4K9K/9427218.html
     \endverb
-    \field{journaltitle}{IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing}
+    \field{journaltitle}{IEEE Journal of Selected Topics in Applied Earth
+  Observations and Remote Sensing}
     \field{annotation}{%
     39 citations (Crossref) [2024-10-07]%
     }
@@ -1157,7 +1481,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{lecunGradientbasedLearningApplied1998}{article}{}{}
+  \entry{lecunGradientbasedLearningApplied1998}{article}{}
     \name{author}{4}{}{%
       {{hash=LY}{%
          family={LeCun},
@@ -1184,7 +1508,10 @@
          giveni={P\bibinitperiod},
       }}%
     }
-    \keyw{Character recognition,Feature extraction,Hidden Markov models,Machine learning,Multi-layer neural network,Neural networks,Optical character recognition software,Optical computing,Pattern recognition,Principal component analysis}
+    \keyw{Character recognition,Feature extraction,Hidden Markov models,Machine
+  learning,Multi-layer neural network,Neural networks,Optical character
+  recognition software,Optical computing,Pattern recognition,Principal
+  component analysis}
     \strng{namehash}{LY+1}
     \strng{fullhash}{LYBLBYHP1}
     \field{labelnamesource}{author}
@@ -1213,13 +1540,14 @@
     \field{urlyear}{2023}
   \endentry
 
-  \entry{loArtificialConvolutionNeural1995}{article}{}{}
+  \entry{loArtificialConvolutionNeural1995}{article}{}
     \name{author}{6}{}{%
       {{hash=LSCB}{%
          family={Lo},
          familyi={L\bibinitperiod},
          given={Shih-Chung\bibnamedelima B.},
-         giveni={S\bibinithyphendelim C\bibinitperiod\bibinitdelim B\bibinitperiod},
+         giveni={S\bibinithyphendelim C\bibinitperiod\bibinitdelim
+  B\bibinitperiod},
       }}%
       {{hash=CHP}{%
          family={Chan},
@@ -1252,13 +1580,39 @@
          giveni={S\bibinitperiod\bibinitdelim K\bibinitperiod},
       }}%
     }
-    \keyw{Classification invariance of operations,Computer-assisted diagnosis,Neural network,Output association fuzzy function,Trainer imposed function}
+    \keyw{Classification invariance of operations,Computer-assisted
+  diagnosis,Neural network,Output association fuzzy function,Trainer imposed
+  function}
     \strng{namehash}{LSCB+1}
     \strng{fullhash}{LSCBCHPLJSLHFMTMSK1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    We have developed several training methods in conjunction with a convolution neural network for general medical image pattern recognition. An unconventional method of using rotation and shift invariance is also proposed to enhance the neural net performance. The structure of the artificial neural network is a simplified network structure of the neocognitron. Two-dimensional local connection as a group is the fundamental architecture for the signal propagation in the convolution neural network. Weighting coefficients of convolution kernels are formed by the neural network through backpropagated training for this artificial neural net. In addition, radiologists' reading procedure was modelled in order to instruct the artificial neural network to recognize the predefined image patterns and those of interest to experts. Our training techniques involve (a) radiologists' rating for each suspected image area, (b) backpropagation of generalized distribution, (c) trainer imposed functions, (d) shift and rotation invariance of diagnosis interpretation, and (e) consistency of clinical input data using appropriate background reduction functions. We have tested these methods for detecting lung nodules on chest radiographs and microcalcications on mammograms. The performance studies have shown the potential use of this technique in a clinical environment. We also used a profile double-matching technique for initial nodule search and used a wavelet high pass filtering technique to enhance subtle clustered microcalcifications. We set searching parameters at a highly sensitive level to identify all potential disease areas. The artificial convolution neural network acts as a final detection classifier to determine whether a disease pattern is shown on the suspected image area.%
+    We have developed several training methods in conjunction with a
+  convolution neural network for general medical image pattern recognition. An
+  unconventional method of using rotation and shift invariance is also proposed
+  to enhance the neural net performance. The structure of the artificial neural
+  network is a simplified network structure of the neocognitron.
+  Two-dimensional local connection as a group is the fundamental architecture
+  for the signal propagation in the convolution neural network. Weighting
+  coefficients of convolution kernels are formed by the neural network through
+  backpropagated training for this artificial neural net. In addition,
+  radiologists' reading procedure was modelled in order to instruct the
+  artificial neural network to recognize the predefined image patterns and
+  those of interest to experts. Our training techniques involve (a)
+  radiologists' rating for each suspected image area, (b) backpropagation of
+  generalized distribution, (c) trainer imposed functions, (d) shift and
+  rotation invariance of diagnosis interpretation, and (e) consistency of
+  clinical input data using appropriate background reduction functions. We have
+  tested these methods for detecting lung nodules on chest radiographs and
+  microcalcications on mammograms. The performance studies have shown the
+  potential use of this technique in a clinical environment. We also used a
+  profile double-matching technique for initial nodule search and used a
+  wavelet high pass filtering technique to enhance subtle clustered
+  microcalcifications. We set searching parameters at a highly sensitive level
+  to identify all potential disease areas. The artificial convolution neural
+  network acts as a final detection classifier to determine whether a disease
+  pattern is shown on the suspected image area.%
     }
     \verb{doi}
     \verb 10.1016/0893-6080(95)00061-5
@@ -1267,7 +1621,8 @@
     \field{number}{7}
     \field{pages}{1201\bibrangedash 1214}
     \field{series}{Automatic {{Target Recognition}}}
-    \field{title}{Artificial Convolution Neural Network for Medical Image Pattern Recognition}
+    \field{title}{Artificial Convolution Neural Network for Medical Image
+  Pattern Recognition}
     \field{volume}{8}
     \verb{file}
     \verb /Users/dak/Zotero/storage/YVSEFDZF/0893608095000615.html
@@ -1283,7 +1638,7 @@
     \field{urlyear}{2025}
   \endentry
 
-  \entry{heDeepResidualLearning2015b}{misc}{}{}
+  \entry{heDeepResidualLearning2015b}{misc}{}
     \name{author}{4}{}{%
       {{hash=HK}{%
          family={He},
@@ -1319,7 +1674,24 @@
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    Deeper neural networks are more difficult to train. We present a residual learning framework to ease the training of networks that are substantially deeper than those used previously. We explicitly reformulate the layers as learning residual functions with reference to the layer inputs, instead of learning unreferenced functions. We provide comprehensive empirical evidence showing that these residual networks are easier to optimize, and can gain accuracy from considerably increased depth. On the ImageNet dataset we evaluate residual nets with a depth of up to 152 layers---8x deeper than VGG nets but still having lower complexity. An ensemble of these residual nets achieves 3.57\% error on the ImageNet test set. This result won the 1st place on the ILSVRC 2015 classification task. We also present analysis on CIFAR-10 with 100 and 1000 layers. The depth of representations is of central importance for many visual recognition tasks. Solely due to our extremely deep representations, we obtain a 28\% relative improvement on the COCO object detection dataset. Deep residual nets are foundations of our submissions to ILSVRC \& COCO 2015 competitions, where we also won the 1st places on the tasks of ImageNet detection, ImageNet localization, COCO detection, and COCO segmentation.%
+    Deeper neural networks are more difficult to train. We present a residual
+  learning framework to ease the training of networks that are substantially
+  deeper than those used previously. We explicitly reformulate the layers as
+  learning residual functions with reference to the layer inputs, instead of
+  learning unreferenced functions. We provide comprehensive empirical evidence
+  showing that these residual networks are easier to optimize, and can gain
+  accuracy from considerably increased depth. On the ImageNet dataset we
+  evaluate residual nets with a depth of up to 152 layers---8x deeper than VGG
+  nets but still having lower complexity. An ensemble of these residual nets
+  achieves 3.57\% error on the ImageNet test set. This result won the 1st place
+  on the ILSVRC 2015 classification task. We also present analysis on CIFAR-10
+  with 100 and 1000 layers. The depth of representations is of central
+  importance for many visual recognition tasks. Solely due to our extremely
+  deep representations, we obtain a 28\% relative improvement on the COCO
+  object detection dataset. Deep residual nets are foundations of our
+  submissions to ILSVRC \& COCO 2015 competitions, where we also won the 1st
+  places on the tasks of ImageNet detection, ImageNet localization, COCO
+  detection, and COCO segmentation.%
     }
     \verb{eprint}
     \verb 1512.03385
@@ -1340,7 +1712,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{marmanisDeepLearningEarth2016}{article}{}{}
+  \entry{marmanisDeepLearningEarth2016}{article}{}
     \name{author}{4}{}{%
       {{hash=MD}{%
          family={Marmanis},
@@ -1367,13 +1739,32 @@
          giveni={U\bibinitperiod},
       }}%
     }
-    \keyw{Adaptation models,Arrays,Convolutional neural networks (CNNs),Data models,deep learning (DL),feature extraction,Feature extraction,land-use classification,Neural networks,pretrained network,Remote sensing,remote sensing (RS),Training}
+    \keyw{Adaptation models,Arrays,Convolutional neural networks (CNNs),Data
+  models,deep learning (DL),feature extraction,Feature extraction,land-use
+  classification,Neural networks,pretrained network,Remote sensing,remote
+  sensing (RS),Training}
     \strng{namehash}{MD+1}
     \strng{fullhash}{MDDMETSU1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    Deep learning methods such as convolutional neural networks (CNNs) can deliver highly accurate classification results when provided with large enough data sets and respective labels. However, using CNNs along with limited labeled data can be problematic, as this leads to extensive overfitting. In this letter, we propose a novel method by considering a pretrained CNN designed for tackling an entirely different classification problem, namely, the ImageNet challenge, and exploit it to extract an initial set of representations. The derived representations are then transferred into a supervised CNN classifier, along with their class labels, effectively training the system. Through this two-stage framework, we successfully deal with the limited-data problem in an end-to-end processing scheme. Comparative results over the UC Merced Land Use benchmark prove that our method significantly outperforms the previously best stated results, improving the overall accuracy from 83.1\% up to 92.4\%. Apart from statistical improvements, our method introduces a novel feature fusion algorithm that effectively tackles the large data dimensionality by using a simple and computationally efficient approach.%
+    Deep learning methods such as convolutional neural networks (CNNs) can
+  deliver highly accurate classification results when provided with large
+  enough data sets and respective labels. However, using CNNs along with
+  limited labeled data can be problematic, as this leads to extensive
+  overfitting. In this letter, we propose a novel method by considering a
+  pretrained CNN designed for tackling an entirely different classification
+  problem, namely, the ImageNet challenge, and exploit it to extract an initial
+  set of representations. The derived representations are then transferred into
+  a supervised CNN classifier, along with their class labels, effectively
+  training the system. Through this two-stage framework, we successfully deal
+  with the limited-data problem in an end-to-end processing scheme. Comparative
+  results over the UC Merced Land Use benchmark prove that our method
+  significantly outperforms the previously best stated results, improving the
+  overall accuracy from 83.1\% up to 92.4\%. Apart from statistical
+  improvements, our method introduces a novel feature fusion algorithm that
+  effectively tackles the large data dimensionality by using a simple and
+  computationally efficient approach.%
     }
     \verb{doi}
     \verb 10.1109/LGRS.2015.2499239
@@ -1381,7 +1772,8 @@
     \field{issn}{1558-0571}
     \field{number}{1}
     \field{pages}{105\bibrangedash 109}
-    \field{title}{Deep {{Learning Earth Observation Classification Using ImageNet Pretrained Networks}}}
+    \field{title}{Deep {{Learning Earth Observation Classification Using
+  ImageNet Pretrained Networks}}}
     \field{volume}{13}
     \verb{file}
     \verb /Users/dak/Zotero/storage/NUB44MR3/Marmanis et al. - 2016 - Deep Lear
@@ -1399,7 +1791,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{scottTrainingDeepConvolutional2017}{article}{}{}
+  \entry{scottTrainingDeepConvolutional2017}{article}{}
     \name{author}{5}{}{%
       {{hash=SGJ}{%
          family={Scott},
@@ -1432,13 +1824,34 @@
          giveni={C\bibinitperiod\bibinitdelim H\bibinitperiod},
       }}%
     }
-    \keyw{Deep convolutional neural network (DCNN),deep learning,Feature extraction,high-resolution remote sensing imagery,Iron,land-cover classification,Neural networks,Remote sensing,Training,Training data,transfer learning (TL),Visualization}
+    \keyw{Deep convolutional neural network (DCNN),deep learning,Feature
+  extraction,high-resolution remote sensing imagery,Iron,land-cover
+  classification,Neural networks,Remote sensing,Training,Training data,transfer
+  learning (TL),Visualization}
     \strng{namehash}{SGJ+1}
     \strng{fullhash}{SGJEMRSWAMRADCH1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    Deep convolutional neural networks (DCNNs) have recently emerged as a dominant paradigm for machine learning in a variety of domains. However, acquiring a suitably large data set for training DCNN is often a significant challenge. This is a major issue in the remote sensing domain, where we have extremely large collections of satellite and aerial imagery, but lack the rich label information that is often readily available for other image modalities. In this letter, we investigate the use of DCNN for land-cover classification in high-resolution remote sensing imagery. To overcome the lack of massive labeled remote-sensing image data sets, we employ two techniques in conjunction with DCNN: transfer learning (TL) with fine-tuning and data augmentation tailored specifically for remote sensing imagery. TL allows one to bootstrap a DCNN while preserving the deep visual feature extraction learned over an image corpus from a different image domain. Data augmentation exploits various aspects of remote sensing imagery to dramatically expand small training image data sets and improve DCNN robustness for remote sensing image data. Here, we apply these techniques to the well-known UC Merced data set to achieve the land-cover classification accuracies of 97.8 {\textpm} 2.3\%, 97.6 {\textpm} 2.6\%, and 98.5 {\textpm} 1.4\% with CaffeNet, GoogLeNet, and ResNet, respectively.%
+    Deep convolutional neural networks (DCNNs) have recently emerged as a
+  dominant paradigm for machine learning in a variety of domains. However,
+  acquiring a suitably large data set for training DCNN is often a significant
+  challenge. This is a major issue in the remote sensing domain, where we have
+  extremely large collections of satellite and aerial imagery, but lack the
+  rich label information that is often readily available for other image
+  modalities. In this letter, we investigate the use of DCNN for land-cover
+  classification in high-resolution remote sensing imagery. To overcome the
+  lack of massive labeled remote-sensing image data sets, we employ two
+  techniques in conjunction with DCNN: transfer learning (TL) with fine-tuning
+  and data augmentation tailored specifically for remote sensing imagery. TL
+  allows one to bootstrap a DCNN while preserving the deep visual feature
+  extraction learned over an image corpus from a different image domain. Data
+  augmentation exploits various aspects of remote sensing imagery to
+  dramatically expand small training image data sets and improve DCNN
+  robustness for remote sensing image data. Here, we apply these techniques to
+  the well-known UC Merced data set to achieve the land-cover classification
+  accuracies of 97.8 {\textpm} 2.3\%, 97.6 {\textpm} 2.6\%, and 98.5 {\textpm}
+  1.4\% with CaffeNet, GoogLeNet, and ResNet, respectively.%
     }
     \verb{doi}
     \verb 10.1109/LGRS.2017.2657778
@@ -1446,7 +1859,8 @@
     \field{issn}{1558-0571}
     \field{number}{4}
     \field{pages}{549\bibrangedash 553}
-    \field{title}{Training {{Deep Convolutional Neural Networks}} for {{Land}}--{{Cover Classification}} of {{High-Resolution Imagery}}}
+    \field{title}{Training {{Deep Convolutional Neural Networks}} for
+  {{Land}}--{{Cover Classification}} of {{High-Resolution Imagery}}}
     \field{volume}{14}
     \verb{file}
     \verb /Users/dak/Zotero/storage/EV6KVAKQ/Scott et al. - 2017 - Training Dee
@@ -1464,7 +1878,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{songPatchBasedLightConvolutional2019}{article}{}{}
+  \entry{songPatchBasedLightConvolutional2019}{article}{}
     \name{author}{3}{}{%
       {{hash=SH}{%
          family={Song},
@@ -1488,13 +1902,40 @@
     \list{publisher}{1}{%
       {Multidisciplinary Digital Publishing Institute}%
     }
-    \keyw{convolutional neural network,land-cover mapping,Landsat,map heterogeneity,medium-resolution,patch-based classification}
+    \keyw{convolutional neural network,land-cover mapping,Landsat,map
+  heterogeneity,medium-resolution,patch-based classification}
     \strng{namehash}{SHKYKY1}
     \strng{fullhash}{SHKYKY1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    This study proposes a light convolutional neural network (LCNN) well-fitted for medium-resolution (30-m) land-cover classification. The LCNN attains high accuracy without overfitting, even with a small number of training samples, and has lower computational costs due to its much lighter design compared to typical convolutional neural networks for high-resolution or hyperspectral image classification tasks. The performance of the LCNN was compared to that of a deep convolutional neural network, support vector machine (SVM), k-nearest neighbors (KNN), and random forest (RF). SVM, KNN, and RF were tested with both patch-based and pixel-based systems. Three 30 km {\texttimes} 30 km test sites of the Level II National Land Cover Database were used for reference maps to embrace a wide range of land-cover types, and a single-date Landsat-8 image was used for each test site. To evaluate the performance of the LCNN according to the sample sizes, we varied the sample size to include 20, 40, 80, 160, and 320 samples per class. The proposed LCNN achieved the highest accuracy in 13 out of 15 cases (i.e., at three test sites with five different sample sizes), and the LCNN with a patch size of three produced the highest overall accuracy of 61.94\% from 10 repetitions, followed by SVM (61.51\%) and RF (61.15\%) with a patch size of three. Also, the statistical significance of the differences between LCNN and the other classifiers was reported. Moreover, by introducing the heterogeneity value (from 0 to 8) representing the complexity of the map, we demonstrated the advantage of patch-based LCNN over pixel-based classifiers, particularly at moderately heterogeneous pixels (from 1 to 4), with respect to accuracy (LCNN is 5.5\% and 6.3\% more accurate for a training sample size of 20 and 320 samples per class, respectively). Finally, the computation times of the classifiers were calculated, and the LCNN was confirmed to have an advantage in large-area mapping.%
+    This study proposes a light convolutional neural network (LCNN) well-fitted
+  for medium-resolution (30-m) land-cover classification. The LCNN attains high
+  accuracy without overfitting, even with a small number of training samples,
+  and has lower computational costs due to its much lighter design compared to
+  typical convolutional neural networks for high-resolution or hyperspectral
+  image classification tasks. The performance of the LCNN was compared to that
+  of a deep convolutional neural network, support vector machine (SVM),
+  k-nearest neighbors (KNN), and random forest (RF). SVM, KNN, and RF were
+  tested with both patch-based and pixel-based systems. Three 30 km
+  {\texttimes} 30 km test sites of the Level II National Land Cover Database
+  were used for reference maps to embrace a wide range of land-cover types, and
+  a single-date Landsat-8 image was used for each test site. To evaluate the
+  performance of the LCNN according to the sample sizes, we varied the sample
+  size to include 20, 40, 80, 160, and 320 samples per class. The proposed LCNN
+  achieved the highest accuracy in 13 out of 15 cases (i.e., at three test
+  sites with five different sample sizes), and the LCNN with a patch size of
+  three produced the highest overall accuracy of 61.94\% from 10 repetitions,
+  followed by SVM (61.51\%) and RF (61.15\%) with a patch size of three. Also,
+  the statistical significance of the differences between LCNN and the other
+  classifiers was reported. Moreover, by introducing the heterogeneity value
+  (from 0 to 8) representing the complexity of the map, we demonstrated the
+  advantage of patch-based LCNN over pixel-based classifiers, particularly at
+  moderately heterogeneous pixels (from 1 to 4), with respect to accuracy (LCNN
+  is 5.5\% and 6.3\% more accurate for a training sample size of 20 and 320
+  samples per class, respectively). Finally, the computation times of the
+  classifiers were calculated, and the LCNN was confirmed to have an advantage
+  in large-area mapping.%
     }
     \verb{doi}
     \verb 10.3390/rs11020114
@@ -1502,7 +1943,8 @@
     \field{issn}{2072-4292}
     \field{number}{2}
     \field{pages}{114}
-    \field{title}{A {{Patch-Based Light Convolutional Neural Network}} for {{Land-Cover Mapping Using Landsat-8 Images}}}
+    \field{title}{A {{Patch-Based Light Convolutional Neural Network}} for
+  {{Land-Cover Mapping Using Landsat-8 Images}}}
     \field{volume}{11}
     \field{langid}{english}
     \verb{file}
@@ -1520,7 +1962,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{longFullyConvolutionalNetworks2015}{inproceedings}{}{}
+  \entry{longFullyConvolutionalNetworks2015}{inproceedings}{}
     \name{author}{3}{}{%
       {{hash=LJ}{%
          family={Long},
@@ -1545,9 +1987,11 @@
     \strng{fullhash}{LJSEDT1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
-    \field{booktitle}{Proceedings of the {{IEEE Conference}} on {{Computer Vision}} and {{Pattern Recognition}}}
+    \field{booktitle}{Proceedings of the {{IEEE Conference}} on {{Computer
+  Vision}} and {{Pattern Recognition}}}
     \field{pages}{3431\bibrangedash 3440}
-    \field{title}{Fully {{Convolutional Networks}} for {{Semantic Segmentation}}}
+    \field{title}{Fully {{Convolutional Networks}} for {{Semantic
+  Segmentation}}}
     \verb{file}
     \verb /Users/dak/Zotero/storage/6NZBJTU7/Long et al. - 2015 - Fully Convolu
     \verb tional Networks for Semantic Segmenta.pdf
@@ -1558,7 +2002,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{ronnebergerUNetConvolutionalNetworks2015d}{misc}{}{}
+  \entry{ronnebergerUNetConvolutionalNetworks2015d}{misc}{}
     \name{author}{3}{}{%
       {{hash=RO}{%
          family={Ronneberger},
@@ -1582,19 +2026,35 @@
     \list{publisher}{1}{%
       {arXiv}%
     }
-    \keyw{Computer Vision and Pattern Recognition (cs.CV),FOS: Computer and information sciences}
+    \keyw{Computer Vision and Pattern Recognition (cs.CV),FOS: Computer and
+  information sciences}
     \strng{namehash}{ROFPBT1}
     \strng{fullhash}{ROFPBT1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{shorttitle}
     \field{abstract}{%
-    There is large consent that successful training of deep networks requires many thousand annotated training samples. In this paper, we present a network and training strategy that relies on the strong use of data augmentation to use the available annotated samples more efficiently. The architecture consists of a contracting path to capture context and a symmetric expanding path that enables precise localization. We show that such a network can be trained end-to-end from very few images and outperforms the prior best method (a sliding-window convolutional network) on the ISBI challenge for segmentation of neuronal structures in electron microscopic stacks. Using the same network trained on transmitted light microscopy images (phase contrast and DIC) we won the ISBI cell tracking challenge 2015 in these categories by a large margin. Moreover, the network is fast. Segmentation of a 512x512 image takes less than a second on a recent GPU. The full implementation (based on Caffe) and the trained networks are available at http://lmb.informatik.uni-freiburg.de/people/ronneber/u-net .%
+    There is large consent that successful training of deep networks requires
+  many thousand annotated training samples. In this paper, we present a network
+  and training strategy that relies on the strong use of data augmentation to
+  use the available annotated samples more efficiently. The architecture
+  consists of a contracting path to capture context and a symmetric expanding
+  path that enables precise localization. We show that such a network can be
+  trained end-to-end from very few images and outperforms the prior best method
+  (a sliding-window convolutional network) on the ISBI challenge for
+  segmentation of neuronal structures in electron microscopic stacks. Using the
+  same network trained on transmitted light microscopy images (phase contrast
+  and DIC) we won the ISBI cell tracking challenge 2015 in these categories by
+  a large margin. Moreover, the network is fast. Segmentation of a 512x512
+  image takes less than a second on a recent GPU. The full implementation
+  (based on Caffe) and the trained networks are available at
+  http://lmb.informatik.uni-freiburg.de/people/ronneber/u-net .%
     }
     \verb{doi}
     \verb 10.48550/ARXIV.1505.04597
     \endverb
     \field{shorttitle}{U-{{Net}}}
-    \field{title}{U-{{Net}}: {{Convolutional Networks}} for {{Biomedical Image Segmentation}}}
+    \field{title}{U-{{Net}}: {{Convolutional Networks}} for {{Biomedical Image
+  Segmentation}}}
     \verb{file}
     \verb /Users/dak/Zotero/storage/U7YANUMD/Ronneberger et al. - 2015 - U-Net
     \verb Convolutional Networks for Biomedical Image.pdf
@@ -1605,7 +2065,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{maTransferLearningEnvironmental2024}{article}{}{}
+  \entry{maTransferLearningEnvironmental2024}{article}{}
     \name{author}{4}{}{%
       {{hash=MY}{%
          family={Ma},
@@ -1632,13 +2092,36 @@
          giveni={D\bibinitperiod\bibinitdelim B\bibinitperiod},
       }}%
     }
-    \keyw{Domain shift,Few-shot learning,Multi-task learning,Remote sensing,Self-supervised learning,Transfer learning,Unsupervised domain adaptation}
+    \keyw{Domain shift,Few-shot learning,Multi-task learning,Remote
+  sensing,Self-supervised learning,Transfer learning,Unsupervised domain
+  adaptation}
     \strng{namehash}{MY+1}
     \strng{fullhash}{MYCSESLDB1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    Machine learning (ML) has proven to be a powerful tool for utilizing the rapidly increasing amounts of remote sensing data for environmental monitoring. Yet ML models often require a substantial amount of ground truth labels for training, and models trained using labeled data from one domain often demonstrate poor performance when directly applied to other domains. Transfer learning (TL) has emerged as a promising strategy to address domain shift and alleviate the need for labeled data. Here we provide the first systematic review of TL studies in environmental remote sensing. We start by defining the different forms of domain shift and then describe five commonly used TL techniques. We then present the results of a systematic search for peer-reviewed articles published between 2017 and 2022, which identified 1676 papers. Applications of TL in remote sensing have increased rapidly, with nearly 10 times more publications in 2022 than in 2017. Across seven categories of applications (land cover mapping, vegetation monitoring, soil property estimation, crop yield prediction, biodiversity monitoring, water resources management, and natural disaster management) we identify several recent successes of TL as well as some remaining research gaps. Finally, we highlight the need to organize benchmark datasets explicitly for TL in remote sensing for model evaluation. We also discuss potential research directions for TL studies in environmental remote sensing, such as realizing scale transfer, improving model interpretability, and leveraging foundation models for remote sensing tasks.%
+    Machine learning (ML) has proven to be a powerful tool for utilizing the
+  rapidly increasing amounts of remote sensing data for environmental
+  monitoring. Yet ML models often require a substantial amount of ground truth
+  labels for training, and models trained using labeled data from one domain
+  often demonstrate poor performance when directly applied to other domains.
+  Transfer learning (TL) has emerged as a promising strategy to address domain
+  shift and alleviate the need for labeled data. Here we provide the first
+  systematic review of TL studies in environmental remote sensing. We start by
+  defining the different forms of domain shift and then describe five commonly
+  used TL techniques. We then present the results of a systematic search for
+  peer-reviewed articles published between 2017 and 2022, which identified 1676
+  papers. Applications of TL in remote sensing have increased rapidly, with
+  nearly 10 times more publications in 2022 than in 2017. Across seven
+  categories of applications (land cover mapping, vegetation monitoring, soil
+  property estimation, crop yield prediction, biodiversity monitoring, water
+  resources management, and natural disaster management) we identify several
+  recent successes of TL as well as some remaining research gaps. Finally, we
+  highlight the need to organize benchmark datasets explicitly for TL in remote
+  sensing for model evaluation. We also discuss potential research directions
+  for TL studies in environmental remote sensing, such as realizing scale
+  transfer, improving model interpretability, and leveraging foundation models
+  for remote sensing tasks.%
     }
     \verb{doi}
     \verb 10.1016/j.rse.2023.113924
@@ -1663,7 +2146,7 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{yosinskiHowTransferableAre2014}{misc}{}{}
+  \entry{yosinskiHowTransferableAre2014}{misc}{}
     \name{author}{4}{}{%
       {{hash=YJ}{%
          family={Yosinski},
@@ -1693,13 +2176,35 @@
     \list{publisher}{1}{%
       {arXiv}%
     }
-    \keyw{Computer Science - Machine Learning,Computer Science - Neural and Evolutionary Computing}
+    \keyw{Computer Science - Machine Learning,Computer Science - Neural and
+  Evolutionary Computing}
     \strng{namehash}{YJ+1}
     \strng{fullhash}{YJCJBYLH1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    Many deep neural networks trained on natural images exhibit a curious phenomenon in common: on the first layer they learn features similar to Gabor filters and color blobs. Such first-layer features appear not to be specific to a particular dataset or task, but general in that they are applicable to many datasets and tasks. Features must eventually transition from general to specific by the last layer of the network, but this transition has not been studied extensively. In this paper we experimentally quantify the generality versus specificity of neurons in each layer of a deep convolutional neural network and report a few surprising results. Transferability is negatively affected by two distinct issues: (1) the specialization of higher layer neurons to their original task at the expense of performance on the target task, which was expected, and (2) optimization difficulties related to splitting networks between co-adapted neurons, which was not expected. In an example network trained on ImageNet, we demonstrate that either of these two issues may dominate, depending on whether features are transferred from the bottom, middle, or top of the network. We also document that the transferability of features decreases as the distance between the base task and target task increases, but that transferring features even from distant tasks can be better than using random features. A final surprising result is that initializing a network with transferred features from almost any number of layers can produce a boost to generalization that lingers even after fine-tuning to the target dataset.%
+    Many deep neural networks trained on natural images exhibit a curious
+  phenomenon in common: on the first layer they learn features similar to Gabor
+  filters and color blobs. Such first-layer features appear not to be specific
+  to a particular dataset or task, but general in that they are applicable to
+  many datasets and tasks. Features must eventually transition from general to
+  specific by the last layer of the network, but this transition has not been
+  studied extensively. In this paper we experimentally quantify the generality
+  versus specificity of neurons in each layer of a deep convolutional neural
+  network and report a few surprising results. Transferability is negatively
+  affected by two distinct issues: (1) the specialization of higher layer
+  neurons to their original task at the expense of performance on the target
+  task, which was expected, and (2) optimization difficulties related to
+  splitting networks between co-adapted neurons, which was not expected. In an
+  example network trained on ImageNet, we demonstrate that either of these two
+  issues may dominate, depending on whether features are transferred from the
+  bottom, middle, or top of the network. We also document that the
+  transferability of features decreases as the distance between the base task
+  and target task increases, but that transferring features even from distant
+  tasks can be better than using random features. A final surprising result is
+  that initializing a network with transferred features from almost any number
+  of layers can produce a boost to generalization that lingers even after
+  fine-tuning to the target dataset.%
     }
     \verb{doi}
     \verb 10.48550/arXiv.1411.1792
@@ -1723,7 +2228,78 @@
     \field{urlyear}{2025}
   \endentry
 
-  \entry{gondaraMedicalImageDenoising2016}{inproceedings}{}{}
+  \entry{liangRemoteSensingImage2018}{article}{}
+    \name{author}{3}{}{%
+      {{hash=LP}{%
+         family={Liang},
+         familyi={L\bibinitperiod},
+         given={Peng},
+         giveni={P\bibinitperiod},
+      }}%
+      {{hash=SW}{%
+         family={Shi},
+         familyi={S\bibinitperiod},
+         given={Wenzhong},
+         giveni={W\bibinitperiod},
+      }}%
+      {{hash=ZX}{%
+         family={Zhang},
+         familyi={Z\bibinitperiod},
+         given={Xiaokang},
+         giveni={X\bibinitperiod},
+      }}%
+    }
+    \list{publisher}{1}{%
+      {Multidisciplinary Digital Publishing Institute}%
+    }
+    \keyw{Back Propagation neural network,deep learning,land cover
+  classification,stacked denoising autoencoder}
+    \strng{namehash}{LPSWZX1}
+    \strng{fullhash}{LPSWZX1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{title}
+    \field{abstract}{%
+    Focused on the issue that conventional remote sensing image classification
+  methods have run into the bottlenecks in accuracy, a new remote sensing image
+  classification method inspired by deep learning is proposed, which is based
+  on Stacked Denoising Autoencoder. First, the deep network model is built
+  through the stacked layers of Denoising Autoencoder. Then, with noised input,
+  the unsupervised Greedy layer-wise training algorithm is used to train each
+  layer in turn for more robust expressing, characteristics are obtained in
+  supervised learning by Back Propagation (BP) neural network, and the whole
+  network is optimized by error back propagation. Finally, Gaofen-1 satellite
+  (GF-1) remote sensing data are used for evaluation, and the total accuracy
+  and kappa accuracy reach 95.7\% and 0.955, respectively, which are higher
+  than that of the Support Vector Machine and Back Propagation neural network.
+  The experiment results show that the proposed method can effectively improve
+  the accuracy of remote sensing image classification.%
+    }
+    \verb{doi}
+    \verb 10.3390/rs10010016
+    \endverb
+    \field{issn}{2072-4292}
+    \field{number}{1}
+    \field{pages}{16}
+    \field{title}{Remote {{Sensing Image Classification Based}} on {{Stacked
+  Denoising Autoencoder}}}
+    \field{volume}{10}
+    \field{langid}{english}
+    \verb{file}
+    \verb /Users/dak/Zotero/storage/M6VH49AA/Liang et al. - 2018 - Remote Sensi
+    \verb ng Image Classification Based on Stack.pdf
+    \endverb
+    \field{journaltitle}{Remote Sensing}
+    \field{annotation}{%
+    59 citations (Crossref) [2025-01-20]%
+    }
+    \field{month}{01}
+    \field{year}{2018}
+    \field{urlday}{20}
+    \field{urlmonth}{01}
+    \field{urlyear}{2025}
+  \endentry
+
+  \entry{gondaraMedicalImageDenoising2016}{inproceedings}{}
     \name{author}{1}{}{%
       {{hash=GL}{%
          family={Gondara},
@@ -1732,21 +2308,35 @@
          giveni={L\bibinitperiod},
       }}%
     }
-    \keyw{Biomedical imaging,convolutional autoencoder,Convolutional codes,denoising autoencoder,Image denoising,Noise level,Noise measurement,Noise reduction,Training}
+    \keyw{Biomedical imaging,convolutional autoencoder,Convolutional
+  codes,denoising autoencoder,Image denoising,Noise level,Noise
+  measurement,Noise reduction,Training}
     \strng{namehash}{GL1}
     \strng{fullhash}{GL1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    Image denoising is an important pre-processing step in medical image analysis. Different algorithms have been proposed in past three decades with varying denoising performances. More recently, having outperformed all conventional methods, deep learning based models have shown a great promise. These methods are however limited for requirement of large training sample size and high computational costs. In this paper we show that using small sample size, denoising autoencoders constructed using convolutional layers can be used for efficient denoising of medical images. Heterogeneous images can be combined to boost sample size for increased denoising performance. Simplest of networks can reconstruct images with corruption levels so high that noise and signal are not differentiable to human eye.%
+    Image denoising is an important pre-processing step in medical image
+  analysis. Different algorithms have been proposed in past three decades with
+  varying denoising performances. More recently, having outperformed all
+  conventional methods, deep learning based models have shown a great promise.
+  These methods are however limited for requirement of large training sample
+  size and high computational costs. In this paper we show that using small
+  sample size, denoising autoencoders constructed using convolutional layers
+  can be used for efficient denoising of medical images. Heterogeneous images
+  can be combined to boost sample size for increased denoising performance.
+  Simplest of networks can reconstruct images with corruption levels so high
+  that noise and signal are not differentiable to human eye.%
     }
-    \field{booktitle}{2016 {{IEEE}} 16th {{International Conference}} on {{Data Mining Workshops}} ({{ICDMW}})}
+    \field{booktitle}{2016 {{IEEE}} 16th {{International Conference}} on {{Data
+  Mining Workshops}} ({{ICDMW}})}
     \verb{doi}
     \verb 10.1109/ICDMW.2016.0041
     \endverb
     \field{issn}{2375-9259}
     \field{pages}{241\bibrangedash 246}
-    \field{title}{Medical {{Image Denoising Using Convolutional Denoising Autoencoders}}}
+    \field{title}{Medical {{Image Denoising Using Convolutional Denoising
+  Autoencoders}}}
     \verb{file}
     \verb /Users/dak/Zotero/storage/8S2P7Z7V/Gondara - 2016 - Medical Image Den
     \verb oising Using Convolutional Denois.pdf;/Users/dak/Zotero/storage/Z6HD9
@@ -1762,7 +2352,7 @@
     \field{urlyear}{2025}
   \endentry
 
-  \entry{vincentExtractingComposingRobust2008}{inproceedings}{}{}
+  \entry{vincentExtractingComposingRobust2008}{inproceedings}{}
     \name{author}{4}{}{%
       {{hash=VP}{%
          family={Vincent},
@@ -1797,16 +2387,29 @@
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{abstract}{%
-    Previous work has shown that the difficulties in learning deep generative or discriminative models can be overcome by an initial unsupervised learning step that maps inputs to useful intermediate representations. We introduce and motivate a new training principle for unsupervised learning of a representation based on the idea of making the learned representations robust to partial corruption of the input pattern. This approach can be used to train autoencoders, and these denoising autoencoders can be stacked to initialize deep architectures. The algorithm can be motivated from a manifold learning and information theoretic perspective or from a generative model perspective. Comparative experiments clearly show the surprising advantage of corrupting the input of autoencoders on a pattern classification benchmark suite.%
+    Previous work has shown that the difficulties in learning deep generative
+  or discriminative models can be overcome by an initial unsupervised learning
+  step that maps inputs to useful intermediate representations. We introduce
+  and motivate a new training principle for unsupervised learning of a
+  representation based on the idea of making the learned representations robust
+  to partial corruption of the input pattern. This approach can be used to
+  train autoencoders, and these denoising autoencoders can be stacked to
+  initialize deep architectures. The algorithm can be motivated from a manifold
+  learning and information theoretic perspective or from a generative model
+  perspective. Comparative experiments clearly show the surprising advantage of
+  corrupting the input of autoencoders on a pattern classification benchmark
+  suite.%
     }
-    \field{booktitle}{Proceedings of the 25th International Conference on {{Machine}} Learning}
+    \field{booktitle}{Proceedings of the 25th International Conference on
+  {{Machine}} Learning}
     \verb{doi}
     \verb 10.1145/1390156.1390294
     \endverb
     \field{isbn}{978-1-60558-205-4}
     \field{pages}{1096\bibrangedash 1103}
     \field{series}{{{ICML}} '08}
-    \field{title}{Extracting and Composing Robust Features with Denoising Autoencoders}
+    \field{title}{Extracting and Composing Robust Features with Denoising
+  Autoencoders}
     \list{location}{1}{%
       {New York, NY, USA}%
     }
