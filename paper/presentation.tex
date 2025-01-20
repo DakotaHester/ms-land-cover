@@ -1,4 +1,4 @@
-\documentclass[aspectratio=169, hideothersubsections, handout]{beamer}
+\documentclass[aspectratio=169, hideothersubsections]{beamer}
 
 \usepackage[backend=bibtex, sorting=none, style=numeric-comp]{biblatex}
 \addbibresource{bibliography_pres}
@@ -80,7 +80,7 @@
 
 \subsection{A gentle overview of LULC classification}
 
-\begin{frame}{Land use and land cover (LULC)}
+\begin{frame}{Land Use and Land Cover (LULC)}
     \begin{columns}
         \begin{column}{0.5\textwidth}
             \small
@@ -111,7 +111,7 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Pixel-wise classification}
+\begin{frame}{Pixel-wise Classification}
     \begin{itemize}
         \item<1-> Traditional classifiers usually operate by transforming a feature vector into output class probabilities for a given pixel.
         \item<2-> Common data sources include:
@@ -124,22 +124,22 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Pixel-wise classification}
+\begin{frame}{Pixel-wise Classification}
     \begin{figure}
         \centering
         \includegraphics[width=0.8\textwidth]{images/pixelwise_classification.png}
-        \caption{Pixel-wise classification workflow}
+        \caption{Pixel-wise classification workflow.}
     \end{figure}
 \end{frame}
 
 \subsection{Challenges of high spatial resolution data}
 
-\begin{frame}{Land cover at very high spatial resolution}
+\begin{frame}{Land Cover at High Spatial Resolution}
     \begin{figure}
         \centering
         \includegraphics[width=0.49\linewidth]{images/lc_res_compare/30m_LCMap_Wimauma_FL.png}
         \includegraphics[width=0.49\linewidth]{images/lc_res_compare/1m_LCMap_Wimauma_FL.png}
-        \caption{Comparison of land cover maps at 30 m (left) and 1 m (right) spatial resolution}\label{fig:lc_res_compare}
+        \caption{Comparison of land cover maps at 30 m (left) and 1 m (right) spatial resolution.}\label{fig:lc_res_compare}
     \end{figure}
 \end{frame}
 
@@ -203,7 +203,7 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Spatial Feature Extraction through Convolution}
+\begin{frame}{Spatial Feature Extraction}
     \begin{itemize}
         \item<1-> Convolutional filters emphasize local spatial patterns images.
         \item<2-> A small filter moves across input imagery, performing a dot product with the input regions it covers at each location.
@@ -290,7 +290,7 @@
 
 
 
-\begin{frame}{Our goal}
+\begin{frame}{Our Goal}
     \begin{itemize}
         \item<1-> Our overarching goal is to develop a 1m resolution land cover map that covers the entire state of Mississippi with a high degree of accuracy.
         \item<2-> Data annotation is expensive and time-consuming, so the main focus of our work is devising a creative pre-training strategy that combines self-supervised pretraining with a supervised fine-tuning stage to reduce the amount of labeled data required for training a deep model.
@@ -377,7 +377,7 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}
+\begin{frame}{Pre-training Stages}
     \begin{figure}
         \centering
         \includegraphics[width=\textwidth]{images/MSFT_stages.png}
@@ -391,27 +391,27 @@
 \begin{frame}{Pre-training Strategies}
 % \begin{itemize}
     Pre-training with a denoising autoencoder improved the performance of the model under the 2-stage pre-training strategy.
-    \vspace{-0.3cm}
+    \vspace{-0.2cm}
     \begin{figure}
         \centering
         \includegraphics[width=0.8\textwidth]{images/charts/s2_metrics.png}
         % \vspace*{-0.3cm}
         \caption{Performance of models on the Mississippi land cover dataset.} % TODO: Add caption
-        \label{fig:lulc_example}
+        \label{fig:s2_metrics}
     \end{figure}
     % \end{itemize}
 \end{frame}
 
 \begin{frame}{Pre-training Strategies}
     % \begin{itemize}
-    Pre-training with a denoising autoencoder improved the performance of the model under the 2-stage pre-training strategy.
-    \vspace{-0.3cm}
+    An additional fully supervised pre-training stage substantially improves the performance of the model.
+    \vspace{-0.2cm}
     \begin{figure}
         \centering
-        \includegraphics[width=0.8\textwidth]{images/charts/s2_metrics.png}
+        \includegraphics[width=0.8\textheight]{images/charts/dae_s1_vs_s1.png}
         % \vspace*{-0.3cm}
-        \caption{Performance of models on the Mississippi land cover dataset.} % TODO: Add caption
-        \label{fig:lulc_example}
+        \caption{Performance of the best model with and without additional supervised pre-training.} % TODO: Add caption
+        \label{fig:s1_metrics}
     \end{figure}
     % \end{itemize}
 \end{frame}
@@ -419,7 +419,8 @@
 \begin{frame}{Confusion Matrix}
     \begin{figure}
         \centering
-        \includegraphics[width=0.8\textwidth]{images/confusion_matrix.png}
+        \vspace{-0.2cm}
+        \includegraphics[width=0.6\textwidth]{images/confusion_matrix.png}
         \caption{Confusion matrix of the final model on the Mississippi land cover dataset.} % TODO: Add caption
         \label{fig:confusion_matrix}
     \end{figure}
