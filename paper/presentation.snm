@@ -5,9 +5,9 @@
 \beamer@slide {fig:noisy_lc}{31}
 \beamer@slide {fig:convolution}{47}
 \beamer@slide {fig:resnet18}{51}
-\beamer@slide {fig:transfer_learning}{61}
-\beamer@slide {fig:lulc_example}{102}
-\beamer@slide {fig:s2_metrics}{104}
-\beamer@slide {fig:s1_metrics}{105}
-\beamer@slide {fig:confusion_matrix}{106}
-\beamer@slide {fig:lulc_example}{107}
+\beamer@slide {fig:transfer_learning}{62}
+\beamer@slide {fig:training_flowchart}{79}
+\beamer@slide {fig:s2_metrics}{97}
+\beamer@slide {fig:s1_metrics}{98}
+\beamer@slide {fig:confusion_matrix}{99}
+\beamer@slide {fig:warren_co_lc}{100}
