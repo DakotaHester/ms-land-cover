@@ -1,0 +1,70 @@
+This is BibTeX, Version 0.99d
+Capacity: max_strings=200000, hash_size=200000, hash_prime=170003
+The top-level auxiliary file: presentation.aux
+Reallocating 'name_of_file' (item size: 1) to 9 items.
+The style file: biblatex.bst
+Reallocating 'name_of_file' (item size: 1) to 17 items.
+Reallocating 'name_of_file' (item size: 1) to 18 items.
+Reallocating 'glb_str_end' (item size: 4) to 20 items.
+Reallocating 'glb_str_ptr' (item size: 4) to 20 items.
+Reallocating 'global_strs' (item size: 1) to 4000000 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Reallocating 'wiz_functions' (item size: 4) to 6000 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Reallocating 'field_info' (item size: 4) to 10040 items.
+Database file #1: presentation-blx.bib
+Database file #2: bibliography_pres.bib
+Biblatex version: 3.18
+Reallocating 'wiz_functions' (item size: 4) to 9000 items.
+Reallocating 'singl_function' (item size: 4) to 100 items.
+Reallocating 'str_pool' (item size: 1) to 130000 items.
+You've used 36 entries,
+            6399 wiz_defined-function locations,
+            1616 strings with 63167 characters,
+and the built_in function-call counts, 418226 in all, are:
+= -- 32798
+> -- 12372
+< -- 1511
++ -- 18520
+- -- 8741
+* -- 28488
+:= -- 52650
+add.period$ -- 0
+call.type$ -- 36
+change.case$ -- 567
+chr.to.int$ -- 918
+cite$ -- 70
+duplicate$ -- 40311
+empty$ -- 33540
+format.name$ -- 2738
+if$ -- 76776
+int.to.chr$ -- 0
+int.to.str$ -- 89
+missing$ -- 0
+newline$ -- 1883
+num.names$ -- 1694
+pop$ -- 13031
+preamble$ -- 1
+purify$ -- 876
+quote$ -- 0
+skip$ -- 7386
+stack$ -- 0
+substring$ -- 65266
+swap$ -- 7837
+text.length$ -- 1151
+text.prefix$ -- 3
+top$ -- 1
+type$ -- 1212
+warning$ -- 0
+while$ -- 5912
+width$ -- 0
+write$ -- 1848

@@ -118,7 +118,7 @@
         \begin{itemize}
             \item<3-> Surface reflectance data
             \item<4-> Derived spectral indices (i.e., NDVI, EVI, NDWI, etc.)
-            \item<5-> Ancillary information (i.e., topograhy, soil, etc) \cite{kavzogluEffectsAuxiliaryAncillary2023,wulderLandCover2018}
+            \item<5-> Ancillary information (i.e., topography, soil, etc) \cite{kavzogluEffectsAuxiliaryAncillary2023,wulderLandCover2018}
         \end{itemize}
         \item<6-> Non-parametric, supervised classifiers are often used (e.g., Decision Trees, Random Forests, Support Vector Machines, etc.) \cite{gislasonRandomForestsLand2006,gislasonRandomForestsLand2006,bakerAdvancesClassificationLand1991}.
     \end{itemize}
@@ -221,7 +221,7 @@
     \end{figure}
 \end{frame}
 
-\begin{frame}{Convolutional Neural Networks}
+\begin{frame}{Convolutional Neural Networks (CNNs)}
     \begin{itemize}
         \item<1-> Multiple convolutional filters can be applied to an input to extract feature maps that highlight different spatial patterns.
         \item<2-> These feature maps can then be passed to more convolutional filters to extract more complex patterns.
@@ -229,7 +229,7 @@
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Convolutional Neural Networks}
+\begin{frame}{Convolutional Neural Networks (CNNs)}
     \begin{figure}
         \centering
         \includegraphics[width=0.8\textwidth]{images/resnet18.pdf}
@@ -241,8 +241,8 @@
 
 \begin{frame}{Semantic Segmentation}
     \begin{itemize}
-        \item<1-> An naive approach to land cover classification would be to assign a single label to each tile that is passed through a CNN, where this label represents the dominant land cover class in the tile \cite{marmanisDeepLearningEarth2016,scottTrainingDeepConvolutional2017,songPatchBasedLightConvolutional2019}.
-        \item<2-> However, the feature maps learned by the CNN inherently \alert{spatially structured}, and these feature maps can be leveraged to produce dense, pixel-wise classification maps through a process called \alert{semantic segmentation}.
+        \item<1-> A naive approach to land cover classification would be to assign a single label to each tile that is passed through a CNN, where this label represents the dominant land cover class in the tile \cite{marmanisDeepLearningEarth2016,scottTrainingDeepConvolutional2017,songPatchBasedLightConvolutional2019}.
+        \item<2-> However, feature maps learned by a CNN are inherently \alert{spatially structured}, and these feature maps can be leveraged to produce dense, pixel-wise classification maps through a process called \alert{semantic segmentation}.
     \end{itemize}
 \end{frame}
 
@@ -250,7 +250,7 @@
     \begin{itemize}
         \item<1-> In an encoder-decoder architecture, an \alert{encoder} CNN extracts features from the input such that a \alert{decoder} network can upsample the features to the original input resolution \cite{longFullyConvolutionalNetworks2015}.
         \item<2-> The decoder network learns to generate a pixel-wise classification map from the features extracted by the encoder.
-        \item<3-> The most popular encoder-decoder network Architecture is U-Net\cite{ronnebergerUNetConvolutionalNetworks2015d}.
+        \item<3-> The most popular encoder-decoder network architecture is U-Net\cite{ronnebergerUNetConvolutionalNetworks2015d}.
     \end{itemize}
 \end{frame}
 
@@ -266,8 +266,8 @@
     \begin{itemize}
         \item<1-> While deep learning networks are powerful, their primary drawback is the amount of data required to train them.
         \item<2-> For example, ResNet-50, a popular CNN architecture, has over 25,000,000 parameters that need to be learned \cite{heDeepResidualLearning2015b}.
-        \item<2-> For land cover, this is especially problematic, as high resolution data is complex and difficult to annotate at scale \cite{maTransferLearningEnvironmental2024}.
-        \item<3-> One approach to mitigate this issue is to use \alert{transfer learning}, where a network can be \alert{pre-trained} on a related task with a large amount of data, then \alert{fine-tuned} on the target task with a smaller amount of data \cite{yosinskiHowTransferableAre2014}.
+        \item<3-> For land cover, this is especially problematic, as high resolution data is complex and difficult to annotate at scale \cite{maTransferLearningEnvironmental2024}.
+        \item<4-> One approach to mitigate this issue is to use \alert{transfer learning}, where a network can be \alert{pre-trained} on a related task with a large amount of data, then \alert{fine-tuned} on the target task with a smaller amount of data \cite{yosinskiHowTransferableAre2014}.
     \end{itemize}
 \end{frame}
 
@@ -293,8 +293,9 @@
 \begin{frame}{Our Goal}
     \begin{itemize}
         \item<1-> Our overarching goal is to develop a 1m resolution land cover map that covers the entire state of Mississippi with a high degree of accuracy.
-        \item<2-> Data annotation is expensive and time-consuming, so the main focus of our work is devising a creative pre-training strategy that combines self-supervised pretraining with a supervised fine-tuning stage to reduce the amount of labeled data required for training a deep model.
+        \item<2-> Data annotation is expensive and time-consuming, so the main focus of our work is to devise a creative pre-training strategy that combines self-supervised pre-training with a supervised fine-tuning stage to reduce the amount of labeled data required for training a deep model.
         \item<3-> We construct a large U-Net model that undergoes various pre-training regimens, then fine-tune the model on only \alert{119} tiles of fully annotated data from the state of Mississippi.
+        \item<4-> Transfer learning is not an uncommon approach, but self-supervised pre-training is not common in the remote sensing community --- especially in the context of land cover classification. As such, we are most interested in the performance of our self-supervised model.
     \end{itemize}
 \end{frame}
 
@@ -312,14 +313,21 @@
 
 \begin{frame}{Training Strategy}
     \begin{itemize}
-        \item<1-> We want to evaluate how effective a large-scale unsupervised pre-training stage can be in reducing the amount of labeled data required for training a deep semantic segmentation model.
-        \item<2-> During the first pre-training stage, 3 scenarios will be evaluated: a model pre-trained on Imagenet, a model pre-trained using a denoising autoencoder, and a randomly initialized model.
-        \item<3-> The implications of an additional stage of pre-training will also be evaluated. Under this scenario, a much smaller dataset of fully labelled data will be used to further pre-train the model.
-        \item<4-> Finally, the model will be fine-tuned on a very small dataset of fully labelled data from the state of Mississippi.
-        \item<5-> The performance of the model will be evaluated on a separate test set of fully labelled data from the state of Mississippi.
+        \item<1-> The ResNet-152 model has already been pre-trained on ImageNet, a large corpus of ``natural'' images.
+        \item<2-> We append a lightweight decoder network to the ResNet-152 encoder to form a denoising autoencoder. Training is performed using unannotated data over the state of Mississippi.
+        \item<3-> We then place the encoder in a U-Net architecture and train the network on a moderate amount of labeled data from another region where high-resolution data is available.
+        \item<4-> Finally, the U-Net is fine-tuned on our limited amount of labeled data from Mississippi.
     \end{itemize}
 \end{frame}
 
+\begin{frame}{Training Strategy}
+    \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{images/MSFT_stages.png}
+        \caption{Model training flowchart.} % TODO: Add caption
+        \label{fig:training_flowchart}
+    \end{figure}
+\end{frame}
 
 
 \subsection{Data Sources}
@@ -328,12 +336,12 @@
     \begin{itemize}
         \item<1-> USDA NAIP imagery covers CONUS with 3-year revisit cycle at 0.6 m spatial resolution.
         \item<2-> NAIP imagery is available in 4 spectral bands (RGB + NIR).
-        \item<3-> Our study uses 2023 NAIP imagery over Mississippi clipped
+        \item<3-> Our study uses 2023 NAIP imagery over Mississippi
         \begin{itemize}
             \item<4-> Color infrared composites (Red, Green, and NIR bands) resampled to 1m spatial resolution
             \item<5-> Imagery is clipped into tiles of 256x256 pixels
-            \item<6-> 20\% of images places in pretraining set, and 5\% in pretraining validation set (377,913 and 94,480 tiles, respectively)
-            \item<7-> For fine-tuning, 250 tiles total were selected to be labelled (119 in training set, 61 in validation set, and 70 in test set)
+            \item<6-> 20\% of tiles are placed in the pre-training set, while 5\% in pre-training validation set (377,913 and 94,480 tiles, respectively)
+            \item<7-> For fine-tuning, 250 tiles total were selected to be labeled (119 in training set, 61 in validation set, and 70 in test set)
         \end{itemize}
     \end{itemize}
 \end{frame}
@@ -348,43 +356,14 @@
         \end{itemize}
         \item<5-> Why not directly apply these tiles to the fine-tuning stage?
         \begin{itemize}
-            \item<6-> The land cover legend is for Chesapeake Bay --- for examnple, it lacks a Cultivated Crops class.
+            \item<6-> The land cover legend differs from our desired classification scheme.
             \item<7-> High resolution ancillary canopy height data was used to construct the data, which we do not have for Mississippi.
             \item<8-> Generalization of the model to Mississippi is not guaranteed with data from Chesapeake Bay Watershed. 
         \end{itemize}
-        \item<9-> 10,220 tiles used for training and 5,110 used for validation.
+        \item<9-> 10,220 tiles used for training and 5,110 for validation.
     \end{itemize}
 \end{frame}
 
-\subsection{Pretraining}
-
-\begin{frame}{Our Denoising Autoencoder}
-    \begin{itemize}
-        \item<1-> Our encoder network of choice is a ResNet-152 architecture.
-        \item<2-> For the Denoising Autoencoder, we extract feature maps produced by each of the four stages of the encoder network, resample these to the oringal input size, concatenate them, and pass them through a single convolutional 1 \(\times\) 1 convolutional layer to produce the input reconstruction.
-        \item<3-> While the shallow decoder network inhibits the ability of the network to produce high quality reconstructions, it helps ensure that the encoder learns to extract features.
-        \item<4-> To speed up training, our encoder network has been pre-trained on ImageNet, a large corpus of ``natural'' images.
-        \item<5-> To evaluate the efficacy of this stage, we compare the performance of our self-supervised model to one that has been only been pre-trained using ImageNet as well as a randomly initialized model.
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{Fully Supervised Pre-training Stage}
-    \begin{itemize}
-        \item<1-> Once the encoder has been trained, we place it in a U-Net architecture and train the network on the Fairfax County land cover data.
-        \item<2-> One important note is that we have the option to \alert{freeze} the encoder during this stage. In doing so, we can reduce the amount of data required to train the full network, but lose the some ability to learn a more task-specific feature representation.
-        \item<3-> In our case, we found that there was enough data in the Fairfax County dataset to train the full network without freezing the encoder parameters.
-        % \item<3-> In addition to our prior baselines in the pre-training stage, we also compare the performance of our final network against models that have not undergonme this second stage of pre-training, as well as evalutate the effects of freezing the encoder layers.
-    \end{itemize}
-\end{frame}
-
-\begin{frame}{Pre-training Stages}
-    \begin{figure}
-        \centering
-        \includegraphics[width=\textwidth]{images/MSFT_stages.png}
-        \caption{Model training flowchart.} % TODO: Add caption
-        \label{fig:lulc_example}
-    \end{figure}
-\end{frame}
 
 \section{Results}
 
@@ -394,7 +373,7 @@
     \vspace{-0.2cm}
     \begin{figure}
         \centering
-        \includegraphics[width=0.8\textwidth]{images/charts/s2_metrics.png}
+        \includegraphics[width=0.7\textwidth]{images/charts/s2_metrics.png}
         % \vspace*{-0.3cm}
         \caption{Performance of models on the Mississippi land cover dataset.} % TODO: Add caption
         \label{fig:s2_metrics}
@@ -408,7 +387,7 @@
     \vspace{-0.2cm}
     \begin{figure}
         \centering
-        \includegraphics[width=0.8\textheight]{images/charts/dae_s1_vs_s1.png}
+        \includegraphics[width=0.7\textheight]{images/charts/dae_s1_vs_s1.png}
         % \vspace*{-0.3cm}
         \caption{Performance of the best model with and without additional supervised pre-training.} % TODO: Add caption
         \label{fig:s1_metrics}
@@ -429,9 +408,9 @@
 \begin{frame}{Warren County Land Cover}
     \begin{figure}
         \centering
-        \includegraphics[width=\textwidth]{images/AGOL_Warren.png}
+        \includegraphics[width=0.9\textwidth]{images/AGOL_Warren.png}
         \caption{\href{https://msstate.maps.arcgis.com/apps/instant/atlas/index.html?appid=717b2cec62f74bb68935b5673bdb3d7c}{Warren County Land Cover Map}.} % TODO: Add caption
-        \label{fig:lulc_example}
+        \label{fig:warren_co_lc}
     \end{figure}
 \end{frame}
 
@@ -439,7 +418,7 @@
 
 \begin{frame}{Summary}
     \begin{itemize}
-        \item<1-> Large scale pre-training of a deep model using an unsupervised regimen can enable the training of an over-paramaterized deep model on a small amount of labeled data.
+        \item<1-> Large scale pre-training of a deep model using an unsupervised regimen can enable the training of an over-parameterized deep model on a small amount of labeled data.
         \item<2-> Further, additional pre-training using a modest amount of labeled data can boost the performance of the model even further.
         \item<3-> Still, classifying more visually intricate land cover classes remains a challenge, even with a large model.
     \end{itemize}
@@ -483,7 +462,7 @@
 
 \section*{}
 \begin{frame}[allowframebreaks]{References}
-    \printbibliography\
+    \printbibliography
 \end{frame}
 
 \end{document} 
