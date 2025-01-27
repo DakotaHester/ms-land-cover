@@ -1,0 +1,10 @@
+\beamer@sectionintoc {1}{Introduction}{3}{0}{1}
+\beamer@sectionintoc {2}{Background}{15}{0}{2}
+\beamer@subsectionintoc {2}{1}{A gentle overview of LULC classification}{16}{0}{2}
+\beamer@subsectionintoc {2}{2}{Challenges of high spatial resolution data}{29}{0}{2}
+\beamer@subsectionintoc {2}{3}{Deep learning methods}{38}{0}{2}
+\beamer@sectionintoc {3}{Methodology}{71}{0}{3}
+\beamer@subsectionintoc {3}{1}{Model Configuration}{72}{0}{3}
+\beamer@subsectionintoc {3}{2}{Data Sources}{80}{0}{3}
+\beamer@sectionintoc {4}{Results}{96}{0}{4}
+\beamer@sectionintoc {5}{Conclusion}{101}{0}{5}
