@@ -1,6 +1,6 @@
 from functools import partial
 from threading import Lock
-from time import time
+from time import sleep, time
 from warnings import warn
 import pandas as pd
 import torch
@@ -10,25 +10,26 @@ import rasterio as rio
 from rasterio.mask import geometry_mask, mask
 from rasterio.features import shapes, rasterize
 from rasterio.io import MemoryFile
-from multiprocessing import cpu_count, shared_memory
+from multiprocessing import Pool, cpu_count, shared_memory
 import os
 import numpy as np
 import cv2 as cv
 from concurrent.futures import ThreadPoolExecutor
-from skimage.segmentation import quickshift
+from skimage.segmentation import quickshift, felzenszwalb
 from tqdm import tqdm
 
 
-from src.mslandcover.inference import GPURasterProcessor, compute_segment_means, parallel_quickshift
+from src.mslandcover.inference import GPURasterProcessor, compute_segment_means, process_batch
 from src.mslandcover.models import UNet
 from src.mslandcover.config import MSTM_PROJ4, HRNET_W18_CONFIG, LEGEND_COLORS_RGBA, LEGEND_CLASSES
 from src.mslandcover.utils import load_pth, get_torch_device, Logger
 
 # if land cover probabilities are already computed, set this to True to skip inference
-SKIP_INFERENCE = True
+SKIP_INFERENCE = False
+SKIP_POSTPROCESSING = True
 
-def main():
-    
+
+def main():    
     model_weights_path = './weights/multistage_finetuning_stage2/dae/s1_full_train/s2_decoder_train/best_model.pth'
     # model_weights_path = './weights/multistage_unet/best_model.pth'
     
@@ -77,7 +78,7 @@ def main():
     else:
         bounding_polygons = [shapely.geometry.Polygon(polygon.exterior) for polygon in county_geom.geoms]
     
-    out_path = f'./data/inference_results/{county_fp_code}'
+    out_path = f'./data/inference_results/MS/{county_fp_code}'
     # use whole state for now
     # bounding_polygons = [ms_counties_gdf.unary_union]
     
@@ -92,9 +93,9 @@ def main():
     processor = GPURasterProcessor(
         model=model,
         tile_size=256,
-        stride=32,
-        gaussian_sigma=192,
-        batch_size=64,
+        stride=64,
+        gaussian_sigma=128,
+        batch_size=128,
         mean=load_pth('./weights/pretrain_mean.pth'),
         std=load_pth('./weights/pretrain_std.pth'),
         device=device,
@@ -104,8 +105,10 @@ def main():
     # raster_path = '/Volumes/dhester_ssd/mslc_inf_test/starkville_msu_2023_reduced.tif'
     # raster_path = r"G:\mslc_inf_test\starkville_msu_2023_reduced.tif"
     # raster_path = '/Volumes/dhester_ssd/NAIP_MS_2023/ortho_1-1_hc_s_ms105_2023_1/ortho_1-1_hc_s_ms105_2023_1_1m.tif'
-    raster_path = './data/NAIP_MS/ortho_1-1_hc_s_ms149_2023_1/ortho_1-1_hc_s_ms149_2023_1_1m.tif'
+    # raster_path = './data/NAIP_MS/ortho_1-1_hc_s_ms149_2023_1/ortho_1-1_hc_s_ms149_2023_1_1m.tif'
     # raster_path = r"Z:\guser\dh\NAIP_MS_2023\ortho_1-1_hc_s_ms105_2023_1\ortho_1-1_hc_s_ms105_2023_1_1m.tif"
+    
+    raster_path = f'/home/dhester/server/guser/dh/NAIP_MS_2023/ortho_1-1_hc_s_ms{int(county_fp_code):03}_2023_1/ortho_1-1_hc_s_ms{int(county_fp_code):03}_2023_1_1m.tif'
     with rio.open(raster_path) as src:
         profile = src.profile.copy()
         # raster_data = src.read()
@@ -153,18 +156,28 @@ def main():
     else:
         logger.log('Classifying land cover...')
         lc_classes = lc_probs.argmax(axis=0).astype(rio.uint8) + 1
-        lc_confidence = np.clip((lc_probs.max(axis=0) * 100).astype(rio.uint8), 1, 100)
-        
         lc_classes_profile = profile.copy()
-        lc_classes_profile.update(count=2, dtype=rio.uint8)
-        with rio.open(os.path.join(out_path, 'lc_classes.tif'), 'w', **lc_classes_profile) as dst:
+        lc_classes_profile.update(count=1, dtype=rio.uint8)
+        with rio.open(os.path.join(out_path, 'lc_classes.tif'), 'w', **profile) as dst:
             dst.write(lc_classes, 1)
-            dst.write(lc_confidence, 2)
             dst.write_colormap(1, LEGEND_COLORS_RGBA)
         logger.log(f'Saved land cover classes to {os.path.join(out_path, "lc_classes.tif")}')
+        del lc_classes
+    
+    if SKIP_INFERENCE and os.path.exists(os.path.join(out_path, 'lc_confidence.tif')):
+        logger.log('Land cover confidence already computed. Skipping final classification...')
+    else:
+        logger.log('Computing land cover confidence...')
+        lc_confidence = np.clip((lc_probs.max(axis=0) * 100).astype(rio.uint8), 1, 100)
+        
+        lc_confidence_profile = profile.copy()
+        lc_confidence_profile.update(count=1, dtype=rio.uint8)
+        with rio.open(os.path.join(out_path, 'lc_confidence.tif'), 'w', **lc_confidence_profile) as dst:
+            dst.write(lc_confidence, 1)
         
         # free up memory as lc_classes and lc_confidence are no longer needed
-        del lc_classes, lc_confidence
+        logger.log(f'Saved land cover confidence to {os.path.join(out_path, "lc_confidence.tif")}')
+        del lc_confidence
     
     # now, mask outputs by polygon boundary
     if not SKIP_INFERENCE:
@@ -205,61 +218,73 @@ def main():
                 dst.write(clipped_data)
                 dst.write_colormap(1, LEGEND_COLORS_RGBA)
     
-    features_gdfs = []
+    
+    if SKIP_POSTPROCESSING and os.path.exists(os.path.join(out_path, 'features.gpkg')):
+        logger.log('Features already computed. Skipping post-processing...')
+        return
+    features_dict = {
+        'geometry': [],
+        'predicted_class': [],
+        'confidence': [],
+    }
+    for i in range(1, len(LEGEND_CLASSES)):
+        features_dict[LEGEND_CLASSES[i]] = []
+    
+    # prepare for multiprocessing - global vars are a bad practice I know, but its easier to do this than to work with shared memory
     bounding_mask = geometry_mask(bounding_polygons, out_shape=raster_data.shape[1:], transform=profile['transform'], all_touched=True, invert=True)
-
+    
+    raster_transform = profile['transform']
+    
     # chunk the arrays into 10k x 10k pixel chunks for processing
-    chunk_size = 2500
-    print(raster_data.shape, lc_probs.shape)
-    for i in tqdm(range(0, lc_probs.shape[2], chunk_size), desc='Inferring features', unit='chunks'):
-        for j in range(0, lc_probs.shape[1], chunk_size):
+    chunk_size = 1024
+    # print(raster_data.shape, lc_probs.shape)
+    # with tqdm(total=(lc_probs.shape[2] // chunk_size) * (lc_probs.shape[1] // chunk_size), desc='Post-processing land cover', unit='chunks') as pbar:
+        
+    with Pool(cpu_count()) as pool:
+        active_tasks = []
+        max_concurrent_tasks = cpu_count()
+        features_list = []
+        
+        with tqdm(total=(lc_probs.shape[2] // chunk_size) * (lc_probs.shape[1] // chunk_size), desc='Post-processing land cover', unit='chunks') as pbar:
+            for j in range(0, lc_probs.shape[2], chunk_size):
+                for i in range(0, lc_probs.shape[1], chunk_size):
+                    while len(active_tasks) >= max_concurrent_tasks:
+                        done_tasks = []
+                        for task in active_tasks:
+                            if task.ready():
+                                features_list.extend(task.get())
+                                done_tasks.append(task)
+                                pbar.update(1)
+                        
+                        active_tasks = [task for task in active_tasks if not task in done_tasks]
+                        if len(active_tasks) >= max_concurrent_tasks:
+                            sleep(0.1)
+                            
+                    chunk_args = (
+                        raster_data[:, i:i+chunk_size, j:j+chunk_size],
+                        lc_probs[:, i:i+chunk_size, j:j+chunk_size],
+                        bounding_mask[i:i+chunk_size, j:j+chunk_size],
+                        rio.Affine.translation(j, -i) * raster_transform,
+                    )
+                    active_tasks.append(pool.apply_async(postprocess_batch, chunk_args))
+                    # async_results.append(pool.apply_async(postprocess_batch, chunk_args))
             
-            lc_probs_chunk = lc_probs[:, j:j+chunk_size, i:i+chunk_size]
-            raster_data_chunk = raster_data[:, j:j+chunk_size, i:i+chunk_size]
-            
-            if (raster_data_chunk == 0).all():
-                # logger.log(f'Chunk {i}, {j} is all zeros. Skipping...')
-                continue
-            
-            segments_chunk = parallel_quickshift(raster_data_chunk)
-            class_means_chunk = compute_segment_means(lc_probs_chunk, segments_chunk)
-            
-            chunk_transform = rio.Affine.translation(i, -j) * profile['transform']
-            geoms_chunk = shapes(segments_chunk.astype(np.float64), mask=bounding_mask[j:j+chunk_size, i:i+chunk_size], transform=chunk_transform)
-            geoms_chunk = [(geom, int(id)) for geom, id in geoms_chunk]
-            # print(len(geoms_chunk), len(class_means_chunk.keys()))
-            if len(geoms_chunk) == 0:
-                continue
-            
-            features_dict_chunk = {
-                'geometry': [],
-                'predicted_class': [],
-                'confidence': [],
-            }
-            for k in range(1, len(LEGEND_CLASSES)):
-                features_dict_chunk[LEGEND_CLASSES[k]] = []
-            
-            for k, (g, segment_id) in enumerate(tqdm(geoms_chunk, desc='Compiling features', unit='geometries', leave=False)):
-                
-                if segment_id == 0:
-                    continue
-                
-                if segment_id not in class_means_chunk.keys():
-                    logger.log(f'Segment ID {segment_id} not found in class means! Skipping...')
-                    continue
-                
-                features_dict_chunk['geometry'].append(shapely.geometry.shape(g))
-                probs = class_means_chunk[segment_id]
-                for l, prob in enumerate(probs):
-                    class_label = LEGEND_CLASSES[l + 1]
-                    features_dict_chunk[class_label].append(prob)
-                features_dict_chunk['predicted_class'].append(LEGEND_CLASSES[np.argmax(probs) + 1])
-                features_dict_chunk['confidence'].append(np.max(probs))
+            for task in active_tasks:
+                features_list.extend(task.get())
+                pbar.update(1)
 
-            features_gdf_chunk = gpd.GeoDataFrame(features_dict_chunk, crs=profile['crs'], geometry='geometry')
-            features_gdfs.append(features_gdf_chunk)
-            features_gdf = pd.concat(features_gdfs)
-            features_gdf.to_file(os.path.join(out_path, 'features_running.gpkg'), driver='GPKG')
+    for feature in features_list:
+        for key in features_dict.keys():
+            features_dict[key].append(feature[key])
+            
+        # for i in range(0, lc_probs.shape[2], chunk_size):
+        #     for j in range(0, lc_probs.shape[1], chunk_size):
+                
+                
+            # features_gdf_chunk = gpd.GeoDataFrame(features_dict_chunk, crs=profile['crs'], geometry='geometry')
+            # features_gdfs.append(features_gdf_chunk)
+            # features_gdf = pd.concat(features_gdfs)
+            # features_gdf.to_file(os.path.join(out_path, 'features_running.gpkg'), driver='GPKG')
                 
             
             
@@ -303,7 +328,8 @@ def main():
     # features_gdf = gpd.GeoDataFrame(features_dict, crs=profile['crs'], geometry='geometry')
     
     
-    features_gdf = pd.concat(features_gdfs)
+    logger.log(f'Compiling features into GeoDataFrame...')
+    features_gdf = gpd.GeoDataFrame(features_dict, crs=profile['crs'], geometry='geometry')
     
     logger.log(f'Saving features to {os.path.join(out_path, "features.gpkg")}...')
     features_gdf.to_file(os.path.join(out_path, 'features.gpkg'), driver='GPKG')
@@ -316,6 +342,75 @@ def main():
     features_dissolved_gdf.to_file(os.path.join(out_path, 'features_dissolved.gpkg'), driver='GPKG')
 
 
+def process_segment_mean(segments, segment_ids, raster):
+    
+    # Create a mask for all segment_ids at once
+    masks = np.stack([(segments == segment_id) for segment_id in segment_ids])
+    # Compute means for all segments in one operation
+    means = np.array([raster[:, mask].mean(axis=1) if mask.any() else np.zeros(raster.shape[0]) 
+                        for mask in masks])
+    # Create results list
+    results = list(zip(segment_ids, means))
+    return {segment_id: mean for segment_id, mean in results}
+
+
+
+def postprocess_batch(
+    raster_data_chunk,
+    lc_probs_chunk,
+    chunk_bounding_mask,
+    chunk_transform,
+    pbar=None
+):
+    
+    if (raster_data_chunk == 0).all():
+        if pbar is not None:
+            pbar.update(1)
+        # logger.log(f'Chunk {i}, {j} is all zeros. Skipping...')
+        return []
+    
+    segments_chunk = felzenszwalb(raster_data_chunk.transpose(1, 2, 0), scale=75, sigma=0.8)
+    unique_segments_chunk = np.unique(segments_chunk)
+    segment_masks = np.stack([(segments_chunk == segment_id) for segment_id in unique_segments_chunk])
+    segment_means = np.array(
+        [lc_probs_chunk[:, mask].mean(axis=1) if mask.any() else np.zeros(lc_probs_chunk.shape[0])
+        for mask in segment_masks]
+    )
+    class_means_chunk = {segment_id: mean for segment_id, mean in zip(unique_segments_chunk, segment_means)}
+    
+    geoms_chunk = shapes(segments_chunk.astype(np.float64), mask=chunk_bounding_mask, transform=chunk_transform)
+    geoms_chunk = [(geom, int(id)) for geom, id in geoms_chunk]
+    
+    if len(geoms_chunk) == 0:
+        if pbar is not None:
+            pbar.update(1)
+        return []
+    
+    features_list = []
+    for g, segment_id in geoms_chunk:
+        
+        feature = {}
+        
+        if segment_id == 0:
+            continue
+        
+        if segment_id not in class_means_chunk.keys():
+            
+            continue
+        
+        feature['geometry'] = shapely.geometry.shape(g)
+        probs = class_means_chunk[segment_id]
+        for l, prob in enumerate(probs):
+            class_label = LEGEND_CLASSES[l + 1]
+            feature[class_label] = prob
+        feature['predicted_class'] = LEGEND_CLASSES[np.argmax(probs) + 1]
+        feature['confidence'] = np.max(probs)
+        features_list.append(feature)
+        
+    if pbar is not None:
+        pbar.update(1)
+        
+    return features_list
 
 if __name__ == '__main__':
     main()

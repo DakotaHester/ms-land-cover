@@ -113,13 +113,14 @@ def compute_segment_means(raster, segments, n_processes=None, batch_size=1000):
         # Process batches in parallel
         results = {}
         with Pool(n_processes) as pool:
-            for batch_results in tqdm(
-                pool.imap_unordered(process_batch, batch_args),
-                total=len(batch_args),
-                desc="Computing segment means",
-                unit="batches",
-                unit_scale=batch_size,
-            ):                
+            # for batch_results in tqdm(
+            #     pool.imap_unordered(process_batch, batch_args),
+            #     total=len(batch_args),
+            #     desc="Computing segment means",
+            #     unit="batches",
+            #     unit_scale=batch_size,
+            # ):             
+            for batch_results in pool.imap_unordered(process_batch, batch_args):   
                 for segment_id, means in batch_results:
                     results[segment_id] = means
         
