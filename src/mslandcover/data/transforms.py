@@ -164,7 +164,7 @@ def rgb_to_lab(rgb: torch.Tensor, contrast_enhance_factor=0) -> torch.Tensor:
         Shape will be (3, H, W)
     """
     # RGB to XYZ conversion matrix
-    rgb = torch.clamp(rgb, 0.0, 1.0)
+    rgb = torch.clamp(rgb, min=0, max=1)
     rgb_to_xyz_matrix = torch.tensor([
         [0.4124564, 0.3575761, 0.1804375],
         [0.2126729, 0.7151522, 0.0721750],
