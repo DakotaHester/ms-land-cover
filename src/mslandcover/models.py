@@ -1001,7 +1001,7 @@ class UNetUpBlock(nn.Module):
     def __init__(self, in_channels: int, out_channels: int):
         super(UNetUpBlock, self).__init__()
         
-        self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True)
+        self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False)
         # self.se = SEBlock(in_channels)
         self.conv_blocks = nn.ModuleList([])
         for i in range(2):
@@ -1061,6 +1061,16 @@ class UNet(nn.Module):
             UNetUpBlock(768, 256),
             UNetUpBlock(320, 128),
             UNetUpBlock(128, 64),
+            nn.Sequential(
+                nn.Conv2d(64, 64, kernel_size=3, padding=1),
+                nn.BatchNorm2d(64),
+                nn.ReLU(inplace=True),
+            ),
+            nn.Sequential(
+                nn.Conv2d(64, 64, kernel_size=3, padding=1),
+                nn.BatchNorm2d(64),
+                nn.ReLU(inplace=True),
+            )
         ])
         self.classifier = nn.Conv2d(64, num_classes, kernel_size=1)
         self.activation = activation
@@ -1086,7 +1096,12 @@ class UNet(nn.Module):
         x = self.decoder_blocks[3](x, x_list[-5])          # (B, 128, 128, 128)
         
         # no concatenation with encoder features for last block, just bringing features back up to original size
-        x = self.decoder_blocks[4](x)                      # (B, 64, 256, 256)
+        x_1 = self.decoder_blocks[4](x)                    # (B, 64, 256, 256)
+        
+        # final decoder blocks are just basic convolutional blocks
+        x = self.decoder_blocks[5](x_1) + x_1              # (B, 64, 256, 256) 
+        x = self.decoder_blocks[6](x) + x_1 + x            # (B, 64, 256, 256)
+        
         x = self.classifier(x)                             # (B, num_classes, 256, 256)
         
         return self.activation(x)
