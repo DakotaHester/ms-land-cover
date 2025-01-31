@@ -3,7 +3,7 @@
 ## PBS Params
 NAME="r2665-hrnet-pretrain"
 QUEUE="biggpu"
-NCPUS="4"
+NCPUS="8"
 NGPUS="1"
 MEMORY="128GB"
 TIME="240:00:00"
@@ -21,15 +21,22 @@ mkdir -p "$LOG_DIR"
 
 for model in unet
 do
-	
-	for pretrain_scheme in dae lab dae_lab
-	do
-		JOB_NAME="${NAME}_${model}_${pretrain_scheme}"
+	for frozen_encoder in 1
+		for pretrain_scheme in dae lab dae_lab
+		do
+			if [ "$frozen_encoder" = "1" ]; then
+				FROZEN_ENCODER_FLAG="--frozen_encoder"
+				JOB_NAME="${NAME}_${model}_${pretrain_scheme}_frozen"
+			else
+				FROZEN_ENCODER_FLAG=""
+				JOB_NAME="${NAME}_${model}_${pretrain_scheme}"
+			fi
+			
 
-		PBS_SCRIPT="./pbs_scripts/${JOB_NAME}.pbs"
-		mkdir -p "$(dirname "$PBS_SCRIPT")"
+			PBS_SCRIPT="./pbs_scripts/${JOB_NAME}.pbs"
+			mkdir -p "$(dirname "$PBS_SCRIPT")"
 
-		cat > "$PBS_SCRIPT" <<EOL
+			cat > "$PBS_SCRIPT" <<EOL
 #!/bin/bash
 #PBS -N $JOB_NAME
 #PBS -q $QUEUE
@@ -48,7 +55,7 @@ module load python
 conda init
 source ~/.bashrc
 conda activate mslc
-python $SCRIPT_NAME --model $model --pretrain_scheme $pretrain_scheme --pretrain_hdf5_path $HDF5_PATH --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --num_workers $NCPUS --learning_rate_factor $LEARNING_RATE_FACTOR 
+python $SCRIPT_NAME --model $model --pretrain_scheme $pretrain_scheme --pretrain_hdf5_path $HDF5_PATH --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --num_workers $NCPUS --learning_rate_factor $LEARNING_RATE_FACTOR $FROZEN_ENCODER_FLAG
 EOL
 		qsub "$PBS_SCRIPT"
 	done

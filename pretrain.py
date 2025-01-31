@@ -132,6 +132,13 @@ def parse_arguments():
     )
     
     parser.add_argument(
+        '--freeze_encoder',
+        default=False,
+        action='store_true',
+        help='Freeze the encoder during training.',
+    )
+    
+    parser.add_argument(
         '--log_dir', 
         type=str, 
         default='./logs/pretrain/',
@@ -226,15 +233,24 @@ def main():
     
     args = parse_arguments()
     
+    if args.frozen_encoder and args.model != 'unet':
+        logger.log('WARNING! Frozen encoder is only supported for U-Net models. Continuing without freezing the encoder.')
+        args.frozen_encoder = False
+    
     torch.random.manual_seed(args.seed)
     np.random.seed(args.seed)
     
     log_dir = os.path.join(args.log_dir, args.model, args.pretrain_scheme)
     if args.rand_init:
         log_dir += '_randinit'
+    if args.frozen_encoder:
+        log_dir += '_frozenencoder'
     out_dir = os.path.join(args.weights_dir, args.model)
     if args.rand_init:
         out_dir += '_randinit'
+    if args.frozen_encoder:
+        out_dir += '_frozenencoder'
+        
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
     
@@ -380,6 +396,11 @@ def main():
         raise ValueError(f'Invalid model: {args.model}')
     
     model.to(device)
+    
+    if args.freeze_encoder:
+        for encoder_block in model.encoder_blocks:
+            for param in encoder_block.parameters():
+                param.requires_grad = False
     
     flops, macs, _ = calculate_flops(
         model=model,
