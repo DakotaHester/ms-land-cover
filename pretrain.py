@@ -132,7 +132,7 @@ def parse_arguments():
     )
     
     parser.add_argument(
-        '--freeze_encoder',
+        '--frozen_encoder',
         default=False,
         action='store_true',
         help='Freeze the encoder during training.',
