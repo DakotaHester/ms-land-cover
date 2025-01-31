@@ -21,11 +21,10 @@ mkdir -p "$LOG_DIR"
 
 for model in unet
 do
-	for frozen_encoder in 0 # skip 1 as already submitted
+	for randinit in 0 1 # skip 0 as already submitted
 	do
-		for randinit in 1 # skip 0 as already submitted
+		for frozen_encoder in 0 1 # skip 1 as already submitted
 		do
-
 			for pretrain_scheme in dae lab dae_lab
 			do
 
