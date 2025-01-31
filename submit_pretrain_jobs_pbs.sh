@@ -13,20 +13,16 @@ PYTHON_ENV=".env/bin/activate"
 SCRIPT_NAME="pretrain.py"
 HDF5_PATH="/scratch/r2665/mslc/pretrain.hdf5"
 LEARNING_RATE_FACTOR=1
-FULL_BATCH_SIZE=1024
+MINI_BATCH_SIZE=32
+FULL_BATCH_SIZE=256
 LOG_DIR="./logs/pbs"
 
 mkdir -p "$LOG_DIR"
 
-for model in hrnet_w18
+for model in unet
 do
-	if [ "$model" = "hrnet_w48" ]; then
-		MINI_BATCH_SIZE=8
-	else
-		MINI_BATCH_SIZE=32
-	fi
 	
-	for pretrain_scheme in simclr dae_simclr hsv_simclr dae_hsv_simclr ae_simclr
+	for pretrain_scheme in dae lab dae_lab
 	do
 		JOB_NAME="${NAME}_${model}_${pretrain_scheme}"
 

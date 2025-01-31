@@ -186,7 +186,7 @@ def parse_arguments():
     
     parser.add_argument(
         '--use_amp',
-        default=True,
+        default=False,
         action='store_true',
         help='Use Automatic Mixed Precision (AMP) for training.',
     )
