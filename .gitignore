@@ -45,3 +45,7 @@ data/inference_results
 data/landsat_examples
 /data/resnet_152_deep_features.hdf5.bak
 /data/resnet_152_deep_features.hdf5
+logs_20250106/pretrain
+logs_20250108/pretrain
+data/NAIP_MS/ms_c.zip
+data/NAIP_MS
