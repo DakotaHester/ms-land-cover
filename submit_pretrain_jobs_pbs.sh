@@ -35,7 +35,6 @@ do
 					if [ "$frozen_encoder" = "1" ]; then
 						continue
 					fi
-				fi
 					RANDINIT_FLAG="--rand_init"
 					JOB_NAME="${JOB_NAME}_randinit"
 				else
