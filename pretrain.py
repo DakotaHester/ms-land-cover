@@ -397,7 +397,7 @@ def main():
     
     model.to(device)
     
-    if args.freeze_encoder:
+    if args.frozen_encoder:
         for encoder_block in model.encoder_blocks:
             for param in encoder_block.parameters():
                 param.requires_grad = False
