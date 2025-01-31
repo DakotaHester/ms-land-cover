@@ -1,4 +1,5 @@
 import torch
+import torch.nn as nn
 from torch.nn import functional as F
 try:
     from torch.amp import autocast, GradScaler
@@ -19,7 +20,7 @@ import math
 
 from src.mslandcover.data.datasets import PreTrainDataset
 from src.mslandcover.data import transforms
-from src.mslandcover.models import HRNetSegmentationModel, ResNetAutoencoder
+from src.mslandcover.models import HRNetSegmentationModel, ResNetAutoencoder, UNet
 from src.mslandcover.optim import LARS, PCGradAMP
 from src.mslandcover.loss import cached_mse_loss_call, cached_contrastive_loss_call
 from src.mslandcover.gradcaching import cached_model_call, init_grad_cache_closure_dicts, call_closures
@@ -34,16 +35,16 @@ def parse_arguments():
     parser.add_argument(
         '--pretrain_scheme',
         type=str,
-        default='dae',
-        choices=['ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr'],
-        help='The pretraining scheme to use. One of [ae, dae, hsv, dae_hsv, simclr, ae_simclr, dae_simclr, hsv_simclr, dae_hsv_simclr].',
+        default='dae_lab',
+        choices=['ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr', 'lab', 'dae_lab', 'simclr_lab', 'dae_simclr_lab', 'ae_lab', 'simclr_ae_lab'],
+        help='The pretraining scheme to use. One of [ae, dae, hsv, dae_hsv, simclr, ae_simclr, dae_simclr, hsv_simclr, dae_hsv_simclr, lab, dae_lab, simclr_lab, dae_simclr_lab, ae_lab, simclr_ae_lab],.',
     )
     
     parser.add_argument(
         '--model',
         type=str,
-        default='resnet152',
-        choices=['hrnet_w48', 'hrnet_w18', 'resnet152'],
+        default='unet',
+        choices=['unet', 'hrnet_w48', 'hrnet_w18', 'resnet152'],
     )
     
     parser.add_argument(
@@ -98,8 +99,15 @@ def parse_arguments():
     parser.add_argument(
         '--reduce_lr_patience',
         type=int,
-        default=5,
+        default=3,
         help='The number of epochs to wait for validation loss improvement before reducing the learning rate.',
+    )
+    
+    parser.add_argument(
+        '--init_lr',
+        type=float,
+        default=1e-5,
+        help='The initial learning rate to use for training.',
     )
     
     parser.add_argument(
@@ -112,7 +120,7 @@ def parse_arguments():
     parser.add_argument(
         '--full_batch_size', 
         type=int, 
-        default=1024, # 4096 in original SimCLR implementation
+        default=256, # 4096 in original SimCLR implementation
         help='The batch size to use for pretraining.',
     )
     
@@ -238,7 +246,8 @@ def main():
     logger.log('='*20, prepend_timestamp=False)
     
     is_contrastive = 'simclr' in args.pretrain_scheme
-    is_reconstruction = 'hsv' in args.pretrain_scheme or 'dae' in args.pretrain_scheme or 'ae' in args.pretrain_scheme
+    is_reconstruction = 'hsv' in args.pretrain_scheme or 'dae' in args.pretrain_scheme or 'ae' in args.pretrain_scheme or 'lab' in args.pretrain_scheme
+    is_output_transformed = 'hsv' in args.pretrain_scheme or 'lab' in args.pretrain_scheme
     is_multitask = is_contrastive and is_reconstruction
     
     device = get_torch_device()
@@ -249,8 +258,9 @@ def main():
         torch.cuda.manual_seed_all(args.seed)
     
     transform = transforms.SimCLRDataAugmentation(size=args.image_size) if is_contrastive \
-        else transforms.StandardDataAugmentations(size=args.image_size)
+        else transforms.StandardDataAugmentations(size=args.image_size, use_color_transforms=False)
     return_hsv = 'hsv' in args.pretrain_scheme
+    return_lab = 'lab' in args.pretrain_scheme
     noisy_input = 'dae' in args.pretrain_scheme
     n_views = 2 if is_contrastive else 1
     
@@ -268,6 +278,7 @@ def main():
         mean=mean,
         std=std,
         return_hsv=return_hsv,
+        return_lab=return_lab,
         noisy_input=noisy_input,
         preload=args.preload_data,
     )
@@ -279,15 +290,16 @@ def main():
         std=train_dataset.std,
         transform=transforms.ResizeTransform(size=args.image_size),
         return_hsv=return_hsv,
+        return_lab=return_lab,
         noisy_input=noisy_input,
         preload=args.preload_data
     )
     
     if args.debug:
         train_dataset.ids_list = train_dataset.ids_list[:(512)*4]
-        val_dataset.ids_list = val_dataset.ids_list[:512]
+        # val_dataset.ids_list = val_dataset.ids_list[:512]
         
-        args.full_batch_size = 512
+        args.full_batch_size = 128
         args.mini_batch_size = 16
     
     logger.log(f'Training dataset size: {len(train_dataset)}')
@@ -328,6 +340,7 @@ def main():
             args.visualize_augmentations_dir,
             n_views,
             return_hsv,
+            return_lab,
             noisy_input,
             train_dataset,
             glob(os.path.join(args.pretrain_data_dir, '*.tif')),
@@ -343,7 +356,7 @@ def main():
             config=model_config,
             img_decoder_head=is_reconstruction,
             aux_simclr_head=is_contrastive,
-            img_decoder_activation='sigmoid' if 'hsv' in args.pretrain_scheme else 'none',
+            img_decoder_activation='sigmoid' if is_output_transformed else 'none',
         )
         if not args.rand_init:
             imagenet_weights = load_pth(os.path.join(out_dir, 'imagenet.pth'))
@@ -352,8 +365,16 @@ def main():
         model = ResNetAutoencoder(
             img_decoder_head=is_reconstruction,
             aux_simclr_head=is_contrastive,
-            img_decoder_activation='sigmoid' if 'hsv' in args.pretrain_scheme else 'none',
+            img_decoder_activation='sigmoid' if is_output_transformed or 'lab' in args.pre else 'none',
             pretrained=not args.rand_init,
+        )
+    elif args.model == 'unet':
+        if not is_reconstruction or is_multitask:
+            raise ValueError('Only single-task reconstruction is supported for U-Nets.')
+        model = UNet(
+            num_classes=3,
+            pretrained=not args.rand_init,
+            activation=nn.Sigmoid() if is_output_transformed else nn.Identity(),
         )
     else:
         raise ValueError(f'Invalid model: {args.model}')
@@ -379,15 +400,17 @@ def main():
         }, f, indent=4)
     
     # define optimizer and scheduler - the specifics are taken from the original SimCLR implementation
-    learning_rate = 0.3 * args.full_batch_size * ((args.image_size ** 2) / 256 ** 2) / 256 
+    # learning_rate = 3 * args.full_batch_size * ((args.image_size ** 2) / 256 ** 2) / 256 
+    learning_rate = args.init_lr
     if not args.rand_init:
         learning_rate *= args.learning_rate_factor # reduce the learning rate as model is pretrained
     
-    optimizer = LARS(
-        params=model.parameters(),
-        lr=learning_rate, # per original SimCLR implementation
-        weight_decay=1e-6,
-    )
+    # optimizer = LARS(
+    #     params=model.parameters(),
+    #     lr=learning_rate, # per original SimCLR implementation
+    #     weight_decay=1e-6,
+    # )
+    optimizer = torch.optim.AdamW(params=model.parameters(), lr=learning_rate)
     
     # warmup_epochs = args.num_epochs // 10
     # if warmup_epochs == 0: warmup_epochs = 1 # prevent division by zero
@@ -398,6 +421,7 @@ def main():
     reduce_lr_on_plateau = ReduceLROnPlateau(
         optimizer=optimizer,
         patience=args.reduce_lr_patience,
+        eps=0,
     )
     
     if args.use_amp:
@@ -469,7 +493,7 @@ def main():
         
         for phase in ['train', 'val']:
             phase_start_time = time()
-            tqdm_postfix = {'lr': f'{lr:.2e}',}
+            tqdm_postfix = {'lr': f'{lr:.0e}',}
             
             if phase == 'train':
                 torch.set_grad_enabled(True)
@@ -526,6 +550,14 @@ def main():
                                 scaler.scale(reconstruction_loss).backward()
                             else:
                                 reconstruction_loss.backward()
+                        
+                        if phase == 'val' and np.nan in reconstruction_loss_values:
+                            msg = f'NaN in reconstruction loss values.'
+                            msg += f' | y_min: {y.min().item():.4f}, y_max: {y.max().item():.4f}, y_mean: {y.mean().item():.4f}, y_std: {y.std().item():.4f}'
+                            msg += f' | y_hat_min: {y_hat.min().item():.4f}, y_hat_max: {y_hat.max().item():.4f}, y_hat_mean: {y_hat.mean().item():.4f}, y_hat_std: {y_hat.std().item():.4f}'
+                            logger.log(msg)
+                            raise ValueError(msg)
+                            # print(np.sum(reconstruction_loss_values) / ((step * args.mini_batch_size) + len(batch)))
                         
                     elif is_multitask:
                         for view in range(n_views):
@@ -593,7 +625,7 @@ def main():
                     pbar.set_postfix(tqdm_postfix)
                     pbar.update(1)
                     
-                    if phase == 'train':
+                    if phase == 'val':
                         if len(loader) - step < grad_accum_steps:
                             break
 

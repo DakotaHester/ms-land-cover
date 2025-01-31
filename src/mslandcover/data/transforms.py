@@ -146,6 +146,79 @@ def rgb_to_hsv(rgb: torch.Tensor) -> torch.Tensor:
     return hsv
 
 
+def rgb_to_lab(rgb: torch.Tensor, contrast_enhance_factor=0) -> torch.Tensor:
+    """
+    Convert an RGB image tensor to a LAB image tensor.
+    The output values are normalized to be between 0 and 1.
+    
+    Parameters
+    ----------
+    rgb : torch.Tensor
+        Input RGB image tensor with values between 0 and 1
+        Shape should be (3, H, W)
+    
+    Returns
+    -------
+    torch.Tensor
+        Output LAB image tensor with values between 0 and 1
+        Shape will be (3, H, W)
+    """
+    # RGB to XYZ conversion matrix
+    rgb = torch.clamp(rgb, 0.0, 1.0)
+    rgb_to_xyz_matrix = torch.tensor([
+        [0.4124564, 0.3575761, 0.1804375],
+        [0.2126729, 0.7151522, 0.0721750],
+        [0.0193339, 0.1191920, 0.9503041]
+    ]).type_as(rgb)
+
+    # Reference white point (D65)
+    xyz_ref_white = torch.tensor([0.95047, 1.0, 1.08883]).type_as(rgb)
+
+    # Helper function for the LAB conversion
+    def f(x):
+        delta = 6/29
+        mask = x > delta**3
+        result = torch.empty_like(x)
+        result[mask] = torch.pow(x[mask], 1/3)
+        result[~mask] = x[~mask]/(3 * delta**2) + 4/29
+        return result
+
+    # Convert RGB to XYZ
+    rgb_linear = torch.where(rgb > 0.04045,
+                           torch.pow((rgb + 0.055) / 1.055, 2.4),
+                           rgb / 12.92)
+    
+    xyz = torch.einsum('ab,b...->a...', rgb_to_xyz_matrix, rgb_linear)
+    
+    # Convert XYZ to LAB
+    xyz_normalized = xyz / xyz_ref_white.view(3, 1, 1)
+    
+    fx = f(xyz_normalized[0:1])
+    fy = f(xyz_normalized[1:2])
+    fz = f(xyz_normalized[2:3])
+    
+    # Calculate LAB values
+    L = 116 * fy - 16
+    a = 500 * (fx - fy)
+    b = 200 * (fy - fz)
+    
+    if contrast_enhance_factor > 0:
+        L = torch.clamp(L, min=contrast_enhance_factor, max=100-contrast_enhance_factor)
+        # scale back to 0-1 range
+        L = (L - contrast_enhance_factor) # (0, 100 - 2*contrast_enhance_factor)
+        L = L / (100 - 2*contrast_enhance_factor) # (0, 1)
+    else:
+        L = L / 100
+
+    # L = L / 100  # L goes from 0 to 100
+    a = (a + 128) / 255  # a goes from -128 to +127
+    b = (b + 128) / 255  # b goes from -128 to +127
+    
+    lab = torch.cat([L, a, b], dim=0)
+    
+    return lab
+
+
 def hsv_to_rgb(hsv: torch.Tensor) -> torch.Tensor:
     """
     Convert an HSV image tensor to an RGB image tensor. Code sourced from:
@@ -189,6 +262,20 @@ def hsv_to_rgb(hsv: torch.Tensor) -> torch.Tensor:
 
 
 
+# def rgb_to_lab(rgb: torch.Tensor) -> torch.Tensor:
+    
+#     return F.rgb_to_lab(rgb)
+
+
+def gaussian_noise(tensor: torch.Tensor, mean: float=0.0, std: float=0.1) -> torch.Tensor:
+    return (torch.randn_like(tensor) * std + mean).to(tensor.device)
+
+
+def poisson_noise(tensor: torch.Tensor, lam: float=0.1) -> torch.Tensor:
+    return torch.poisson(torch.ones_like(tensor) * lam).to(tensor.device)
+
+
+
 def add_gaussian_noise(tensor: torch.Tensor, mean: float=0.0, std: float=0.1) -> torch.Tensor:
     return tensor + (torch.randn_like(tensor) * std + mean).to(tensor.device)
 
@@ -198,9 +285,11 @@ def add_poisson_noise(tensor: torch.Tensor, lam: float=0.1) -> torch.Tensor:
     return tensor + torch.poisson(torch.ones_like(tensor) * lam).to(tensor.device)
 
 
-
 def add_noise(tensor: torch.Tensor, std: float=0.1, lam: float=0.1) -> torch.Tensor:
-    return add_gaussian_noise(tensor, std=std) + add_poisson_noise(tensor, lam=lam) - tensor
+    return tensor + gaussian_noise(tensor, std=std) + poisson_noise(tensor, lam=lam) - poisson_noise(tensor, lam=lam)
+
+# def add_noise(tensor: torch.Tensor, std: float=0.1, lam: float=0.1) -> torch.Tensor:
+    # return add_gaussian_noise(tensor, std=std) + add_poisson_noise(tensor, lam=lam) - tensor
 
 
 
@@ -249,8 +338,11 @@ class StandardDataAugmentations:
     flips and color distortions.
     '''
     
-    def __init__(self, size: int=256):
-        self.color_transforms = get_color_transforms()
+    def __init__(self, size: int=256, s: float=0.5, use_color_transforms: bool=True):
+        
+        self.color_transforms = None
+        if use_color_transforms:
+            self.color_transforms = get_color_transforms(s=s)
         self.size = size
         self.resize_transform = ResizeTransform(size=size)
     
@@ -272,7 +364,8 @@ class StandardDataAugmentations:
         if y is not None:
             y = F.rotate(y, rot_angle * 90)
         
-        X = self.color_transforms(X)
+        if self.color_transforms is not None:
+            X = self.color_transforms(X)
         
         if y is not None:
             X, y = self.resize_transform(X, y)
@@ -288,6 +381,7 @@ def visualize_transforms(
     out_dir: str,
     n_views: int, 
     return_hsv: bool,
+    return_lab: bool,
     noisy_input: bool,
     dataset: torch.utils.data.Dataset, 
     data_paths: List[str], 
@@ -307,11 +401,12 @@ def visualize_transforms(
         out_path = os.path.join(out_dir, pretrain_schema, str(im_index))
         os.makedirs(out_path, exist_ok=True)
         cv.imwrite(os.path.join(out_path, f'{i}_original.png'), og_img)
-        if return_hsv:
+        if return_hsv or return_lab:
             if n_views == 1:
                 X, hsv = dataset[im_index]
                 X = X.permute(1, 2, 0)
                 X = ((X * std) + mean) * 255 # undo normalization
+                X = torch.clamp(X, min=0, max=255)
                 X = X.int().cpu().numpy().astype(np.uint8)
                 X = cv.cvtColor(X, cv.COLOR_RGB2BGR)
                 cv.imwrite(os.path.join(out_path, f'{i}_view_0.png'), X)
@@ -326,6 +421,7 @@ def visualize_transforms(
                     X, hsv = dataset[im_index][view]
                     X = X.permute(1, 2, 0)
                     X = ((X * std) + mean) * 255
+                    X = torch.clamp(X, min=0, max=255)
                     X = X.int().cpu().numpy().astype(np.uint8)
                     X = cv.cvtColor(X, cv.COLOR_RGB2BGR)
                     cv.imwrite(os.path.join(out_path, f'{i}_view_{view}.png'), X)

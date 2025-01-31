@@ -157,10 +157,11 @@ def main():
         logger.log('Classifying land cover...')
         lc_classes = lc_probs.argmax(axis=0).astype(rio.uint8) + 1
         lc_classes_profile = profile.copy()
-        lc_classes_profile.update(count=1, dtype=rio.uint8)
+        lc_classes_profile.update(count=1, dtype=rio.uint8, nodata=0)
         with rio.open(os.path.join(out_path, 'lc_classes.tif'), 'w', **profile) as dst:
             dst.write(lc_classes, 1)
             dst.write_colormap(1, LEGEND_COLORS_RGBA)
+            
         logger.log(f'Saved land cover classes to {os.path.join(out_path, "lc_classes.tif")}')
         del lc_classes
     
@@ -183,7 +184,7 @@ def main():
     if not SKIP_INFERENCE:
         logger.log('Masking predictions by bounding polygons...')
         with rio.open(os.path.join(out_path, 'lc_probs.tif')) as src:
-            lc_probs_clipped, lc_probs_transform_clipped = mask(
+            clipped_data, clipped_transform = mask(
                 src,
                 bounding_polygons, 
                 crop=True,
@@ -191,15 +192,18 @@ def main():
             )
             updated_profile = src.profile.copy()
             updated_profile.update({
-                'transform': lc_probs_transform_clipped,
-                'height': lc_probs_clipped.shape[1],
-                'width': lc_probs_clipped.shape[2],
+                'transform': clipped_transform,
+                'height': clipped_data.shape[1],
+                'width': clipped_data.shape[2],
                 'BIGTIFF': 'YES',
                 'count': lc_probs.shape[0],
             })
             with rio.open(os.path.join(out_path, 'lc_probs_clipped.tif'), 'w', **updated_profile) as dst:
-                dst.write(lc_probs_clipped)
-
+                dst.write(clipped_data)
+        
+        logger.log(f'Saved clipped land cover probabilities to {os.path.join(out_path, "lc_probs_clipped.tif")}')
+        
+        logger.log('Masking land cover classes..')
         with rio.open(os.path.join(out_path, 'lc_classes.tif')) as src:
             clipped_data, clipped_transform = mask(
                 src,
@@ -213,15 +217,42 @@ def main():
                 'height': clipped_data.shape[1],
                 'width': clipped_data.shape[2],
                 'BIGTIFF': 'YES',
+                'count': 1,
             })
             with rio.open(os.path.join(out_path, 'lc_classes_clipped.tif'), 'w', **updated_profile) as dst:
                 dst.write(clipped_data)
                 dst.write_colormap(1, LEGEND_COLORS_RGBA)
+            
+        logger.log(f'Saved clipped land cover classes to {os.path.join(out_path, "lc_classes_clipped.tif")}')
+        
+        logger.log('Masking land cover confidence...')
+        with rio.open(os.path.join(out_path, 'lc_confidence.tif')) as src:
+            clipped_data, clipped_transform = mask(
+                src,
+                bounding_polygons, 
+                crop=True,
+                all_touched=True
+            )
+            updated_profile = src.profile.copy()
+            updated_profile.update({
+                'transform': clipped_transform,
+                'height': clipped_data.shape[1],
+                'width': clipped_data.shape[2],
+                'BIGTIFF': 'YES',
+                'count': 1,
+            })
+            with rio.open(os.path.join(out_path, 'lc_confidence_clipped.tif'), 'w', **updated_profile) as dst:
+                dst.write(clipped_data)
+        logger.log(f'Saved clipped land cover confidence to {os.path.join(out_path, "lc_confidence_clipped.tif")}')
     
     
-    if SKIP_POSTPROCESSING and os.path.exists(os.path.join(out_path, 'features.gpkg')):
-        logger.log('Features already computed. Skipping post-processing...')
+    # if SKIP_POSTPROCESSING and os.path.exists(os.path.join(out_path, 'features.gpkg')):
+        # logger.log('Features already computed. Skipping post-processing...')
+        # return
+    if SKIP_POSTPROCESSING:
+        logger.log(f'SKIP_POSTPROCESSING set to True, ending now..')
         return
+    
     features_dict = {
         'geometry': [],
         'predicted_class': [],
@@ -267,7 +298,6 @@ def main():
                         rio.Affine.translation(j, -i) * raster_transform,
                     )
                     active_tasks.append(pool.apply_async(postprocess_batch, chunk_args))
-                    # async_results.append(pool.apply_async(postprocess_batch, chunk_args))
             
             for task in active_tasks:
                 features_list.extend(task.get())
@@ -336,12 +366,13 @@ def main():
     
     # features_dissolved_gdf = features_gdf[['predicted_class', 'geometry']]
     logger.log('Dissolving features...')
+    # TODO: split features gdf into chunks then dissolve using multiprocessing
     features_dissolved_gdf = features_gdf.dissolve(by='predicted_class', aggfunc='mean')
     
     logger.log(f'Saving reduced features to {os.path.join(out_path, "features_dissolved.gpkg")}...')
     features_dissolved_gdf.to_file(os.path.join(out_path, 'features_dissolved.gpkg'), driver='GPKG')
 
-
+# TODO: Move helper functions to a separate file
 def process_segment_mean(segments, segment_ids, raster):
     
     # Create a mask for all segment_ids at once

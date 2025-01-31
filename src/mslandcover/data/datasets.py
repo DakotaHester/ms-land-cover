@@ -28,6 +28,7 @@ class PreTrainDataset(Dataset):
         std: Optional[np.ndarray]=None,
         transform: Optional[transforms.Compose]=T.SimCLRDataAugmentation(),
         return_hsv: bool=False,
+        return_lab: bool=False,
         noisy_input: bool=False,
         return_metadata: bool=False,
         device: torch.device=torch.device('cpu'),
@@ -47,6 +48,9 @@ class PreTrainDataset(Dataset):
         
         if return_metadata and isinstance(transform, T.SimCLRDataAugmentation):
             raise ValueError('return_metadata=True is not supported when using SimCLRDataAugmentation.')
+        
+        if return_lab and return_hsv:
+            raise ValueError('Cannot return both hsv and lab color spaces.')
 
         # if return_hsv and noisy_input:
             # raise ValueError('Cannot return hsv and noisy input at the same time.')
@@ -57,6 +61,7 @@ class PreTrainDataset(Dataset):
         self.n_views = n_views
         self.transform = transform
         self.return_hsv = return_hsv
+        self.return_lab = return_lab
         self.noisy_input = noisy_input
         self.return_metadata = return_metadata
         self.device = device
@@ -168,8 +173,8 @@ class PreTrainDataset(Dataset):
             norm_view = T.normalize(view, mean=self.mean, std=self.std)
             
             if self.noisy_input:
-                std, lam = torch.rand(1).item() / self.n_views, torch.rand(1).item() / self.n_views
-                noisy_view = T.add_noise(norm_view, std=std*2, lam=lam*2)
+                std, lam = torch.rand(1).item() / (self.n_views), torch.rand(1).item() / (self.n_views)
+                noisy_view = T.add_noise(norm_view, std=std, lam=lam)
                 
             if self.return_hsv:
                 hsv = T.rgb_to_hsv(view)
@@ -177,6 +182,14 @@ class PreTrainDataset(Dataset):
                     returns.append((noisy_view.to(self.device), hsv.to(self.device)))
                 else:
                     returns.append((norm_view.to(self.device), hsv.to(self.device)))
+                    
+            elif self.return_lab:
+                lab = T.rgb_to_lab(view, contrast_enhance_factor=10)
+                if self.noisy_input:
+                    returns.append((noisy_view.to(self.device), lab.to(self.device)))
+                else:
+                    returns.append((norm_view.to(self.device), lab.to(self.device)))
+                    
             else:
                 if self.noisy_input:
                     returns.append((noisy_view.to(self.device), norm_view.to(self.device)))
