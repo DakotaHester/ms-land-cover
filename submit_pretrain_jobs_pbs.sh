@@ -26,27 +26,28 @@ do
 		for randinit in 1 # skip 0 as already submitted
 		do
 
-			if [ "$randinit" = "1" ]; then
-				if [ "$frozen_encoder" = "1" ]; then
-					continue
-				fi
-				RANDINIT_FLAG="--randinit"
-				JOB_NAME="${NAME}_${model}_randinit"
-			else
-				RANDINIT_FLAG=""
-				JOB_NAME="${NAME}_${model}"
-			fi
-
 			for pretrain_scheme in dae lab dae_lab
 			do
+
+				JOB_NAME="${NAME}_${model}_${pretrain_scheme}"
+
+				if [ "$randinit" = "1" ]; then
+					if [ "$frozen_encoder" = "1" ]; then
+						continue
+					fi
+				fi
+					RANDINIT_FLAG="--rand_init"
+					JOB_NAME="${JOB_NAME}_randinit"
+				else
+					RANDINIT_FLAG=""
+				fi
+
 				if [ "$frozen_encoder" = "1" ]; then
 					FROZEN_ENCODER_FLAG="--frozen_encoder"
-					JOB_NAME="${NAME}_${model}_${pretrain_scheme}_frozen"
+					JOB_NAME="${JOB_NAME}_frozen"
 				else
 					FROZEN_ENCODER_FLAG=""
-					JOB_NAME="${NAME}_${model}_${pretrain_scheme}"
 				fi
-				
 
 				PBS_SCRIPT="./pbs_scripts/${JOB_NAME}.pbs"
 				mkdir -p "$(dirname "$PBS_SCRIPT")"

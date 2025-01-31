@@ -25,7 +25,8 @@ from src.mslandcover.config import MSTM_PROJ4, HRNET_W18_CONFIG, LEGEND_COLORS_R
 from src.mslandcover.utils import load_pth, get_torch_device, Logger
 
 # if land cover probabilities are already computed, set this to True to skip inference
-SKIP_INFERENCE = False
+SKIP_INFERENCE = True
+SKIP_CLIPPING = False
 SKIP_POSTPROCESSING = True
 
 
@@ -78,7 +79,7 @@ def main():
     else:
         bounding_polygons = [shapely.geometry.Polygon(polygon.exterior) for polygon in county_geom.geoms]
     
-    out_path = f'./data/inference_results/MS/{county_fp_code}'
+    out_path = '/home/dhester/server/guser/dh/MS_HiRes_LC_Prelim/'
     # use whole state for now
     # bounding_polygons = [ms_counties_gdf.unary_union]
     
@@ -158,7 +159,7 @@ def main():
         lc_classes = lc_probs.argmax(axis=0).astype(rio.uint8) + 1
         lc_classes_profile = profile.copy()
         lc_classes_profile.update(count=1, dtype=rio.uint8, nodata=0)
-        with rio.open(os.path.join(out_path, 'lc_classes.tif'), 'w', **profile) as dst:
+        with rio.open(os.path.join(out_path, 'lc_classes.tif'), 'w', **lc_classes_profile) as dst:
             dst.write(lc_classes, 1)
             dst.write_colormap(1, LEGEND_COLORS_RGBA)
             
@@ -181,7 +182,9 @@ def main():
         del lc_confidence
     
     # now, mask outputs by polygon boundary
-    if not SKIP_INFERENCE:
+    if SKIP_CLIPPING and os.path.exists(os.path.join(out_path, 'lc_probs_clipped.tif')):
+        logger.log('Skipping clipping of land cover probabilities...')
+    else:
         logger.log('Masking predictions by bounding polygons...')
         with rio.open(os.path.join(out_path, 'lc_probs.tif')) as src:
             clipped_data, clipped_transform = mask(
@@ -202,7 +205,10 @@ def main():
                 dst.write(clipped_data)
         
         logger.log(f'Saved clipped land cover probabilities to {os.path.join(out_path, "lc_probs_clipped.tif")}')
-        
+    
+    if SKIP_CLIPPING and os.path.exists(os.path.join(out_path, 'lc_classes_clipped.tif')):
+        logger.log('Skipping clipping of land cover classes...')
+    else:
         logger.log('Masking land cover classes..')
         with rio.open(os.path.join(out_path, 'lc_classes.tif')) as src:
             clipped_data, clipped_transform = mask(
@@ -224,7 +230,10 @@ def main():
                 dst.write_colormap(1, LEGEND_COLORS_RGBA)
             
         logger.log(f'Saved clipped land cover classes to {os.path.join(out_path, "lc_classes_clipped.tif")}')
-        
+    
+    if SKIP_CLIPPING and os.path.exists(os.path.join(out_path, 'lc_confidence_clipped.tif')):
+        logger.log('Skipping clipping of land cover confidence...')
+    else:
         logger.log('Masking land cover confidence...')
         with rio.open(os.path.join(out_path, 'lc_confidence.tif')) as src:
             clipped_data, clipped_transform = mask(
