@@ -22,6 +22,7 @@ mkdir -p "$LOG_DIR"
 for model in unet
 do
 	for frozen_encoder in 1
+	do
 		for pretrain_scheme in dae lab dae_lab
 		do
 			if [ "$frozen_encoder" = "1" ]; then
@@ -57,6 +58,7 @@ source ~/.bashrc
 conda activate mslc
 python $SCRIPT_NAME --model $model --pretrain_scheme $pretrain_scheme --pretrain_hdf5_path $HDF5_PATH --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --num_workers $NCPUS --learning_rate_factor $LEARNING_RATE_FACTOR $FROZEN_ENCODER_FLAG
 EOL
-		qsub "$PBS_SCRIPT"
-	done
+		    qsub "$PBS_SCRIPT"
+	    done
+    done
 done
