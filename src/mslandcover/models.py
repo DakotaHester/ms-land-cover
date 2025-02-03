@@ -1031,6 +1031,7 @@ class UNet(nn.Module):
         pretrained: bool=True, 
         activation: nn.Module=nn.Softmax(dim=1),
         use_extended_decoder: bool=True,
+        auxillary_simclr_head: bool=False
     ):
         super(UNet, self).__init__()
         
@@ -1038,6 +1039,7 @@ class UNet(nn.Module):
         weights = ResNet152_Weights.DEFAULT if pretrained else None
         self.num_classes = num_classes
         self.use_extended_decoder = use_extended_decoder
+        self.auxillary_simclr_head = auxillary_simclr_head
         
         self.encoder = resnet152(weights=weights)
         self.encoder.avgpool = nn.Identity()
@@ -1075,6 +1077,10 @@ class UNet(nn.Module):
         self.classifier = nn.Conv2d(64, num_classes, kernel_size=1)
         self.activation = activation
         
+        self.projection_head = None
+        if auxillary_simclr_head:
+            self.projection_head = ProjectionHead(in_channels=2048)
+        
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         
         # encoder blocks
@@ -1106,8 +1112,12 @@ class UNet(nn.Module):
             x = x_1
         
         x = self.classifier(x)                             # (B, num_classes, 256, 256)
+        x = self.activation(x)
         
-        return self.activation(x)
+        if self.projection_head is not None:
+            return x, self.projection_head(x_list[-1])
+        
+        return x
 
     
     
