@@ -4,6 +4,8 @@
 \beamer@slide {fig:noisy_lc}{14}
 \beamer@slide {fig:resnet18}{19}
 \beamer@slide {fig:transfer_learning}{25}
-\beamer@slide {fig:s2_metrics}{30}
-\beamer@slide {fig:confusion_matrix}{31}
-\beamer@slide {fig:warren_co_lc}{32}
+\beamer@slide {fig:training_flowchart}{34}
+\beamer@slide {fig:s2_metrics}{35}
+\beamer@slide {fig:s1_metrics}{36}
+\beamer@slide {fig:confusion_matrix}{37}
+\beamer@slide {fig:warren_co_lc}{38}

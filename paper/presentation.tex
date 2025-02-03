@@ -286,7 +286,8 @@
 \begin{frame}{Denoising Autoencoder}
     \begin{itemize}
         \item<1-> While labeled data is optimal for pre-training, some pre-training tasks can be performed in a \alert{self-supervised} manner, where the network learns to predict some property of the input data without requiring labels \cite{liangRemoteSensingImage2018}.
-        \item<2-> Denoising autoencoders are a type of encoder-decoder architecture that are trained to remove noise from an input image \cite{gondaraMedicalImageDenoising2016}.
+        % 
+        \item<2-> Denoising autoencoders are a type of CNN that are trained to remove noise from an input image \cite{gondaraMedicalImageDenoising2016}.
         \item<3-> In effect, noise is added to an input image, then train the network to predict the original image from the noisy image.
         \item<4-> The network needs to learn \alert{features} that are \alert{robust} to noise while being meaningful for reconstruction \cite{vincentExtractingComposingRobust2008}.
     \end{itemize}
@@ -294,14 +295,14 @@
 
 
 
-% \begin{frame}{Our Goal}
-%     \begin{itemize}
-%         \item<1-> Our overarching goal is to develop a 1m resolution land cover map that covers the entire state of Mississippi with a high degree of accuracy.
-%         \item<2-> Data annotation is expensive and time-consuming, so the main focus of our work is to devise a creative pre-training strategy that combines self-supervised pre-training with a supervised fine-tuning stage to reduce the amount of labeled data required for training a deep model.
-%         \item<3-> We construct a large U-Net model that undergoes various pre-training regimens, then fine-tune the model on only \alert{119} tiles of fully annotated data from the state of Mississippi.
-%         \item<4-> Transfer learning is not an uncommon approach, but self-supervised pre-training is not common in the remote sensing community --- especially in the context of land cover classification. As such, we are most interested in the performance of our self-supervised model.
-%     \end{itemize}
-% \end{frame}
+\begin{frame}{Our Goal}
+    \begin{itemize}
+        \item<1-> Our overarching goal is to develop a 1m resolution land cover map that covers the entire state of Mississippi with a high degree of accuracy.
+        \item<2-> Data annotation is expensive and time-consuming, so the main focus of our work is to devise a creative pre-training strategy that combines self-supervised pre-training with a supervised fine-tuning stage to reduce the amount of labeled data required for training a deep model.
+        \item<3-> We construct a large U-Net model that undergoes various pre-training regimens, then fine-tune the model on only \alert{119} tiles of fully annotated data from the state of Mississippi.
+        \item<4-> Transfer learning is not an uncommon approach, but self-supervised pre-training is not common in the remote sensing community --- especially in the context of land cover classification. As such, we are most interested in the performance of our self-supervised model.
+    \end{itemize}
+\end{frame}
 
 \section{Methodology}
 
@@ -324,14 +325,14 @@
 %     \end{itemize}
 % \end{frame}
 
-% \begin{frame}{Training Strategy}
-%     \begin{figure}
-%         \centering
-%         \includegraphics[width=\textwidth]{images/MSFT_stages.png}
-%         \caption{Model training flowchart.} % TODO: Add caption
-%         \label{fig:training_flowchart}
-%     \end{figure}
-% \end{frame}
+\begin{frame}{Training Strategy}
+    \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{images/MSFT_stages.png}
+        \caption{Model training flowchart.} % TODO: Add caption
+        \label{fig:training_flowchart}
+    \end{figure}
+\end{frame}
 
 
 \subsection{Data Sources}
@@ -385,19 +386,19 @@
     % \end{itemize}
 \end{frame}
 
-% \begin{frame}{Pre-training Strategies}
-%     % \begin{itemize}
-%     An additional fully supervised pre-training stage substantially improves the performance of the model.
-%     \vspace{-0.2cm}
-%     \begin{figure}
-%         \centering
-%         \includegraphics[width=0.7\textheight]{images/charts/dae_s1_vs_s1.png}
-%         % \vspace*{-0.3cm}
-%         \caption{Performance of the best model with and without additional supervised pre-training.} % TODO: Add caption
-%         \label{fig:s1_metrics}
-%     \end{figure}
-%     % \end{itemize}
-% \end{frame}
+\begin{frame}{Pre-training Strategies}
+    % \begin{itemize}
+    An additional fully supervised pre-training stage substantially improves the performance of the model.
+    \vspace{-0.2cm}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\textheight]{images/charts/dae_s1_vs_s1.png}
+        % \vspace*{-0.3cm}
+        \caption{Performance of the best model with and without additional supervised pre-training.} % TODO: Add caption
+        \label{fig:s1_metrics}
+    \end{figure}
+    % \end{itemize}
+\end{frame}
 
 \begin{frame}{Confusion Matrix}
     \begin{figure}
