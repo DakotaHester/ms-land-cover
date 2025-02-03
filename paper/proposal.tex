@@ -1,0 +1,29 @@
+\documentclass{article}
+
+
+\title{Learning with less: }
+\author{Dakota Hester}
+\date{\today}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+    Land cover data is a key component of environmental analysis and informs decision making in agriculture, urban planning, hydrology, and other applied domains. Most publicly available land cover products are produced at a coarse resolution due to the inherent difficulty in classifying high resolution data. Deep learning semantic segmentation models have been shown to be performant for such tasks but require large amounts of fully annotated tiles for training. This is problematic for land cover classification due to the expense and difficulty of annotating such data at scale. In our approach, we initially pre-train a ResNet-152 model on 377,913 unlabeled images using a denoising autoencoder to enable spatial feature extraction without the need for labeled data. This model is used as an encoder in a U-Net architecture where fully supervised pre-training is performed using 10,220 labeled images from another region. Finally, we fine-tune the U-Net with only 119 labeled images over the state of Mississippi. When applied to 1-meter imagery in Mississippi, our model achieves over 80\% accuracy despite limited region-specific labeled data. While the lack of ground truth data makes certain visually intricate classes difficult for the model to capture with a high degree of precision (such as cultivated crops), a visual assessment of the resulting land cover product indicates accurate delineation of forested areas, impervious surfaces, open water, and herbaceous regions. Our proposed approach can enable high-resolution land cover classification at scale while minimizing the need for human annotation to produce ground truth data.
+\end{abstract}
+
+\section{Introduction}
+
+\section{Related Work}
+
+\subsection{National Agricultural Imagery Program (NAIP)}
+
+\subsection{Sa}
+
+\section{Data and Study Area}
+
+\section{Methodology}
+
+\section{Results}
+
+\end{document}
