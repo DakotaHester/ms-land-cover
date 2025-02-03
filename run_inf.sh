@@ -8,5 +8,4 @@ for ((i=START; i<END; i++))
 do
     export MSLC_INFERENCE_COUNTY_INDEX=$i
     python inference.py
-    mv $OUT_FOLDER $TARGET_FOLDER
 done

@@ -25,12 +25,15 @@ from src.mslandcover.config import MSTM_PROJ4, HRNET_W18_CONFIG, LEGEND_COLORS_R
 from src.mslandcover.utils import load_pth, get_torch_device, Logger
 
 # if land cover probabilities are already computed, set this to True to skip inference
-SKIP_INFERENCE = True
-SKIP_CLIPPING = False
-SKIP_POSTPROCESSING = True
 
 
-def main():    
+
+def main():
+    SKIP_INFERENCE = True
+    SKIP_CLIPPING = False
+    SKIP_POSTPROCESSING = True
+    
+        
     model_weights_path = './weights/multistage_finetuning_stage2/dae/s1_full_train/s2_decoder_train/best_model.pth'
     # model_weights_path = './weights/multistage_unet/best_model.pth'
     
@@ -79,14 +82,16 @@ def main():
     else:
         bounding_polygons = [shapely.geometry.Polygon(polygon.exterior) for polygon in county_geom.geoms]
     
-    out_path = '/home/dhester/server/guser/dh/MS_HiRes_LC_Prelim/'
+    out_path = f'/home/dhester/server/guser/dh/MS_HiRes_LC_Prelim/{int(county_fp_code):03}'
     # use whole state for now
     # bounding_polygons = [ms_counties_gdf.unary_union]
     
     logger.log(f'Loaded county {county_name} with FIPS code {county_fp_code}')
     
     logger.log('Loading model...')
-    model = UNet().to(get_torch_device())
+    model = UNet(use_extended_decoder=False).to(get_torch_device())
+    # if len(model.decoder_blocks > 5):
+        
     model.load_state_dict(load_pth(model_weights_path, map_location=device))
     model.eval()
     
@@ -131,8 +136,13 @@ def main():
     
     if SKIP_INFERENCE and not os.path.exists(os.path.join(out_path, 'lc_probs.tif')):
         warn('SKIP_INFERENCE is set to True, but land cover probabilities are not found. Continuing with inference...')
+        SKIP_INFERENCE = False
         
-    if not SKIP_INFERENCE:
+    if SKIP_INFERENCE and os.path.exists(os.path.join(out_path, 'lc_probs.tif')):
+        logger.log('Land cover probabilities already computed. Skipping inference...')
+        with rio.open(os.path.join(out_path, 'lc_probs.tif')) as src:
+            lc_probs = src.read().astype(np.float32) / 100
+    else:
         logger.log('Processing raster data...')
         lc_probs = processor.process_raster(raster_data)
         
@@ -146,12 +156,7 @@ def main():
                 dst.write(np.clip((lc_probs[band] * 100), 1, 100).astype(rio.uint8), band + 1)
         logger.log(f'Saved land cover probabilities to {os.path.join(out_path, "lc_probs.tif")}')
 
-    else:
-        logger.log('Land cover probabilities already computed. Skipping inference...')
-        with rio.open(os.path.join(out_path, 'lc_probs.tif')) as src:
-            lc_probs = src.read().astype(np.float32) / 100
-    
-    # out_path = f'./data/inference_results/starkville_msu_2023_less_reduced'
+
     if SKIP_INFERENCE and os.path.exists(os.path.join(out_path, 'lc_classes.tif')):
         logger.log('Land cover classes already computed. Skipping final classification...')
     else:
@@ -165,6 +170,7 @@ def main():
             
         logger.log(f'Saved land cover classes to {os.path.join(out_path, "lc_classes.tif")}')
         del lc_classes
+    
     
     if SKIP_INFERENCE and os.path.exists(os.path.join(out_path, 'lc_confidence.tif')):
         logger.log('Land cover confidence already computed. Skipping final classification...')
@@ -181,6 +187,8 @@ def main():
         logger.log(f'Saved land cover confidence to {os.path.join(out_path, "lc_confidence.tif")}')
         del lc_confidence
     
+    
+    
     # now, mask outputs by polygon boundary
     if SKIP_CLIPPING and os.path.exists(os.path.join(out_path, 'lc_probs_clipped.tif')):
         logger.log('Skipping clipping of land cover probabilities...')
@@ -193,6 +201,7 @@ def main():
                 crop=True,
                 all_touched=True
             )
+            
             updated_profile = src.profile.copy()
             updated_profile.update({
                 'transform': clipped_transform,
@@ -201,10 +210,12 @@ def main():
                 'BIGTIFF': 'YES',
                 'count': lc_probs.shape[0],
             })
+            
             with rio.open(os.path.join(out_path, 'lc_probs_clipped.tif'), 'w', **updated_profile) as dst:
                 dst.write(clipped_data)
         
         logger.log(f'Saved clipped land cover probabilities to {os.path.join(out_path, "lc_probs_clipped.tif")}')
+    
     
     if SKIP_CLIPPING and os.path.exists(os.path.join(out_path, 'lc_classes_clipped.tif')):
         logger.log('Skipping clipping of land cover classes...')
@@ -217,6 +228,7 @@ def main():
                 crop=True,
                 all_touched=True
             )
+            
             updated_profile = src.profile.copy()
             updated_profile.update({
                 'transform': clipped_transform,
@@ -225,11 +237,13 @@ def main():
                 'BIGTIFF': 'YES',
                 'count': 1,
             })
+            
             with rio.open(os.path.join(out_path, 'lc_classes_clipped.tif'), 'w', **updated_profile) as dst:
                 dst.write(clipped_data)
                 dst.write_colormap(1, LEGEND_COLORS_RGBA)
             
         logger.log(f'Saved clipped land cover classes to {os.path.join(out_path, "lc_classes_clipped.tif")}')
+    
     
     if SKIP_CLIPPING and os.path.exists(os.path.join(out_path, 'lc_confidence_clipped.tif')):
         logger.log('Skipping clipping of land cover confidence...')
@@ -242,6 +256,7 @@ def main():
                 crop=True,
                 all_touched=True
             )
+            
             updated_profile = src.profile.copy()
             updated_profile.update({
                 'transform': clipped_transform,
@@ -250,8 +265,10 @@ def main():
                 'BIGTIFF': 'YES',
                 'count': 1,
             })
+            
             with rio.open(os.path.join(out_path, 'lc_confidence_clipped.tif'), 'w', **updated_profile) as dst:
                 dst.write(clipped_data)
+                
         logger.log(f'Saved clipped land cover confidence to {os.path.join(out_path, "lc_confidence_clipped.tif")}')
     
     
