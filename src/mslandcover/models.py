@@ -1029,13 +1029,15 @@ class UNet(nn.Module):
     def __init__(self, 
         num_classes: int=8,
         pretrained: bool=True, 
-        activation: nn.Module=nn.Softmax(dim=1)
+        activation: nn.Module=nn.Softmax(dim=1),
+        use_extended_decoder: bool=True,
     ):
         super(UNet, self).__init__()
         
         self.pretrained = pretrained
         weights = ResNet152_Weights.DEFAULT if pretrained else None
         self.num_classes = num_classes
+        self.use_extended_decoder = use_extended_decoder
         
         self.encoder = resnet152(weights=weights)
         self.encoder.avgpool = nn.Identity()
@@ -1061,17 +1063,15 @@ class UNet(nn.Module):
             UNetUpBlock(768, 256),
             UNetUpBlock(320, 128),
             UNetUpBlock(128, 64),
-            nn.Sequential(
-                nn.Conv2d(64, 64, kernel_size=3, padding=1),
-                nn.BatchNorm2d(64),
-                nn.ReLU(inplace=True),
-            ),
-            nn.Sequential(
-                nn.Conv2d(64, 64, kernel_size=3, padding=1),
-                nn.BatchNorm2d(64),
-                nn.ReLU(inplace=True),
-            )
         ])
+        if self.use_extended_decoder:
+            for _ in range(2):
+                self.decoder_blocks.append(nn.Sequential(
+                    nn.Conv2d(64, 64, kernel_size=3, padding=1),
+                    nn.BatchNorm2d(64),
+                    nn.ReLU(inplace=True)
+                ))
+        
         self.classifier = nn.Conv2d(64, num_classes, kernel_size=1)
         self.activation = activation
         
@@ -1098,9 +1098,12 @@ class UNet(nn.Module):
         # no concatenation with encoder features for last block, just bringing features back up to original size
         x_1 = self.decoder_blocks[4](x)                    # (B, 64, 256, 256)
         
-        # final decoder blocks are just basic convolutional blocks
-        x = self.decoder_blocks[5](x_1) + x_1              # (B, 64, 256, 256) 
-        x = self.decoder_blocks[6](x) + x_1 + x            # (B, 64, 256, 256)
+        if self.use_extended_decoder:
+            # final decoder blocks are just basic convolutional blocks
+            x = self.decoder_blocks[5](x_1) + x_1          # (B, 64, 256, 256) 
+            x = self.decoder_blocks[6](x) + x_1 + x        # (B, 64, 256, 256)
+        else:
+            x = x_1
         
         x = self.classifier(x)                             # (B, num_classes, 256, 256)
         
