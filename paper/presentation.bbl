@@ -102,8 +102,8 @@
     \list{publisher}{1}{%
       {US Government Printing Office}%
     }
-    \strng{namehash}{AJR3}
-    \strng{fullhash}{AJR3}
+    \strng{namehash}{AJR2}
+    \strng{fullhash}{AJR2}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
     \field{title}{A Land Use and Land Cover Classification System for Use with
@@ -353,83 +353,73 @@
     \field{urlyear}{2023}
   \endentry
 
-  \entry{andersonLandUseLand1977}{article}{}
-    \name{author}{1}{}{%
-      {{hash=AJR}{%
-         family={Anderson},
-         familyi={A\bibinitperiod},
-         given={James\bibnamedelima R.},
-         giveni={J\bibinitperiod\bibinitdelim R\bibinitperiod},
-      }}%
-    }
-    \strng{namehash}{AJR2}
-    \strng{fullhash}{AJR2}
-    \field{labelnamesource}{author}
-    \field{labeltitlesource}{shorttitle}
-    \field{abstract}{%
-    Information on the rate and kind of change in the use of land resources is
-  essential to-the proper planning, management, and regulation of the use of
-  such resources. Starting in 1975, the U.S. Geological Survey has been engaged
-  in mapping and inventory of land use and land cover at a scale of 1:250000
-  with plans to change to new 1:100000 base maps as they become available. Such
-  scales are-appropriate for acquiring benchmark or baseline data on land use
-  and land cover on a nationwide basis with a reasonable degree of
-  standardization and accuracy, within a practical time frame of 6 to 7 years,
-  and at a reasonable level of detail in categorization. Changes in land use
-  and land cover occur at highly variable rates from place to place. Thus
-  variations, in the intervals between updates of land use and land cover data
-  should be carefully evaluated in order to provide...%
-    }
-    \field{number}{2}
-    \field{pages}{143\bibrangedash 153}
-    \field{shorttitle}{Land Use and Land Cover Changes}
-    \field{title}{Land Use and Land Cover Changes: {{A}} Framework for
-  Monitoring}
-    \field{volume}{5}
-    \field{langid}{english}
-    \verb{file}
-    \verb /Users/dak/Zotero/storage/8SKEF4WN/Anderson - 1977 - Land use and lan
-    \verb d cover changes A framework for m.pdf;/Users/dak/Zotero/storage/PL3KJ
-    \verb KYU/Anderson - 1977 - Land use and land cover changes A framework for
-    \verb  m.pdf
-    \endverb
-    \field{journaltitle}{Journal of Research of the U.S. Geological Survey}
-    \field{year}{1977}
-    \field{urlday}{29}
-    \field{urlmonth}{09}
-    \field{urlyear}{2024}
-  \endentry
-
-  \entry{scarpace1980land}{article}{}
+  \entry{kavzogluEffectsAuxiliaryAncillary2023}{article}{}
     \name{author}{2}{}{%
-      {{hash=SFL}{%
-         family={Scarpace},
-         familyi={S\bibinitperiod},
-         given={{\relax FL}},
-         giveni={{\relax FL}},
+      {{hash=KT}{%
+         family={Kavzoglu},
+         familyi={K\bibinitperiod},
+         given={Taskin},
+         giveni={T\bibinitperiod},
       }}%
-      {{hash=QBK}{%
-         family={Quirk},
-         familyi={Q\bibinitperiod},
-         given={{\relax BK}},
-         giveni={{\relax BK}},
+      {{hash=BF}{%
+         family={Bilucan},
+         familyi={B\bibinitperiod},
+         given={Furkan},
+         giveni={F\bibinitperiod},
       }}%
     }
-    \strng{namehash}{SFLQBK1}
-    \strng{fullhash}{SFLQBK1}
+    \keyw{Ancillary data,Artificial Intelligence,Auxiliary data,Feature
+  selection,Genetic algorithm,HSIC-Lasso,Relief-F}
+    \strng{namehash}{KTBF1}
+    \strng{fullhash}{KTBF1}
     \field{labelnamesource}{author}
     \field{labeltitlesource}{title}
-    \field{number}{8}
-    \field{pages}{1059\bibrangedash 1065}
-    \field{title}{Land-Cover Classification Using Digital Processing of Aerial
-  Imagery}
-    \field{volume}{46}
-    \verb{file}
-    \verb /Users/dak/Zotero/storage/MT5LKVNH/Scarpace and Quirk - 1980 - Land-c
-    \verb over classification using digital processing.pdf
+    \field{abstract}{%
+    Land use and land cover (LULC) maps, providing crucial information for
+  monitoring the Earth's surface, are one of the most essential products for
+  numerous studies. Using only the spectral information in the classification
+  process might cause poor performances in the areas with heterogeneous
+  landscape characteristics. To overcome this problem, auxiliary and ancillary
+  data are usually employed to improve classification accuracy. The objective
+  of this study is to integrate auxiliary data (topographic and climatic
+  features) and ancillary data (spectral indices and texture measures) into
+  spectral bands of Sentinel-2A imagery and evaluate the performances of
+  advanced feature selection methods. In this context, genetic algorithm-based
+  random forest (GA-RF), HSIC-Lasso, and Relief-F feature selection approaches
+  were utilized to determine the most informative features for the
+  classification process from a high-dimensional dataset consisting of 102
+  features. Whilst the GA-RF algorithm selected 65 features, HSIC-Lasso chose
+  38 features, and Relief-F determined 51 features as ideal subsets. These
+  feature subsets together with the whole data were inputted into a supervised
+  classification process using the random forest (RF) classifier, whose
+  parameters were optimized using random search algorithm. The highest overall
+  accuracy of the produced thematic maps was estimated as 91.05\% for the
+  subset determined by the HSIC-Lasso algorithm, which was also the fastest
+  algorithm (5.71~s). McNemar's statistical significance test confirmed the
+  superiority of the HSIC-Lasso method over the GA-RF and Relief-F algorithms.
+  SHapley Additive exPlanations method was also applied to analyze the relative
+  importance of a feature according to the model output.%
+    }
+    \verb{doi}
+    \verb 10.1007/s12145-022-00874-9
     \endverb
-    \field{journaltitle}{Photogrammetric Engineering and Remote Sensing}
-    \field{year}{1980}
+    \field{issn}{1865-0481}
+    \field{number}{1}
+    \field{pages}{415\bibrangedash 435}
+    \field{title}{Effects of Auxiliary and Ancillary Data on {{LULC}}
+  Classification in a Heterogeneous Environment Using Optimized Random Forest
+  Algorithm}
+    \field{volume}{16}
+    \field{langid}{english}
+    \field{journaltitle}{Earth Science Informatics}
+    \field{annotation}{%
+    11 citations (Crossref) [2024-09-10]%
+    }
+    \field{month}{03}
+    \field{year}{2023}
+    \field{urlday}{09}
+    \field{urlmonth}{09}
+    \field{urlyear}{2024}
   \endentry
 
   \entry{gislasonRandomForestsLand2006}{article}{}
@@ -588,75 +578,6 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{kavzogluEffectsAuxiliaryAncillary2023}{article}{}
-    \name{author}{2}{}{%
-      {{hash=KT}{%
-         family={Kavzoglu},
-         familyi={K\bibinitperiod},
-         given={Taskin},
-         giveni={T\bibinitperiod},
-      }}%
-      {{hash=BF}{%
-         family={Bilucan},
-         familyi={B\bibinitperiod},
-         given={Furkan},
-         giveni={F\bibinitperiod},
-      }}%
-    }
-    \keyw{Ancillary data,Artificial Intelligence,Auxiliary data,Feature
-  selection,Genetic algorithm,HSIC-Lasso,Relief-F}
-    \strng{namehash}{KTBF1}
-    \strng{fullhash}{KTBF1}
-    \field{labelnamesource}{author}
-    \field{labeltitlesource}{title}
-    \field{abstract}{%
-    Land use and land cover (LULC) maps, providing crucial information for
-  monitoring the Earth's surface, are one of the most essential products for
-  numerous studies. Using only the spectral information in the classification
-  process might cause poor performances in the areas with heterogeneous
-  landscape characteristics. To overcome this problem, auxiliary and ancillary
-  data are usually employed to improve classification accuracy. The objective
-  of this study is to integrate auxiliary data (topographic and climatic
-  features) and ancillary data (spectral indices and texture measures) into
-  spectral bands of Sentinel-2A imagery and evaluate the performances of
-  advanced feature selection methods. In this context, genetic algorithm-based
-  random forest (GA-RF), HSIC-Lasso, and Relief-F feature selection approaches
-  were utilized to determine the most informative features for the
-  classification process from a high-dimensional dataset consisting of 102
-  features. Whilst the GA-RF algorithm selected 65 features, HSIC-Lasso chose
-  38 features, and Relief-F determined 51 features as ideal subsets. These
-  feature subsets together with the whole data were inputted into a supervised
-  classification process using the random forest (RF) classifier, whose
-  parameters were optimized using random search algorithm. The highest overall
-  accuracy of the produced thematic maps was estimated as 91.05\% for the
-  subset determined by the HSIC-Lasso algorithm, which was also the fastest
-  algorithm (5.71~s). McNemar's statistical significance test confirmed the
-  superiority of the HSIC-Lasso method over the GA-RF and Relief-F algorithms.
-  SHapley Additive exPlanations method was also applied to analyze the relative
-  importance of a feature according to the model output.%
-    }
-    \verb{doi}
-    \verb 10.1007/s12145-022-00874-9
-    \endverb
-    \field{issn}{1865-0481}
-    \field{number}{1}
-    \field{pages}{415\bibrangedash 435}
-    \field{title}{Effects of Auxiliary and Ancillary Data on {{LULC}}
-  Classification in a Heterogeneous Environment Using Optimized Random Forest
-  Algorithm}
-    \field{volume}{16}
-    \field{langid}{english}
-    \field{journaltitle}{Earth Science Informatics}
-    \field{annotation}{%
-    11 citations (Crossref) [2024-09-10]%
-    }
-    \field{month}{03}
-    \field{year}{2023}
-    \field{urlday}{09}
-    \field{urlmonth}{09}
-    \field{urlyear}{2024}
-  \endentry
-
   \entry{markhamLandCoverClassification1981}{book}{}
     \name{author}{2}{}{%
       {{hash=MBL}{%
@@ -754,298 +675,6 @@
     \field{urlday}{31}
     \field{urlmonth}{07}
     \field{urlyear}{2024}
-  \endentry
-
-  \entry{blaschkeObjectOrientedImageProcessing2000a}{inproceedings}{}
-    \name{author}{5}{}{%
-      {{hash=BT}{%
-         family={Blaschke},
-         familyi={B\bibinitperiod},
-         given={Thomas},
-         giveni={T\bibinitperiod},
-      }}%
-      {{hash=LS}{%
-         family={Lang},
-         familyi={L\bibinitperiod},
-         given={Stefan},
-         giveni={S\bibinitperiod},
-      }}%
-      {{hash=LE}{%
-         family={Lorup},
-         familyi={L\bibinitperiod},
-         given={Eric},
-         giveni={E\bibinitperiod},
-      }}%
-      {{hash=SJ}{%
-         family={Strobl},
-         familyi={S\bibinitperiod},
-         given={Josef},
-         giveni={J\bibinitperiod},
-      }}%
-      {{hash=ZP}{%
-         family={Zeil},
-         familyi={Z\bibinitperiod},
-         given={Peter},
-         giveni={P\bibinitperiod},
-      }}%
-    }
-    \list{publisher}{1}{%
-      {Metropolis}%
-    }
-    \strng{namehash}{BT+1}
-    \strng{fullhash}{BTLSLESJZP1}
-    \field{labelnamesource}{author}
-    \field{labeltitlesource}{title}
-    \field{abstract}{%
-    While remote sensing has made enormous progress over recent years and a
-  variety of sensors now deliver medium and high resolution data on an
-  operational basis, a vast majority of applications still rely on basic image
-  processing concepts developed in the early 70s: classification of single
-  pixels in a multi-dimensional feature space. Although the techniques are well
-  developed and sophisticated variations include soft classifiers, sub-pixel
-  classifiers and spectral un-mixing techniques, it is argued that they do not
-  make use of spatial concepts. Looking at high-resolution images it is very
-  likely that a neighbouring pixel belongs to the same land cover class as the
-  pixel under consideration. Algorithms in physics or mechanical engineering
-  developed over the last twenty years successfully delineate objects based on
-  context-information in an image on the basis of texture or fractal dimension.
-  With the advent of high-resolution satellite imagery, the in- creasing use of
-  airborne digital data and radar data the need for context-based algorithms
-  and object-oriented image processing is increasing. Recently available
-  commercial prod- ucts reflect this demand. In a case study, 'traditional'
-  pixel based classification methods and context-based methods are compared.
-  Experiences are encouraging and it is hy- pothesised that object-based image
-  analysis will trigger new developments towards a full integration of GIS and
-  remote sensing functions. If the resulting objects prove to be 'meaningful',
-  subsequent application specific analysis can take the attributes of these
-  objects into account. The meaning of object dimension is discussed with a
-  special focus on applications for environmental monitoring.%
-    }
-    \field{booktitle}{Umweltinformation F\{{\textbackslash}"u\}r {{Planung}},
-  {{Politik}} Und \{{\textbackslash}"\vphantom\}{{O}}\vphantom\{\}ffentlichkeit
-  / {{Environmental Information}} for {{Planning}}, {{Politics}} and the
-  {{Public}}}
-    \field{pages}{555\bibrangedash 570}
-    \field{title}{Object-{{Oriented Image Processing}} in an {{Integrated
-  GIS}}/{{Remote Sensing Environment}} and {{Perspectives}} for {{Environmental
-  Applications}}}
-    \field{volume}{2}
-    \field{langid}{english}
-    \verb{file}
-    \verb /Users/dak/Zotero/storage/YTWKU5F7/Blaschke et al. - 2000 - Object-Or
-    \verb iented Image Processing in an Integrated .pdf
-    \endverb
-    \field{year}{2000}
-  \endentry
-
-  \entry{blaschkeObjectBasedImage2010}{article}{}
-    \name{author}{1}{}{%
-      {{hash=BT}{%
-         family={Blaschke},
-         familyi={B\bibinitperiod},
-         given={T.},
-         giveni={T\bibinitperiod},
-      }}%
-    }
-    \strng{namehash}{BT1}
-    \strng{fullhash}{BT1}
-    \field{labelnamesource}{author}
-    \field{labeltitlesource}{title}
-    \verb{doi}
-    \verb 10.1016/j.isprsjprs.2009.06.004
-    \endverb
-    \field{issn}{09242716}
-    \field{number}{1}
-    \field{pages}{2\bibrangedash 16}
-    \field{title}{Object Based Image Analysis for Remote Sensing}
-    \field{volume}{65}
-    \field{langid}{english}
-    \verb{file}
-    \verb /Users/dak/Zotero/storage/4CHEM2PQ/Blaschke - 2010 - Object based ima
-    \verb ge analysis for remote sensing.pdf;/Users/dak/Zotero/storage/Z5L7TNL2
-    \verb /blaschke2010.pdf.pdf
-    \endverb
-    \field{journaltitle}{ISPRS Journal of Photogrammetry and Remote Sensing}
-    \field{month}{01}
-    \field{year}{2010}
-    \field{urlday}{18}
-    \field{urlmonth}{06}
-    \field{urlyear}{2023}
-  \endentry
-
-  \entry{hossainSegmentationObjectBasedImage2019}{article}{}
-    \name{author}{2}{}{%
-      {{hash=HMD}{%
-         family={Hossain},
-         familyi={H\bibinitperiod},
-         given={Mohammad\bibnamedelima D.},
-         giveni={M\bibinitperiod\bibinitdelim D\bibinitperiod},
-      }}%
-      {{hash=CD}{%
-         family={Chen},
-         familyi={C\bibinitperiod},
-         given={Dongmei},
-         giveni={D\bibinitperiod},
-      }}%
-    }
-    \keyw{Geographic object,High spatial resolution,Image
-  segmentation,OBIA,Remote sensing}
-    \strng{namehash}{HMDCD1}
-    \strng{fullhash}{HMDCD1}
-    \field{labelnamesource}{author}
-    \field{labeltitlesource}{shorttitle}
-    \field{abstract}{%
-    Image segmentation is a critical and important step in (GEographic)
-  Object-Based Image Analysis (GEOBIA or OBIA). The final feature extraction
-  and classification in OBIA is highly dependent on the quality of image
-  segmentation. Segmentation has been used in remote sensing image processing
-  since the advent of the Landsat-1 satellite. However, after the launch of the
-  high-resolution IKONOS satellite in 1999, the paradigm of image analysis
-  moved from pixel-based to object-based. As a result, the purpose of
-  segmentation has been changed from helping pixel labeling to object
-  identification. Although several articles have reviewed segmentation
-  algorithms, it is unclear if some segmentation algorithms are generally more
-  suited for (GE)OBIA than others. This article has conducted an extensive
-  state-of-the-art survey on OBIA techniques, discussed different segmentation
-  techniques and their applicability to OBIA. Conceptual details of those
-  techniques are explained along with the strengths and weaknesses. The
-  available tools and software packages for segmentation are also summarized.
-  The key challenge in image segmentation is to select optimal parameters and
-  algorithms that can general image objects matching with the meaningful
-  geographic objects. Recent research indicates an apparent movement towards
-  the improvement of segmentation algorithms, aiming at more accurate,
-  automated, and computationally efficient techniques.%
-    }
-    \verb{doi}
-    \verb 10.1016/j.isprsjprs.2019.02.009
-    \endverb
-    \field{issn}{0924-2716}
-    \field{pages}{115\bibrangedash 134}
-    \field{shorttitle}{Segmentation for {{Object-Based Image Analysis}}
-  ({{OBIA}})}
-    \field{title}{Segmentation for {{Object-Based Image Analysis}} ({{OBIA}}):
-  {{A}} Review of Algorithms and Challenges from Remote Sensing Perspective}
-    \field{volume}{150}
-    \verb{file}
-    \verb /Users/dak/Zotero/storage/8ZFBQMFK/Hossain and Chen - 2019 - Segmenta
-    \verb tion for Object-Based Image Analysis (OBIA.pdf;/Users/dak/Zotero/stor
-    \verb age/6KAWJYB4/S0924271619300425.html
-    \endverb
-    \field{journaltitle}{ISPRS Journal of Photogrammetry and Remote Sensing}
-    \field{annotation}{%
-    393 citations (Crossref) [2024-08-01]%
-    }
-    \field{month}{04}
-    \field{year}{2019}
-    \field{urlday}{01}
-    \field{urlmonth}{08}
-    \field{urlyear}{2024}
-  \endentry
-
-  \entry{kaplanScalingLawsNeural2020}{misc}{}
-    \name{author}{10}{}{%
-      {{hash=KJ}{%
-         family={Kaplan},
-         familyi={K\bibinitperiod},
-         given={Jared},
-         giveni={J\bibinitperiod},
-      }}%
-      {{hash=MS}{%
-         family={McCandlish},
-         familyi={M\bibinitperiod},
-         given={Sam},
-         giveni={S\bibinitperiod},
-      }}%
-      {{hash=HT}{%
-         family={Henighan},
-         familyi={H\bibinitperiod},
-         given={Tom},
-         giveni={T\bibinitperiod},
-      }}%
-      {{hash=BTB}{%
-         family={Brown},
-         familyi={B\bibinitperiod},
-         given={Tom\bibnamedelima B.},
-         giveni={T\bibinitperiod\bibinitdelim B\bibinitperiod},
-      }}%
-      {{hash=CB}{%
-         family={Chess},
-         familyi={C\bibinitperiod},
-         given={Benjamin},
-         giveni={B\bibinitperiod},
-      }}%
-      {{hash=CR}{%
-         family={Child},
-         familyi={C\bibinitperiod},
-         given={Rewon},
-         giveni={R\bibinitperiod},
-      }}%
-      {{hash=GS}{%
-         family={Gray},
-         familyi={G\bibinitperiod},
-         given={Scott},
-         giveni={S\bibinitperiod},
-      }}%
-      {{hash=RA}{%
-         family={Radford},
-         familyi={R\bibinitperiod},
-         given={Alec},
-         giveni={A\bibinitperiod},
-      }}%
-      {{hash=WJ}{%
-         family={Wu},
-         familyi={W\bibinitperiod},
-         given={Jeffrey},
-         giveni={J\bibinitperiod},
-      }}%
-      {{hash=AD}{%
-         family={Amodei},
-         familyi={A\bibinitperiod},
-         given={Dario},
-         giveni={D\bibinitperiod},
-      }}%
-    }
-    \list{publisher}{1}{%
-      {arXiv}%
-    }
-    \keyw{Computer Science - Machine Learning,Statistics - Machine Learning}
-    \strng{namehash}{KJ+1}
-    \strng{fullhash}{KJMSHTBTBCBCRGSRAWJAD1}
-    \field{labelnamesource}{author}
-    \field{labeltitlesource}{title}
-    \field{abstract}{%
-    We study empirical scaling laws for language model performance on the
-  cross-entropy loss. The loss scales as a power-law with model size, dataset
-  size, and the amount of compute used for training, with some trends spanning
-  more than seven orders of magnitude. Other architectural details such as
-  network width or depth have minimal effects within a wide range. Simple
-  equations govern the dependence of overfitting on model/dataset size and the
-  dependence of training speed on model size. These relationships allow us to
-  determine the optimal allocation of a fixed compute budget. Larger models are
-  significantly more sample-efficient, such that optimally compute-efficient
-  training involves training very large models on a relatively modest amount of
-  data and stopping significantly before convergence.%
-    }
-    \verb{doi}
-    \verb 10.48550/arXiv.2001.08361
-    \endverb
-    \verb{eprint}
-    \verb 2001.08361
-    \endverb
-    \field{number}{arXiv:2001.08361}
-    \field{title}{Scaling {{Laws}} for {{Neural Language Models}}}
-    \verb{file}
-    \verb /Users/dak/Zotero/storage/2ZKLK9RY/Kaplan et al. - 2020 - Scaling Law
-    \verb s for Neural Language Models.pdf;/Users/dak/Zotero/storage/9X9G9Q7P/2
-    \verb 001.html
-    \endverb
-    \field{eprinttype}{arXiv}
-    \field{eprintclass}{cs}
-    \field{month}{01}
-    \field{year}{2020}
-    \field{urlday}{20}
-    \field{urlmonth}{01}
-    \field{urlyear}{2025}
   \endentry
 
   \entry{joginFeatureExtractionUsing2018}{inproceedings}{}
@@ -1246,6 +875,75 @@
     \field{urlday}{20}
     \field{urlmonth}{01}
     \field{urlyear}{2025}
+  \endentry
+
+  \entry{hossainSegmentationObjectBasedImage2019}{article}{}
+    \name{author}{2}{}{%
+      {{hash=HMD}{%
+         family={Hossain},
+         familyi={H\bibinitperiod},
+         given={Mohammad\bibnamedelima D.},
+         giveni={M\bibinitperiod\bibinitdelim D\bibinitperiod},
+      }}%
+      {{hash=CD}{%
+         family={Chen},
+         familyi={C\bibinitperiod},
+         given={Dongmei},
+         giveni={D\bibinitperiod},
+      }}%
+    }
+    \keyw{Geographic object,High spatial resolution,Image
+  segmentation,OBIA,Remote sensing}
+    \strng{namehash}{HMDCD1}
+    \strng{fullhash}{HMDCD1}
+    \field{labelnamesource}{author}
+    \field{labeltitlesource}{shorttitle}
+    \field{abstract}{%
+    Image segmentation is a critical and important step in (GEographic)
+  Object-Based Image Analysis (GEOBIA or OBIA). The final feature extraction
+  and classification in OBIA is highly dependent on the quality of image
+  segmentation. Segmentation has been used in remote sensing image processing
+  since the advent of the Landsat-1 satellite. However, after the launch of the
+  high-resolution IKONOS satellite in 1999, the paradigm of image analysis
+  moved from pixel-based to object-based. As a result, the purpose of
+  segmentation has been changed from helping pixel labeling to object
+  identification. Although several articles have reviewed segmentation
+  algorithms, it is unclear if some segmentation algorithms are generally more
+  suited for (GE)OBIA than others. This article has conducted an extensive
+  state-of-the-art survey on OBIA techniques, discussed different segmentation
+  techniques and their applicability to OBIA. Conceptual details of those
+  techniques are explained along with the strengths and weaknesses. The
+  available tools and software packages for segmentation are also summarized.
+  The key challenge in image segmentation is to select optimal parameters and
+  algorithms that can general image objects matching with the meaningful
+  geographic objects. Recent research indicates an apparent movement towards
+  the improvement of segmentation algorithms, aiming at more accurate,
+  automated, and computationally efficient techniques.%
+    }
+    \verb{doi}
+    \verb 10.1016/j.isprsjprs.2019.02.009
+    \endverb
+    \field{issn}{0924-2716}
+    \field{pages}{115\bibrangedash 134}
+    \field{shorttitle}{Segmentation for {{Object-Based Image Analysis}}
+  ({{OBIA}})}
+    \field{title}{Segmentation for {{Object-Based Image Analysis}} ({{OBIA}}):
+  {{A}} Review of Algorithms and Challenges from Remote Sensing Perspective}
+    \field{volume}{150}
+    \verb{file}
+    \verb /Users/dak/Zotero/storage/8ZFBQMFK/Hossain and Chen - 2019 - Segmenta
+    \verb tion for Object-Based Image Analysis (OBIA.pdf;/Users/dak/Zotero/stor
+    \verb age/6KAWJYB4/S0924271619300425.html
+    \endverb
+    \field{journaltitle}{ISPRS Journal of Photogrammetry and Remote Sensing}
+    \field{annotation}{%
+    393 citations (Crossref) [2024-08-01]%
+    }
+    \field{month}{04}
+    \field{year}{2019}
+    \field{urlday}{01}
+    \field{urlmonth}{08}
+    \field{urlyear}{2024}
   \endentry
 
   \entry{kotaridisRemoteSensingImage2021}{article}{}
@@ -1481,163 +1179,6 @@
     \field{urlyear}{2024}
   \endentry
 
-  \entry{lecunGradientbasedLearningApplied1998}{article}{}
-    \name{author}{4}{}{%
-      {{hash=LY}{%
-         family={LeCun},
-         familyi={L\bibinitperiod},
-         given={Y.},
-         giveni={Y\bibinitperiod},
-      }}%
-      {{hash=BL}{%
-         family={Bottou},
-         familyi={B\bibinitperiod},
-         given={L.},
-         giveni={L\bibinitperiod},
-      }}%
-      {{hash=BY}{%
-         family={Bengio},
-         familyi={B\bibinitperiod},
-         given={Y.},
-         giveni={Y\bibinitperiod},
-      }}%
-      {{hash=HP}{%
-         family={Haffner},
-         familyi={H\bibinitperiod},
-         given={P.},
-         giveni={P\bibinitperiod},
-      }}%
-    }
-    \keyw{Character recognition,Feature extraction,Hidden Markov models,Machine
-  learning,Multi-layer neural network,Neural networks,Optical character
-  recognition software,Optical computing,Pattern recognition,Principal
-  component analysis}
-    \strng{namehash}{LY+1}
-    \strng{fullhash}{LYBLBYHP1}
-    \field{labelnamesource}{author}
-    \field{labeltitlesource}{title}
-    \verb{doi}
-    \verb 10.1109/5.726791
-    \endverb
-    \field{issn}{00189219}
-    \field{number}{11}
-    \field{pages}{2278\bibrangedash 2324}
-    \field{title}{Gradient-Based Learning Applied to Document Recognition}
-    \field{volume}{86}
-    \verb{file}
-    \verb /Users/dak/Zotero/storage/TIXTDZSN/Lecun et al. - 1998 - Gradient-bas
-    \verb ed learning applied to document recogn.pdf;/Users/dak/Zotero/storage/
-    \verb KQSGSWVV/726791.html
-    \endverb
-    \field{journaltitle}{Proceedings of the IEEE}
-    \field{annotation}{%
-    30344 citations (Crossref) [2023-12-04]%
-    }
-    \field{month}{11}
-    \field{year}{1998}
-    \field{urlday}{05}
-    \field{urlmonth}{12}
-    \field{urlyear}{2023}
-  \endentry
-
-  \entry{loArtificialConvolutionNeural1995}{article}{}
-    \name{author}{6}{}{%
-      {{hash=LSCB}{%
-         family={Lo},
-         familyi={L\bibinitperiod},
-         given={Shih-Chung\bibnamedelima B.},
-         giveni={S\bibinithyphendelim C\bibinitperiod\bibinitdelim
-  B\bibinitperiod},
-      }}%
-      {{hash=CHP}{%
-         family={Chan},
-         familyi={C\bibinitperiod},
-         given={Heang-Ping},
-         giveni={H\bibinithyphendelim P\bibinitperiod},
-      }}%
-      {{hash=LJS}{%
-         family={Lin},
-         familyi={L\bibinitperiod},
-         given={Jyh-Shyan},
-         giveni={J\bibinithyphendelim S\bibinitperiod},
-      }}%
-      {{hash=LH}{%
-         family={Li},
-         familyi={L\bibinitperiod},
-         given={Huai},
-         giveni={H\bibinitperiod},
-      }}%
-      {{hash=FMT}{%
-         family={Freedman},
-         familyi={F\bibinitperiod},
-         given={Matthew\bibnamedelima T.},
-         giveni={M\bibinitperiod\bibinitdelim T\bibinitperiod},
-      }}%
-      {{hash=MSK}{%
-         family={Mun},
-         familyi={M\bibinitperiod},
-         given={Seong\bibnamedelima K.},
-         giveni={S\bibinitperiod\bibinitdelim K\bibinitperiod},
-      }}%
-    }
-    \keyw{Classification invariance of operations,Computer-assisted
-  diagnosis,Neural network,Output association fuzzy function,Trainer imposed
-  function}
-    \strng{namehash}{LSCB+1}
-    \strng{fullhash}{LSCBCHPLJSLHFMTMSK1}
-    \field{labelnamesource}{author}
-    \field{labeltitlesource}{title}
-    \field{abstract}{%
-    We have developed several training methods in conjunction with a
-  convolution neural network for general medical image pattern recognition. An
-  unconventional method of using rotation and shift invariance is also proposed
-  to enhance the neural net performance. The structure of the artificial neural
-  network is a simplified network structure of the neocognitron.
-  Two-dimensional local connection as a group is the fundamental architecture
-  for the signal propagation in the convolution neural network. Weighting
-  coefficients of convolution kernels are formed by the neural network through
-  backpropagated training for this artificial neural net. In addition,
-  radiologists' reading procedure was modelled in order to instruct the
-  artificial neural network to recognize the predefined image patterns and
-  those of interest to experts. Our training techniques involve (a)
-  radiologists' rating for each suspected image area, (b) backpropagation of
-  generalized distribution, (c) trainer imposed functions, (d) shift and
-  rotation invariance of diagnosis interpretation, and (e) consistency of
-  clinical input data using appropriate background reduction functions. We have
-  tested these methods for detecting lung nodules on chest radiographs and
-  microcalcications on mammograms. The performance studies have shown the
-  potential use of this technique in a clinical environment. We also used a
-  profile double-matching technique for initial nodule search and used a
-  wavelet high pass filtering technique to enhance subtle clustered
-  microcalcifications. We set searching parameters at a highly sensitive level
-  to identify all potential disease areas. The artificial convolution neural
-  network acts as a final detection classifier to determine whether a disease
-  pattern is shown on the suspected image area.%
-    }
-    \verb{doi}
-    \verb 10.1016/0893-6080(95)00061-5
-    \endverb
-    \field{issn}{0893-6080}
-    \field{number}{7}
-    \field{pages}{1201\bibrangedash 1214}
-    \field{series}{Automatic {{Target Recognition}}}
-    \field{title}{Artificial Convolution Neural Network for Medical Image
-  Pattern Recognition}
-    \field{volume}{8}
-    \verb{file}
-    \verb /Users/dak/Zotero/storage/YVSEFDZF/0893608095000615.html
-    \endverb
-    \field{journaltitle}{Neural Networks}
-    \field{annotation}{%
-    231 citations (Crossref) [2025-01-19]%
-    }
-    \field{month}{01}
-    \field{year}{1995}
-    \field{urlday}{20}
-    \field{urlmonth}{01}
-    \field{urlyear}{2025}
-  \endentry
-
   \entry{heDeepResidualLearning2015b}{misc}{}
     \name{author}{4}{}{%
       {{hash=HK}{%
@@ -1709,296 +1250,6 @@
     \field{year}{2015}
     \field{urlday}{17}
     \field{urlmonth}{07}
-    \field{urlyear}{2024}
-  \endentry
-
-  \entry{marmanisDeepLearningEarth2016}{article}{}
-    \name{author}{4}{}{%
-      {{hash=MD}{%
-         family={Marmanis},
-         familyi={M\bibinitperiod},
-         given={Dimitrios},
-         giveni={D\bibinitperiod},
-      }}%
-      {{hash=DM}{%
-         family={Datcu},
-         familyi={D\bibinitperiod},
-         given={Mihai},
-         giveni={M\bibinitperiod},
-      }}%
-      {{hash=ET}{%
-         family={Esch},
-         familyi={E\bibinitperiod},
-         given={Thomas},
-         giveni={T\bibinitperiod},
-      }}%
-      {{hash=SU}{%
-         family={Stilla},
-         familyi={S\bibinitperiod},
-         given={Uwe},
-         giveni={U\bibinitperiod},
-      }}%
-    }
-    \keyw{Adaptation models,Arrays,Convolutional neural networks (CNNs),Data
-  models,deep learning (DL),feature extraction,Feature extraction,land-use
-  classification,Neural networks,pretrained network,Remote sensing,remote
-  sensing (RS),Training}
-    \strng{namehash}{MD+1}
-    \strng{fullhash}{MDDMETSU1}
-    \field{labelnamesource}{author}
-    \field{labeltitlesource}{title}
-    \field{abstract}{%
-    Deep learning methods such as convolutional neural networks (CNNs) can
-  deliver highly accurate classification results when provided with large
-  enough data sets and respective labels. However, using CNNs along with
-  limited labeled data can be problematic, as this leads to extensive
-  overfitting. In this letter, we propose a novel method by considering a
-  pretrained CNN designed for tackling an entirely different classification
-  problem, namely, the ImageNet challenge, and exploit it to extract an initial
-  set of representations. The derived representations are then transferred into
-  a supervised CNN classifier, along with their class labels, effectively
-  training the system. Through this two-stage framework, we successfully deal
-  with the limited-data problem in an end-to-end processing scheme. Comparative
-  results over the UC Merced Land Use benchmark prove that our method
-  significantly outperforms the previously best stated results, improving the
-  overall accuracy from 83.1\% up to 92.4\%. Apart from statistical
-  improvements, our method introduces a novel feature fusion algorithm that
-  effectively tackles the large data dimensionality by using a simple and
-  computationally efficient approach.%
-    }
-    \verb{doi}
-    \verb 10.1109/LGRS.2015.2499239
-    \endverb
-    \field{issn}{1558-0571}
-    \field{number}{1}
-    \field{pages}{105\bibrangedash 109}
-    \field{title}{Deep {{Learning Earth Observation Classification Using
-  ImageNet Pretrained Networks}}}
-    \field{volume}{13}
-    \verb{file}
-    \verb /Users/dak/Zotero/storage/NUB44MR3/Marmanis et al. - 2016 - Deep Lear
-    \verb ning Earth Observation Classification Usi.pdf;/Users/dak/Zotero/stora
-    \verb ge/B2X5B4GG/7342907.html
-    \endverb
-    \field{journaltitle}{IEEE Geoscience and Remote Sensing Letters}
-    \field{annotation}{%
-    490 citations (Crossref) [2024-10-07]%
-    }
-    \field{month}{01}
-    \field{year}{2016}
-    \field{urlday}{07}
-    \field{urlmonth}{10}
-    \field{urlyear}{2024}
-  \endentry
-
-  \entry{scottTrainingDeepConvolutional2017}{article}{}
-    \name{author}{5}{}{%
-      {{hash=SGJ}{%
-         family={Scott},
-         familyi={S\bibinitperiod},
-         given={Grant\bibnamedelima J.},
-         giveni={G\bibinitperiod\bibinitdelim J\bibinitperiod},
-      }}%
-      {{hash=EMR}{%
-         family={England},
-         familyi={E\bibinitperiod},
-         given={Matthew\bibnamedelima R.},
-         giveni={M\bibinitperiod\bibinitdelim R\bibinitperiod},
-      }}%
-      {{hash=SWA}{%
-         family={Starms},
-         familyi={S\bibinitperiod},
-         given={William\bibnamedelima A.},
-         giveni={W\bibinitperiod\bibinitdelim A\bibinitperiod},
-      }}%
-      {{hash=MRA}{%
-         family={Marcum},
-         familyi={M\bibinitperiod},
-         given={Richard\bibnamedelima A.},
-         giveni={R\bibinitperiod\bibinitdelim A\bibinitperiod},
-      }}%
-      {{hash=DCH}{%
-         family={Davis},
-         familyi={D\bibinitperiod},
-         given={Curt\bibnamedelima H.},
-         giveni={C\bibinitperiod\bibinitdelim H\bibinitperiod},
-      }}%
-    }
-    \keyw{Deep convolutional neural network (DCNN),deep learning,Feature
-  extraction,high-resolution remote sensing imagery,Iron,land-cover
-  classification,Neural networks,Remote sensing,Training,Training data,transfer
-  learning (TL),Visualization}
-    \strng{namehash}{SGJ+1}
-    \strng{fullhash}{SGJEMRSWAMRADCH1}
-    \field{labelnamesource}{author}
-    \field{labeltitlesource}{title}
-    \field{abstract}{%
-    Deep convolutional neural networks (DCNNs) have recently emerged as a
-  dominant paradigm for machine learning in a variety of domains. However,
-  acquiring a suitably large data set for training DCNN is often a significant
-  challenge. This is a major issue in the remote sensing domain, where we have
-  extremely large collections of satellite and aerial imagery, but lack the
-  rich label information that is often readily available for other image
-  modalities. In this letter, we investigate the use of DCNN for land-cover
-  classification in high-resolution remote sensing imagery. To overcome the
-  lack of massive labeled remote-sensing image data sets, we employ two
-  techniques in conjunction with DCNN: transfer learning (TL) with fine-tuning
-  and data augmentation tailored specifically for remote sensing imagery. TL
-  allows one to bootstrap a DCNN while preserving the deep visual feature
-  extraction learned over an image corpus from a different image domain. Data
-  augmentation exploits various aspects of remote sensing imagery to
-  dramatically expand small training image data sets and improve DCNN
-  robustness for remote sensing image data. Here, we apply these techniques to
-  the well-known UC Merced data set to achieve the land-cover classification
-  accuracies of 97.8 {\textpm} 2.3\%, 97.6 {\textpm} 2.6\%, and 98.5 {\textpm}
-  1.4\% with CaffeNet, GoogLeNet, and ResNet, respectively.%
-    }
-    \verb{doi}
-    \verb 10.1109/LGRS.2017.2657778
-    \endverb
-    \field{issn}{1558-0571}
-    \field{number}{4}
-    \field{pages}{549\bibrangedash 553}
-    \field{title}{Training {{Deep Convolutional Neural Networks}} for
-  {{Land}}--{{Cover Classification}} of {{High-Resolution Imagery}}}
-    \field{volume}{14}
-    \verb{file}
-    \verb /Users/dak/Zotero/storage/EV6KVAKQ/Scott et al. - 2017 - Training Dee
-    \verb p Convolutional Neural Networks for La.pdf;/Users/dak/Zotero/storage/
-    \verb VT2JF75K/7858676.html
-    \endverb
-    \field{journaltitle}{IEEE Geoscience and Remote Sensing Letters}
-    \field{annotation}{%
-    285 citations (Crossref) [2024-08-01]%
-    }
-    \field{month}{04}
-    \field{year}{2017}
-    \field{urlday}{01}
-    \field{urlmonth}{08}
-    \field{urlyear}{2024}
-  \endentry
-
-  \entry{songPatchBasedLightConvolutional2019}{article}{}
-    \name{author}{3}{}{%
-      {{hash=SH}{%
-         family={Song},
-         familyi={S\bibinitperiod},
-         given={Hunsoo},
-         giveni={H\bibinitperiod},
-      }}%
-      {{hash=KY}{%
-         family={Kim},
-         familyi={K\bibinitperiod},
-         given={Yonghyun},
-         giveni={Y\bibinitperiod},
-      }}%
-      {{hash=KY}{%
-         family={Kim},
-         familyi={K\bibinitperiod},
-         given={Yongil},
-         giveni={Y\bibinitperiod},
-      }}%
-    }
-    \list{publisher}{1}{%
-      {Multidisciplinary Digital Publishing Institute}%
-    }
-    \keyw{convolutional neural network,land-cover mapping,Landsat,map
-  heterogeneity,medium-resolution,patch-based classification}
-    \strng{namehash}{SHKYKY1}
-    \strng{fullhash}{SHKYKY1}
-    \field{labelnamesource}{author}
-    \field{labeltitlesource}{title}
-    \field{abstract}{%
-    This study proposes a light convolutional neural network (LCNN) well-fitted
-  for medium-resolution (30-m) land-cover classification. The LCNN attains high
-  accuracy without overfitting, even with a small number of training samples,
-  and has lower computational costs due to its much lighter design compared to
-  typical convolutional neural networks for high-resolution or hyperspectral
-  image classification tasks. The performance of the LCNN was compared to that
-  of a deep convolutional neural network, support vector machine (SVM),
-  k-nearest neighbors (KNN), and random forest (RF). SVM, KNN, and RF were
-  tested with both patch-based and pixel-based systems. Three 30 km
-  {\texttimes} 30 km test sites of the Level II National Land Cover Database
-  were used for reference maps to embrace a wide range of land-cover types, and
-  a single-date Landsat-8 image was used for each test site. To evaluate the
-  performance of the LCNN according to the sample sizes, we varied the sample
-  size to include 20, 40, 80, 160, and 320 samples per class. The proposed LCNN
-  achieved the highest accuracy in 13 out of 15 cases (i.e., at three test
-  sites with five different sample sizes), and the LCNN with a patch size of
-  three produced the highest overall accuracy of 61.94\% from 10 repetitions,
-  followed by SVM (61.51\%) and RF (61.15\%) with a patch size of three. Also,
-  the statistical significance of the differences between LCNN and the other
-  classifiers was reported. Moreover, by introducing the heterogeneity value
-  (from 0 to 8) representing the complexity of the map, we demonstrated the
-  advantage of patch-based LCNN over pixel-based classifiers, particularly at
-  moderately heterogeneous pixels (from 1 to 4), with respect to accuracy (LCNN
-  is 5.5\% and 6.3\% more accurate for a training sample size of 20 and 320
-  samples per class, respectively). Finally, the computation times of the
-  classifiers were calculated, and the LCNN was confirmed to have an advantage
-  in large-area mapping.%
-    }
-    \verb{doi}
-    \verb 10.3390/rs11020114
-    \endverb
-    \field{issn}{2072-4292}
-    \field{number}{2}
-    \field{pages}{114}
-    \field{title}{A {{Patch-Based Light Convolutional Neural Network}} for
-  {{Land-Cover Mapping Using Landsat-8 Images}}}
-    \field{volume}{11}
-    \field{langid}{english}
-    \verb{file}
-    \verb /Users/dak/Zotero/storage/8S4ZIT73/Song et al. - 2019 - A Patch-Based
-    \verb  Light Convolutional Neural Network f.pdf
-    \endverb
-    \field{journaltitle}{Remote Sensing}
-    \field{annotation}{%
-    27 citations (Crossref) [2024-10-11]%
-    }
-    \field{month}{01}
-    \field{year}{2019}
-    \field{urlday}{11}
-    \field{urlmonth}{10}
-    \field{urlyear}{2024}
-  \endentry
-
-  \entry{longFullyConvolutionalNetworks2015}{inproceedings}{}
-    \name{author}{3}{}{%
-      {{hash=LJ}{%
-         family={Long},
-         familyi={L\bibinitperiod},
-         given={Jonathan},
-         giveni={J\bibinitperiod},
-      }}%
-      {{hash=SE}{%
-         family={Shelhamer},
-         familyi={S\bibinitperiod},
-         given={Evan},
-         giveni={E\bibinitperiod},
-      }}%
-      {{hash=DT}{%
-         family={Darrell},
-         familyi={D\bibinitperiod},
-         given={Trevor},
-         giveni={T\bibinitperiod},
-      }}%
-    }
-    \strng{namehash}{LJSEDT1}
-    \strng{fullhash}{LJSEDT1}
-    \field{labelnamesource}{author}
-    \field{labeltitlesource}{title}
-    \field{booktitle}{Proceedings of the {{IEEE Conference}} on {{Computer
-  Vision}} and {{Pattern Recognition}}}
-    \field{pages}{3431\bibrangedash 3440}
-    \field{title}{Fully {{Convolutional Networks}} for {{Semantic
-  Segmentation}}}
-    \verb{file}
-    \verb /Users/dak/Zotero/storage/6NZBJTU7/Long et al. - 2015 - Fully Convolu
-    \verb tional Networks for Semantic Segmenta.pdf
-    \endverb
-    \field{year}{2015}
-    \field{urlday}{07}
-    \field{urlmonth}{10}
     \field{urlyear}{2024}
   \endentry
 
