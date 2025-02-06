@@ -1,4 +1,7 @@
+from concurrent.futures import ThreadPoolExecutor
+from functools import partial
 import os
+import time
 import optuna
 import numpy as np
 import geopandas as gpd
@@ -7,8 +10,10 @@ from rasterio.mask import mask
 from rasterio.transform import xy
 from rasterio.features import shapes, geometry_mask
 from shapely.geometry import Polygon, Point, shape
-from skimage.segmentation import felzenszwalb
+from skimage.segmentation import felzenszwalb, quickshift, slic
 from skimage.filters import unsharp_mask
+from skimage.filters import median
+from skimage.morphology import disk
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
 from tqdm import tqdm
 from multiprocessing.shared_memory import SharedMemory
@@ -16,7 +21,7 @@ import multiprocess as mp
 import numba
 from numba import prange
 from typing import Optional, Tuple, Callable, Dict, Any
-from src.mslandcover.config import LEGEND_CLASSES
+from src.mslandcover.config import LEGEND_CLASSES, LEGEND_COLORS_RGBA
 from src.mslandcover.utils import Logger
 import argparse
 import json
@@ -30,15 +35,22 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         '--okt_probs_raster_path',
         type=str,
-        default='/Volumes/dhester_ssd/postprocessing_tests/okt_classes_clipped.tif',
+        default='./data/postprocessing_trials/okt_probs_clipped.tif',
         help='Path to the raster file containing the Oktibehha County, MS land cover probabilities.'
     )
     
     parser.add_argument(
         '--okt_imagery_raster_path',
         type=str,
-        default='/Volumes/dhester_ssd/postprocessing_tests/okt_imagery_clipped.tif',
+        default='./data/postprocessing_trials/okt_imagery_clipped.tif',
         help='Path to the raster file containing the Oktibehha County, MS NAIP imagery.'
+    )
+    
+    parser.add_argument(
+        '--sampled_points_path',
+        type=str,
+        default='./data/shapefiles/okt_ms_low_confidence_point_samples.gpkg',
+        help='Path to the GeoPackage containing the annotated sample points.'
     )
     
     parser.add_argument(
@@ -51,7 +63,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         '--log_dir',
         type=str,
-        default='./logs/postprocessing_params_search',
+        default='./logs/postprocessing_params_search_slic_felzenszwalb',
         help='Directory to save log files.'
     )
     
@@ -62,114 +74,219 @@ def parse_args() -> argparse.Namespace:
         help='Number of trials to run for the optimization.'
     )
     
+    parser.add_argument(
+        '--seed',
+        type=int,
+        default=1701,
+        help='Random seed for reproducibility.'
+    )
+    
+    parser.add_argument(
+        '--skip_search',
+        action='store_true',
+        help='Skip the parameter search and use the best parameters found so far.'
+    )
+    
     return parser.parse_args()
 
 
 def main():
-    
+        
     args = parse_args()
+    
+    # args.skip_search = True
+    
     os.makedirs(args.log_dir, exist_ok=True)
     logger = Logger(os.path.join(args.log_dir, 'out.log'))
     
-    lc_probs, _, okt_imagery, geom, transform, sampled_points_annotated_gdf = load_data(
-        args.okt_probs_raster_path, args.okt_imagery_raster_path, args.ms_places_path
+    lc_probs, okt_imagery, geom, transform, sampled_points_annotated_gdf = load_data(
+        args.okt_probs_raster_path, args.okt_imagery_raster_path, args.ms_places_path, args.sampled_points_path
     )
     bounding_mask = get_bounding_mask(geom, lc_probs.shape[1:], transform)
     crs = sampled_points_annotated_gdf.crs
     
-    def objective(trial):
-        # sample segmentation parameters
-        scale = trial.suggest_float("scale", 10, 500)
-        min_size = trial.suggest_int("min_size", 5, 100)
-        sigma = trial.suggest_float("sigma", 0.01, 5.0, log=True)
-        # chunk_size = trial.suggest_categorical("chunk_size", [256, 512, 1024])
-        unsharp_radius = trial.suggest_int("unsharp_radius", 0, 20)
-        unsharp_amount = trial.suggest_float("unsharp_amount", 0.0, 2.0)
-        params_trial = {'scale': scale, 'min_size': min_size, 'sigma': sigma}
+    if not args.skip_search:
         
-        try:
+        def objective(trial: optuna.Trial) -> float:
+            # sample segmentation parameters (felzenszwalb)
+            # scale = trial.suggest_float("scale", 10, 500)
+            # min_size = trial.suggest_int("min_size", 5, 100)
+            # sigma = 0
+            # params_trial = {'scale': scale, 'min_size': min_size, 'sigma': sigma}
             
-            if unsharp_radius < 0.01 or unsharp_amount == 0.0:
-                okt_imagery_sharpened = okt_imagery
-            else:
-                okt_imagery_sharpened = unsharp_mask(okt_imagery, radius=unsharp_radius, amount=unsharp_amount)
+            # segment parameters (quickshift)
+            # ratio = trial.suggest_float("ratio", 0, 1)
+            # kernel_size = trial.suggest_int("kernel_size", 1, 10)
+            # max_dist = trial.suggest_int("max_dist", 1, 10)
+            # sigma = 0
+            # params_trial = {'ratio': ratio, 'kernel_size': kernel_size, 'max_dist': max_dist, 'sigma': sigma}
             
-            # run segmentation
-            segmented_image, _, segment_mapping = parallel_segment(
-                okt_imagery_sharpened, lc_probs, felzenszwalb, params_trial, chunk_size=256, n_procs=mp.cpu_count()
-            )
+            # segment parameters (slic)
+            # n_segments = trial.suggest_int("n_segments", 10, 1000)
+            # compactness = trial.suggest_float("compactness", 0.0, 10.0)
             
+            algorithm = trial.suggest_categorical("algorithm", ['felzenszwalb', 'slic'])
+            if algorithm == 'felzenszwalb':
+                seg_func = felzenszwalb
+                scale = trial.suggest_float("scale", 10, 500)
+                min_size = trial.suggest_int("min_size", 5, 100)
+                seg_func_params = {'scale': scale, 'min_size': min_size, 'sigma': 0}
             
-            segment_id_geoms = [
-                (shape(geom), seg_id) 
-                for geom, seg_id in shapes(segmented_image, mask=bounding_mask, connectivity=4, transform=transform)
-            ]
-            
-            segmented_gdf = gpd.GeoDataFrame({
-                'segment_id': [seg_id for _, seg_id in segment_id_geoms],
-                'mean_probs': [segment_mapping[seg_id] for _, seg_id in segment_id_geoms],
-            }, geometry=[geom for geom, _ in segment_id_geoms], crs=crs)
-            segmented_gdf['new_pred_class_index'] = segmented_gdf['mean_probs'].apply(lambda x: np.argmax(x) + 1)
-            
-            # spatial join with annotated sample points and compute loss
-            results_gdf = gpd.sjoin(sampled_points_annotated_gdf, segmented_gdf, how='left')
-            y_true = np.stack(results_gdf['one_hot'].values)
-            y_pred = np.stack(results_gdf['mean_probs'].values)
-            loss_value = cross_entropy(y_true, y_pred)
-            
-            # compute accuracy and weighted f1 score
-            true_labels = np.argmax(y_true, axis=1)
-            pred_labels = np.argmax(y_pred, axis=1)
-            
-            acc = accuracy_score(true_labels, pred_labels)
-            trial.set_user_attr('accuracy', acc)
-            
-            for average_type in ['micro', 'macro', 'weighted']:
-                precision = precision_score(true_labels, pred_labels, average=average_type, zero_division=0)
-                recall = recall_score(true_labels, pred_labels, average=average_type, zero_division=0)
-                f1 = f1_score(true_labels, pred_labels, average=average_type, zero_division=0)
+            elif algorithm == 'slic':
+                seg_func = slic
                 
-                trial.set_user_attr(f'{average_type}_precision', precision)
-                trial.set_user_attr(f'{average_type}_recall', recall)
-                trial.set_user_attr(f'{average_type}_f1_score', f1)
+                n_segments = trial.suggest_int("n_segments", 10, 1000)
+                compactness = trial.suggest_float("compactness", 0.0, 10.0)
+                seg_func_params = {'n_segments': n_segments, 'compactness': compactness}
             
-        except Exception as e:
-            loss_value = np.inf  # if any error occurs, use infinity to indicate a failed trial
-            logger.log(f'====================')
-            logger.log(f'{type(e).__name__}: {e}')
-            logger.log(f'Trial params: {params_trial}')
-            logger.log(f'====================')
+            else:
+                raise ValueError(f"Invalid algorithm: {algorithm}")
             
-            trial.set_user_attr('error', e)
             
-        return loss_value
+            median_radius = trial.suggest_int("median_radius", 0, 20)
+            unsharp_radius = trial.suggest_int("unsharp_radius", 0, 20)
+            unsharp_amount = trial.suggest_float("unsharp_amount", 0.0, 10.0)
+            seg_func_params.update({"median_radius": median_radius, "unsharp_radius": unsharp_radius, "unsharp_amount": unsharp_amount})
+            
+            # sigma = 0
+            
+            
+            try:
+                
+                start_time = time.time()
+                
+                # filtering and sharpening is now handled in the process_chunk function for multi-processing
+                # if median_radius > 0:
+                #     # apply median filter over each channel
+                #     with mp.Pool(mp.cpu_count()) as pool:
+                #         filtered_channels = pool.starmap(
+                #             median,
+                #             [(channel, disk(median_radius)) for channel in okt_imagery.transpose(2, 0, 1)]
+                #         )
+                #     okt_imagery_filtered = np.stack(filtered_channels).transpose(1, 2, 0)
+                # else:
+                #     okt_imagery_filtered = okt_imagery
+                
+                # if unsharp_radius < 0.01 or unsharp_amount == 0.0:
+                #     okt_imagery_sharpened = okt_imagery_filtered
+                # else:
+                #     okt_imagery_sharpened = unsharp_mask(okt_imagery_filtered, radius=unsharp_radius, amount=unsharp_amount)
+                
+                # run segmentation
+                segmented_image, _, segment_mapping = parallel_segment(
+                    okt_imagery, lc_probs, seg_func, seg_func_params, chunk_size=256, n_procs=mp.cpu_count()
+                )
+                
+                stop_time = time.time()
+                algorithm_run_time = stop_time - start_time
+                
+                start_time = time.time()
+                segment_id_geoms = [
+                    (shape(geom), seg_id) 
+                    for geom, seg_id in shapes(segmented_image, mask=bounding_mask, connectivity=4, transform=transform)
+                ]
+                
+                segmented_gdf = gpd.GeoDataFrame({
+                    'segment_id': [seg_id for _, seg_id in segment_id_geoms],
+                    'mean_probs': [segment_mapping[seg_id] for _, seg_id in segment_id_geoms],
+                }, geometry=[geom for geom, _ in segment_id_geoms], crs=crs)
+                segmented_gdf['new_pred_class_index'] = segmented_gdf['mean_probs'].apply(lambda x: np.argmax(x) + 1)
+                
+                stop_time = time.time()
+                vectorization_time = stop_time - start_time
+                
+                # spatial join with annotated sample points and compute loss
+                results_gdf = gpd.sjoin(sampled_points_annotated_gdf, segmented_gdf, how='left')
+                y_true = np.stack(results_gdf['one_hot'].values)
+                y_pred = np.stack(results_gdf['mean_probs'].values)
+                loss_value = cross_entropy(y_true, y_pred)
+                
+                # compute accuracy and weighted f1 score
+                true_labels = np.argmax(y_true, axis=1)
+                pred_labels = np.argmax(y_pred, axis=1)
+                
+                acc = accuracy_score(true_labels, pred_labels)
+                trial.set_user_attr('accuracy', acc)
+                trial.set_user_attr('alg_runtime', algorithm_run_time)
+                trial.set_user_attr('vectorization_runtime', vectorization_time)
+                trial.set_user_attr('total_runtime', algorithm_run_time + vectorization_time)
+                
+                for average_type in ['micro', 'macro', 'weighted']:
+                    precision = precision_score(true_labels, pred_labels, average=average_type, zero_division=0)
+                    recall = recall_score(true_labels, pred_labels, average=average_type, zero_division=0)
+                    f1 = f1_score(true_labels, pred_labels, average=average_type, zero_division=0)
+                    
+                    trial.set_user_attr(f'{average_type}_precision', precision)
+                    trial.set_user_attr(f'{average_type}_recall', recall)
+                    trial.set_user_attr(f'{average_type}_f1_score', f1)
+                
+            except Exception as e:
+                loss_value = np.inf  # if any error occurs, use infinity to indicate a failed trial
+                logger.log(f'====================')
+                logger.log(f'{type(e).__name__}: {e}')
+                logger.log(f'Trial params: {seg_func_params.update({"median_radius": median_radius, "unsharp_radius": unsharp_radius, "unsharp_amount": unsharp_amount})}')
+                logger.log(f'====================')
+                
+                trial.set_user_attr('error', e)
+                
+            return loss_value
 
+        sampler = optuna.samplers.TPESampler(seed=args.seed)
+        study = optuna.create_study(study_name='seg_alg_test_quickshift', direction='minimize', sampler=sampler)
+        study.optimize(objective, n_trials=args.n_trials)
+
+        
+        out_path = os.path.join(args.log_dir, 'best_params.json')
+        json.dump(study.best_trial.params, open(out_path, 'w'))
+        logger.log(f'Best params saved to {out_path}')
+        
+        out_path = os.path.join(args.log_dir, 'study.pkl')
+        pickle.dump(study, open(out_path, 'wb'))
+        logger.log(f'Study results saved to {out_path}')
     
-    study = optuna.create_study(study_name='seg_alg_test', direction='minimize')
-    study.optimize(objective, n_trials=args.n_trials)
+    else:
+        
+        best_params = json.load(open('./logs/postprocessing_params_search/best_params.json', 'r'))
+        study = pickle.load(open('./logs/postprocessing_params_search/study.pkl', 'rb'))
+        
+        logger.log(f"Best trial:")
+        logger.log(f"Params: {study.best_trial.params}")
+        logger.log(f"Loss: {study.best_trial.value}")
+        logger.log(f"Macro F1 Score: {study.best_trial.user_attrs.get('macro_f1_score')}")
+        logger.log(f"Accuracy: {study.best_trial.user_attrs.get('accuracy')}")
 
-    logger.log("Best trial:")
-    logger.log("Params: ", study.best_trial.params)
-    logger.log("Loss: ", study.best_trial.value)
-    logger.log("Macro F1 Score: ", study.best_trial.user_attrs.get('macro_f1_score'))
-    logger.log("Accuracy: ", study.best_trial.user_attrs.get('accuracy'))
+        original_f1 = f1_score(sampled_points_annotated_gdf['true_class_index'], sampled_points_annotated_gdf['pred_class_index'], average='macro')
+        original_acc = accuracy_score(sampled_points_annotated_gdf['true_class_index'], sampled_points_annotated_gdf['pred_class_index'])
+        
+        print(np.stack(sampled_points_annotated_gdf['one_hot'].values).dtype)
+        print(np.stack(sampled_points_annotated_gdf['pred_probs'].values).dtype)
+        
+        # pred probs stored as string of list of floats i.e., '[0.08 0.07 0.22 0.21 0.05 0.22 0.04 0.07]'
+        original_pred_probs = np.stack(sampled_points_annotated_gdf['pred_probs'].apply(lambda x: np.array(x[1:-1].split()).astype(np.float32)).values)
+        print(original_pred_probs)
+        # original_pred_probs = np.stack(sampled_points_annotated_gdf['pred_probs'].values.astype(np.float32))
+        original_ce = cross_entropy(np.stack(sampled_points_annotated_gdf['one_hot'].values), original_pred_probs)
+        
+        f1_improvement = (study.best_trial.user_attrs.get('macro_f1_score') - original_f1) / original_f1
+        acc_improvement = (study.best_trial.user_attrs.get('accuracy') - original_acc) / original_acc
+        ce_improvement = -(study.best_trial.value - original_ce) / original_ce
 
-    original_f1 = f1_score(sampled_points_annotated_gdf['true_class_index'], sampled_points_annotated_gdf['pred_class_index'], average='macro')
-    original_acc = accuracy_score(sampled_points_annotated_gdf['true_class_index'], sampled_points_annotated_gdf['pred_class_index'])
-
-    f1_improvement = (study.best_trial.user_attrs.get('macro_f1_score') - original_f1) / original_f1
-    acc_improvement = (study.best_trial.user_attrs.get('accuracy') - original_acc) / original_acc
-
-    logger.log(f"Original F1 Score: {original_f1} ({f1_improvement:.2%} improvement)")
-    logger.log(f"Original Accuracy: {original_acc} ({acc_improvement:.2%} improvement)")
+        logger.log(f"Original F1 Score: {original_f1} ({f1_improvement:.2%} improvement)")
+        logger.log(f"Original Accuracy: {original_acc} ({acc_improvement:.2%} improvement)")
+        logger.log(f"Original Cross-Entropy: {original_ce} ({ce_improvement:.2%} improvement)")
     
-    out_path = os.path.join(args.log_dir, 'best_params.json')
-    json.dump(study.best_trial.params, open(out_path, 'w'))
-    logger.log(f'Best params saved to {out_path}')
+    # now, postprocess the image with the best parameters
+    best_params = study.best_trial.params
     
-    out_path = os.path.join(args.log_dir, 'study.pkl')
-    pickle.dump(study, open(out_path, 'wb'))
-    logger.log(f'Study results saved to {out_path}')
+    profile = rio.open(args.okt_probs_raster_path).profile
+    profile.update(
+        dtype=rio.uint8,
+        count=1,
+        compress='lzw',
+        nodata=0,
+    )
+    
+    segment_image_only(okt_imagery, lc_probs, best_params, profile, args.log_dir, bounding_geom=geom)
 
 
 
@@ -179,6 +296,7 @@ def mask_rasters(
     okt_classes_raster_path: str, 
     okt_probs_raster_path: str, 
     okt_imagery_raster_path: str, 
+    out_dir: str='./data/postprocessing_trials',
 ) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     
     # okt_confidence_raster_path = r"Z:\guser\dh\MS_HiRes_LC_Prelim\105\lc_confidence_clipped.tif"
@@ -199,7 +317,8 @@ def mask_rasters(
             transform=out_transform
         )
         
-    with rio.open(r"G:\postprocessing_tests\okt_confidence_clipped.tif", 'w', **out_profile) as dst:
+    # with rio.open(r"G:\postprocessing_tests\okt_confidence_clipped.tif", 'w', **out_profile) as dst:
+    with rio.open(os.path.join(out_dir, 'okt_confidence_clipped.tif'), 'w', **out_profile) as dst:
         dst.write(lc_confidence)
 
     # okt_classes_raster_path = okt_confidence_raster_path.replace('confidence', 'classes')
@@ -213,7 +332,8 @@ def mask_rasters(
         )
         cmap = src.colormap(1)
 
-    with rio.open(r"G:\postprocessing_tests\okt_classes_clipped.tif", 'w', **out_profile) as dst:
+    # with rio.open(r"G:\postprocessing_tests\okt_classes_clipped.tif", 'w', **out_profile) as dst:
+    with rio.open(os.path.join(out_dir, 'okt_classes_clipped.tif'), 'w', **out_profile) as dst:
         dst.write(lc_classes)
         dst.write_colormap(1, cmap)
 
@@ -227,7 +347,8 @@ def mask_rasters(
             transform=out_transform
         )
 
-    with rio.open(r"G:\postprocessing_tests\okt_probs_clipped.tif", 'w', **out_profile) as dst:
+    # with rio.open(r"G:\postprocessing_tests\okt_probs_clipped.tif", 'w', **out_profile) as dst:
+    with rio.open(os.path.join(out_dir, 'okt_probs_clipped.tif'), 'w', **out_profile) as dst:
         dst.write(lc_probs)
 
     # okt_imagery_raster_path = r"G:\NAIP_MS_2023\ortho_1-1_hc_s_ms105_2023_1\ortho_1-1_hc_s_ms105_2023_1_1m.tif"
@@ -240,7 +361,8 @@ def mask_rasters(
             transform=out_transform
         )
 
-    with rio.open(r"G:\postprocessing_tests\okt_imagery_clipped.tif", 'w', **out_profile) as dst:
+    # with rio.open(r"G:\postprocessing_tests\okt_imagery_clipped.tif", 'w', **out_profile) as dst:
+    with rio.open(os.path.join(out_dir, 'okt_imagery_clipped.tif'), 'w', **out_profile) as dst:
         dst.write(okt_imagery)
 
 
@@ -254,9 +376,10 @@ def mask_rasters(
 
 
 def load_data(
-    okt_probs_raster_path: str,
-    okt_imagery_raster_path: str,
+    okt_probs_raster_path: str='./data/postprocessing_trials/okt_probs_clipped.tif',
+    okt_imagery_raster_path: str='./data/postprocessing_trials/okt_imagery_clipped.tif',
     ms_places_path: str='./data/shapefiles/tl_2024_28_place',
+    sampled_points_path: str='./data/postprocessing_trials/okt_ms_low_confidence_point_samples.gpkg',
 ) -> Tuple[np.ndarray, np.ndarray, Polygon, rio.Affine, gpd.GeoDataFrame]:
     
     
@@ -282,7 +405,8 @@ def load_data(
     places_of_interest = places_of_interest.dissolve()
     geom = Polygon(places_of_interest['geometry'].iloc[0].exterior.coords)
 
-    sampled_points_annotated_gdf = gpd.read_file('./data/shapefiles/okt_ms_low_confidence_point_samples.gpkg')
+    # sampled_points_annotated_gdf = gpd.read_file('./data/shapefiles/okt_ms_low_confidence_point_samples.gpkg')
+    sampled_points_annotated_gdf = gpd.read_file(sampled_points_path)
     sampled_points_annotated_gdf['one_hot'] = sampled_points_annotated_gdf['true_class_index'].apply(lambda x: np.eye(8)[x-1])
     
     return lc_probs, okt_imagery, geom, out_transform, sampled_points_annotated_gdf
@@ -291,11 +415,11 @@ def load_data(
 def sample_points(
     lc_confidence: np.ndarray,
     lc_classes: np.ndarray,
-    transform: rio.transform.Transform,
+    transform: rio.Affine,
     crs: rio.crs.CRS,
     n_samples: int = 200,
     max_confidence: int = 25,
-    out_path: Optional[str] = r"G:\postprocessing_tests\sampled_points.gpkg",
+    out_path: Optional[str] = None,
     seed: int = 1701,
 ) -> gpd.GeoDataFrame:
     
@@ -320,7 +444,7 @@ def sample_points(
     },geometry=sample_coords, crs=crs)
     
     if out_path is not None:
-        sampled_points_gdf.to_file(r"G:\postprocessing_tests\sampled_points.gpkg")
+        sampled_points_gdf.to_file(out_path)
     return sampled_points_gdf
 
 
@@ -382,7 +506,6 @@ def process_chunk(
     seg_func: Callable[..., np.ndarray],
     seg_params: Dict[str, Any],
     lc_probs_chunk: np.ndarray,
-    
 ) -> Tuple[np.ndarray, np.ndarray]:
     """
     Segment a chunk of the image and update its corresponding probability values.
@@ -409,7 +532,28 @@ def process_chunk(
         - The updated probability chunk.
     """
     # Segment the image chunk with the provided segmentation function.
-    chunk_seg = seg_func(image_chunk, **seg_params)
+    median_radius = seg_params.pop('median_radius')
+    if median_radius > 0:
+        structuring_element = disk(median_radius)
+        image_chunk_filtered = np.stack([
+            median(
+                image_chunk[:, :, i], 
+                structuring_element,
+            ) 
+            for i in range(image_chunk.shape[2])
+        ]).transpose(1, 2, 0)
+
+    else:
+        image_chunk_filtered = image_chunk
+    
+    unsharp_radius = seg_params.pop('unsharp_radius')
+    unsharp_amount = seg_params.pop('unsharp_amount')
+    if unsharp_radius < 0.01 or unsharp_amount == 0.0:
+        image_chunk_sharpened = image_chunk_filtered
+    else:
+        image_chunk_sharpened = unsharp_mask(image_chunk_filtered, radius=unsharp_radius, amount=unsharp_amount)
+        
+    chunk_seg = seg_func(image_chunk_sharpened, **seg_params)
     # Update probability values based on segment statistics.
     chunk_seg, lc_probs_chunk = process_chunk_vectorized(chunk_seg, lc_probs_chunk)
     return chunk_seg, lc_probs_chunk
@@ -420,7 +564,7 @@ def parallel_segment(
     lc_probs: np.ndarray,
     seg_func: Callable[..., np.ndarray],
     seg_params: Dict[str, Any],
-    chunk_size: int = 1024,
+    chunk_size: int = 256,
     n_procs: int = 16,
     enable_pbar: bool = True,
 ) -> Tuple[np.ndarray, np.ndarray, Dict]:
@@ -446,6 +590,8 @@ def parallel_segment(
         chunks of shape (chunk_size, chunk_size).
     n_procs : int, optional
         Number of processes to run in parallel (default is 16).
+    enable_pbar : bool, optional
+        Whether to display a progress bar (default is True).
 
     Returns
     -------
@@ -535,11 +681,11 @@ def parallel_segment(
     return segmented_image, processed_probs, segment_mapping
 
 
-def cross_entropy(y_true, y_pred):
-    return -np.sum(y_true * np.log(y_pred))
+def cross_entropy(y_true, y_pred, eps=1e-10):
+    return -np.sum(y_true * np.log(y_pred + eps))
 
 
-def get_bounding_mask(geom: Polygon, shape: Tuple[int, int], transform: rio.transform.Transform) -> np.ndarray:
+def get_bounding_mask(geom: Polygon, shape: Tuple[int, int], transform: rio.Affine) -> np.ndarray:
     return geometry_mask(
         [geom], 
         out_shape=shape, 
@@ -548,6 +694,52 @@ def get_bounding_mask(geom: Polygon, shape: Tuple[int, int], transform: rio.tran
         all_touched=True
     )
 
+
+
+def segment_image_only(okt_imagery: np.ndarray, lc_probs: np.ndarray, best_params: dict, profile: dict, out_path: str, bounding_geom: Optional[Polygon] = None):
+    
+    algorithm = best_params.pop('algorithm')
+    if algorithm == 'felzenszwalb':
+        seg_func = felzenszwalb
+    elif algorithm == 'slic':
+        seg_func = slic
+    else:
+        raise ValueError(f"Invalid algorithm: {algorithm}")
+    
+    # with mp.Pool(mp.cpu_count()) as pool:
+    #     filtered_channels = pool.starmap(
+    #         median,
+    #         [(channel, disk(best_params['median_radius'])) for channel in okt_imagery.transpose(2, 0, 1)]
+    #     )
+    # okt_imagery_filtered = np.stack(filtered_channels).transpose(1, 2, 0)
+    
+    # okt_imagery_sharpened = unsharp_mask(okt_imagery_filtered, radius=best_params.pop('unsharp_radius'), amount=best_params.pop('unsharp_amount'))
+    
+    _, processed_probs, __ = parallel_segment(
+        okt_imagery, lc_probs, seg_func, best_params, chunk_size=256, n_procs=mp.cpu_count()
+    )
+    
+    processed_classes = (np.argmax(processed_probs, axis=0) + 1).squeeze().astype(np.uint8)
+    
+    
+    with rio.open(os.path.join(out_path, 'processed_classes.tif'), 'w', **profile) as dst:
+        dst.write(processed_classes, 1)
+        dst.write_colormap(1, LEGEND_COLORS_RGBA)
+    
+    if bounding_geom is not None:
+        with rio.open(os.path.join(out_path, 'processed_classes.tif')) as src:
+            out_data, out_transform = mask(src, [bounding_geom], crop=True, all_touched=True)
+            out_profile = profile.copy()
+            out_profile.update(
+                height=out_data.shape[1],
+                width=out_data.shape[2],
+                transform=out_transform
+            )
+        
+        with rio.open(os.path.join(out_path, 'processed_classes_clipped.tif'), 'w', **out_profile) as dst:
+            dst.write(out_data)
+            dst.write_colormap(1, LEGEND_COLORS_RGBA)
+        
 
 if __name__ == '__main__':
     main()
