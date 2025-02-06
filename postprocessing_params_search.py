@@ -70,7 +70,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         '--n_trials',
         type=int,
-        default=128,
+        default=1024,
         help='Number of trials to run for the optimization.'
     )
     
@@ -224,7 +224,7 @@ def main():
                 loss_value = np.inf  # if any error occurs, use infinity to indicate a failed trial
                 logger.log(f'====================')
                 logger.log(f'{type(e).__name__}: {e}')
-                logger.log(f'Trial params: {seg_func_params.update({"median_radius": median_radius, "unsharp_radius": unsharp_radius, "unsharp_amount": unsharp_amount})}')
+                logger.log(f'Trial params: {seg_func_params}')
                 logger.log(f'====================')
                 
                 trial.set_user_attr('error', e)
@@ -232,7 +232,7 @@ def main():
             return loss_value
 
         sampler = optuna.samplers.TPESampler(seed=args.seed)
-        study = optuna.create_study(study_name='seg_alg_test_quickshift', direction='minimize', sampler=sampler)
+        study = optuna.create_study(study_name='seg_alg_eval_slic_felz', direction='minimize', sampler=sampler)
         study.optimize(objective, n_trials=args.n_trials)
 
         
@@ -665,13 +665,22 @@ def parallel_segment(
             chunk_seg += running_max
             segmented_image[i:i+chunk_size, j:j+chunk_size] = chunk_seg
             processed_probs[:, i:i+chunk_size, j:j+chunk_size] = updated_chunk_probs
-            # For each segment, compute normalized mean probabilities.
+            
+            # Parallel computation of segment statistics
             unique_ids = np.unique(chunk_seg)
+            segment_stats = []
+            # Loop through segments and compute mean probs
             for seg in unique_ids:
                 mask = (chunk_seg == seg)
                 mean_probs = np.mean(updated_chunk_probs[:, mask], axis=1)
                 total = np.sum(mean_probs)
-                segment_mapping[seg] = mean_probs / total if total != 0 else mean_probs
+                # Normalize probabilities
+                norm_probs = mean_probs / total if total != 0 else mean_probs
+                # segment_mapping.update({seg: norm_probs})
+                segment_stats.append((seg, norm_probs))
+            
+            # Update mapping with computed statistics
+            segment_mapping.update(dict(segment_stats))
             running_max = np.max(unique_ids) + 1
 
     # Clean up shared memory.
