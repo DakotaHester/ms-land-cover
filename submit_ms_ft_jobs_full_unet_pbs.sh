@@ -18,7 +18,7 @@ mkdir -p "$PBS_LOG_DIR"
 
 for model in unet
 do
-    for pretrain_schemme in std std_randinit std_fe imagenet randinit
+    for pretrain_scheme in std std_randinit std_fe imagenet randinit
     do
         for pretrain_task in dae lab dae_lab none
         do
