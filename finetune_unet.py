@@ -316,6 +316,7 @@ def main() -> None:
         model = UNet(num_classes=pretrained_model_classes).to(device)
         model.load_state_dict(load_pth(args.model_weights))
         model.classifier = torch.nn.Conv2d(64, num_classes, kernel_size=1)
+        model = model.to(device)
     
     # if encoder weights only are provided, load them and keep the random decoder
     elif args.encoder_weights is not None and args.encoder_weights != 'imagenet':
