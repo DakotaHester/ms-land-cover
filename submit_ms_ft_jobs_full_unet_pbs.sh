@@ -132,7 +132,7 @@ module load python
 conda init
 source ~/.bashrc
 conda activate mslc
-python "${arguments[@]}"
+python ${arguments[@]}
 EOL
 		    	    qsub "$PBS_SCRIPT"
                 done
