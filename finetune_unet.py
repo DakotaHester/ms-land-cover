@@ -78,14 +78,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=4,
+        default=16,
         help='The mini-batch size to use for training (for gradient accumulation)',
     )
     
     parser.add_argument(
         '--full_batch_size',
         type=int,
-        default=64,
+        default=16,
         help='The effective batch size to use for training',
     )
     
