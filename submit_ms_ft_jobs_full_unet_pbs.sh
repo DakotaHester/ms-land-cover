@@ -102,7 +102,7 @@ do
                         "--train_dir" "$TRAIN_DIR"
                         "--val_dir" "$VAL_DIR"
                         "--test_dir" "$TEST_DIR"
-                        "--out_dir" "$OUT_DIR"
+                        "--output_dir" "$OUT_DIR"
                         "--log_dir" "$LOG_DIR"
                         "--num_workers" "$NCPUS"
                         "$WEIGHTS_ARG"
