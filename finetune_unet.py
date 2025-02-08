@@ -327,12 +327,16 @@ def main() -> None:
         model = UNet(num_classes=num_classes, pretrained=args.encoder_weights == 'imagenet').to(device)
     
     if args.freeze_encoder:
-        for param in model.encoder.parameters():
-            param.requires_grad = False
+        # for param in model.encoder.parameters():
+        for encoder_block in model.encoder_blocks:
+            for param in encoder_block.parameters():
+                param.requires_grad = False
     
     if args.freeze_decoder:
-        for param in model.decoder.parameters():
-            param.requires_grad = False
+        # for param in model.decoder.parameters():
+        for decoder_block in model.decoder_blocks:
+            for param in decoder_block.parameters():
+                param.requires_grad = False
     
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
