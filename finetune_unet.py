@@ -311,7 +311,8 @@ def main() -> None:
     
     # if full model weights are provided, load them and replace the old
     if args.model_weights is not None:
-        pretrained_model_classes = 7 if 'cpb' in args.model_weights else 8
+        # pretrained_model_classes = 7 if 'cpb' in args.model_weights else 8
+        pretrained_model_classes = 3 # TODO: automatically determine number of classes from model weights
         model = UNet(num_classes=pretrained_model_classes).to(device)
         model.load_state_dict(load_pth(args.model_weights))
         model.classifier = torch.nn.Conv2d(64, num_classes, kernel_size=1)
