@@ -167,7 +167,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--minimum_class_proportion',
         type=float,
-        default=0.05,
+        default=1.0, # set to 1 to disable oversampling
         help='Minimum proportion of a class in the dataset for it to be considered for oversampling',
     )
     
@@ -279,10 +279,11 @@ def main() -> None:
             minimum_oversample_ratios.append(args.minimum_oversample_ratio_factor * prob)
     logger.log(f'Class distribution: {class_dist}')
     
-    train_dataset.oversample_classes(oversample_classes, oversample_factor=args.oversample_factor, minimum_ratio=minimum_oversample_ratios)
-    logger.log(f'Oversampled classes: {oversample_classes}')
-    logger.log(f'New class distribution: {train_dataset.get_class_distribution()}')
-    logger.log(f'New N_train: {len(train_dataset)}')
+    if len(oversample_classes) > 0:
+        train_dataset.oversample_classes(oversample_classes, oversample_factor=args.oversample_factor, minimum_ratio=minimum_oversample_ratios)
+        logger.log(f'Oversampled classes: {oversample_classes}')
+        logger.log(f'New class distribution: {train_dataset.get_class_distribution()}')
+        logger.log(f'New N_train: {len(train_dataset)}')
     
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
