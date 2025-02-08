@@ -37,6 +37,7 @@ do
                     WEIGHTS_PATH="./weights/unet_randinit/${pretrain_task}.pth"
                 elif [[ "$pretrain_scheme" == "std_fe" ]]; then
                     WEIGHTS_PATH="./weights/unet_frozenencoder/${pretrain_task}.pth"
+                fi
                 WEIGHTS_ARG = '--model_weights $WEIGHTS_PATH'
             elif [[ "$pretrain_scheme" == "imagenet" ]]; then
                 WEIGHTS_ARG = '--encoder_weights imagenet'
@@ -136,6 +137,6 @@ EOL
 		    	    qsub "$PBS_SCRIPT"
                 done
 			done
-	    done
+        done
     done
 done
