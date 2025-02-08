@@ -22,10 +22,6 @@ do
     do
         for pretrain_task in dae lab dae_lab none
         do
-            # if "std" is a substring of pretrain_scheme and pretrain_task is "none", skip
-            if [[ "$pretrain_scheme" == *"std"* && "$pretrain_task" == "none" ]]; then
-                continue
-            fi
 
             # if pretrain_scheme contains std, enter the if block
             if [[ "$pretrain_scheme" == *"std"* ]]; then
@@ -39,10 +35,15 @@ do
                     WEIGHTS_PATH="./weights/unet_frozenencoder/${pretrain_task}.pth"
                 fi
                 WEIGHTS_ARG="--model_weights $WEIGHTS_PATH"
-            elif [[ "$pretrain_scheme" == "imagenet" ]]; then
-                WEIGHTS_ARG="--encoder_weights imagenet"
-            elif [[ "$pretrain_scheme" == "randinit" ]]; then
-                WEIGHTS_ARG=""
+            else
+                # if pretrain_task != none, skip (no pretraining)
+                if [[ "$pretrain_task" != "none" ]]; then
+                    continue
+                elif [[ "$pretrain_scheme" == "imagenet" ]]; then
+                    WEIGHTS_ARG="--encoder_weights imagenet"
+                elif [[ "$pretrain_scheme" == "randinit" ]]; then
+                    WEIGHTS_ARG=""
+                fi
             fi
 
             for finetune_frozen_encoder in 0 1
