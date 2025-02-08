@@ -56,7 +56,7 @@ do
                         continue
                     fi
                     $FROZEN_ENCODER_FLAG="--freeze_encoder"
-                else; then
+                else
                     $FROZEN_ENCODER_FLAG=""
                 fi
 
@@ -70,7 +70,7 @@ do
                             continue
                         fi
                         $FROZEN_DECODER_FLAG="--freeze_decoder"
-                    else; then
+                    else
                         $FROZEN_DECODER_FLAG=""
                     fi
 
@@ -84,7 +84,7 @@ do
                     elif [[ "$finetune_frozen_decoder" == "1" ]]; then
                         OUT_DIR="${OUT_DIR}/frozen_decoder"
                         JOB_NAME="${JOB_NAME}_frozen_decoder"
-                    else; then
+                    else
                         OUT_DIR="${OUT_DIR}/full_train"
                         JOB_NAME="${JOB_NAME}_full_train"
                     fi
