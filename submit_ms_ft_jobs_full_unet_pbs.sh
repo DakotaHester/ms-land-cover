@@ -38,15 +38,12 @@ do
                 elif [[ "$pretrain_scheme" == "std_fe" ]]; then
                     WEIGHTS_PATH="./weights/unet_frozenencoder/${pretrain_task}.pth"
                 fi
-                WEIGHTS_ARG = '--model_weights $WEIGHTS_PATH'
+                WEIGHTS_ARG="--model_weights $WEIGHTS_PATH"
             elif [[ "$pretrain_scheme" == "imagenet" ]]; then
-                WEIGHTS_ARG = '--encoder_weights imagenet'
+                WEIGHTS_ARG="--encoder_weights imagenet"
             elif [[ "$pretrain_scheme" == "randinit" ]]; then
-                WEIGHTS_ARG = ''
+                WEIGHTS_ARG=""
             fi
-            
-            JOB_NAME="${NAME}_${model}_${pretrain_scheme}_${pretrain_task}"
-            OUT_DIR="${model}/${pretrain_scheme}/${pretrain_task}"
 
             for finetune_frozen_encoder in 0 1
             do
@@ -56,9 +53,9 @@ do
                     if [[ "$pretrain_scheme" == "randinit" ]]; then
                         continue
                     fi
-                    $FROZEN_ENCODER_FLAG="--freeze_encoder"
+                    FROZEN_ENCODER_FLAG="--freeze_encoder"
                 else
-                    $FROZEN_ENCODER_FLAG=""
+                    FROZEN_ENCODER_FLAG=""
                 fi
 
 
@@ -70,10 +67,13 @@ do
                         if [[ "$pretrain_scheme" != *"std"* ]]; then
                             continue
                         fi
-                        $FROZEN_DECODER_FLAG="--freeze_decoder"
+                        FROZEN_DECODER_FLAG="--freeze_decoder"
                     else
-                        $FROZEN_DECODER_FLAG=""
+                        FROZEN_DECODER_FLAG=""
                     fi
+                    
+                    JOB_NAME="${NAME}_${model}_${pretrain_scheme}_${pretrain_task}"
+                    OUT_DIR="${model}/${pretrain_scheme}/${pretrain_task}"
 
                     # if finetune_frozen_encoder is 1 and finetune_frozen_decoder is 1, add linear_probe to out_path and job_name
                     if [[ "$finetune_frozen_encoder" == "1" && "$finetune_frozen_decoder" == "1" ]]; then
@@ -98,7 +98,7 @@ do
                     LOG_DIR="./logs/${OUT_DIR}"
 
                     arguments=(
-                        "$SCRIPT_NAME"
+                        "finetune_unet.py"
                         "--train_dir" "$TRAIN_DIR"
                         "--val_dir" "$VAL_DIR"
                         "--test_dir" "$TEST_DIR"
