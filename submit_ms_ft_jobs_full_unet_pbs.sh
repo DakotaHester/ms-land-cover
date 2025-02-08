@@ -51,12 +51,12 @@ do
             do
 
                 # if finetune_frozen_encoder is 1 and pretrain_scheme is randinit, skip
-                if [[ "$finetune_frozen_encoder" == "1" ]]
+                if [[ "$finetune_frozen_encoder" == "1" ]]; then
                     if [[ "$pretrain_scheme" == "randinit" ]]; then
                         continue
                     fi
                     $FROZEN_ENCODER_FLAG="--freeze_encoder"
-                else
+                else; then
                     $FROZEN_ENCODER_FLAG=""
                 fi
 
@@ -65,12 +65,12 @@ do
                 do
                     
                     # if finetune_frozen_decoder is 1 and pretrain_scheme does not contain std, skip
-                    if [[ "$finetune_frozen_decoder" == "1" ]]
+                    if [[ "$finetune_frozen_decoder" == "1" ]]; then
                         if [[ "$pretrain_scheme" != *"std"* ]]; then
                             continue
                         fi
                         $FROZEN_DECODER_FLAG="--freeze_decoder"
-                    else
+                    else; then
                         $FROZEN_DECODER_FLAG=""
                     fi
 
@@ -84,7 +84,7 @@ do
                     elif [[ "$finetune_frozen_decoder" == "1" ]]; then
                         OUT_DIR="${OUT_DIR}/frozen_decoder"
                         JOB_NAME="${JOB_NAME}_frozen_decoder"
-                    else
+                    else; then
                         OUT_DIR="${OUT_DIR}/full_train"
                         JOB_NAME="${JOB_NAME}_full_train"
                     fi
@@ -122,8 +122,8 @@ do
 #PBS -l ngpus=$NGPUS
 #PBS -l mem=$MEMORY
 #PBS -l walltime=$TIME
-#PBS -m abe
-#PBS -M $MAIL_USER
+# #PBS -m abe
+# #PBS -M $MAIL_USER
 
 cd \${PBS_O_WORKDIR}
 module load cuda10.2/toolkit
@@ -133,7 +133,8 @@ source ~/.bashrc
 conda activate mslc
 python "${arguments[@]}"
 EOL
-		    	qsub "$PBS_SCRIPT"
+		    	    qsub "$PBS_SCRIPT"
+                done
 			done
 	    done
     done
