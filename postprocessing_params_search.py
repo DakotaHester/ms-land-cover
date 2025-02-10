@@ -15,20 +15,306 @@ from skimage.filters import unsharp_mask
 from skimage.filters import median
 from skimage.morphology import disk
 from sklearn.metrics import f1_score, accuracy_score, precision_score, recall_score
+import torch
 from tqdm import tqdm
 from multiprocessing.shared_memory import SharedMemory
 import multiprocess as mp
-import numba
-from numba import prange
-from typing import Optional, Tuple, Callable, Dict, Any
+from numba import prange, njit
+from typing import Optional, Tuple, Callable, Dict, Any, Union
 from src.mslandcover.config import LEGEND_CLASSES, LEGEND_COLORS_RGBA
-from src.mslandcover.utils import Logger
+from src.mslandcover.utils import Logger, load_pth, get_torch_device
+from src.mslandcover.models import UNet
+from src.mslandcover.data.datasets import FineTuneDataset
+from torch.utils.data import DataLoader
+from sklearn.preprocessing import OneHotEncoder
+from glob import glob
 import argparse
 import json
 import pickle
 
 
 def parse_args() -> argparse.Namespace:
+    
+    parser = argparse.ArgumentParser(description='Postprocessing parameter search')
+    
+    parser.add_argument(
+        '--data_path',
+        type=str,
+        default='./data/splits',
+        help='Path to the directory containing the land cover data.'
+    )
+    
+    parser.add_argument(
+        '--model_path',
+        type=str,
+        default='./weights/finetuned_unet2/best_model.pth',
+        help='Path to the trained model weights.'
+    )
+    
+    parser.add_argument(
+        '--mean_path',
+        type=str,
+        default='./weights/pretrain_mean.pth',
+        help='Path to the mean pixel values.'
+    )
+    
+    parser.add_argument(
+        '--std_path',
+        type=str,
+        default='./weights/pretrain_std.pth',
+        help='Path to the standard deviation of pixel values.'
+    )
+    
+    parser.add_argument(
+        '--log_dir',
+        type=str,
+        default='./logs/postprocessing_params_search',
+        help='Directory to save log files.'
+    )
+    
+    parser.add_argument(
+        '--n_trials',
+        type=int,
+        default=2,
+        help='Number of trials to run for the optimization.'
+    )
+    
+    parser.add_argument(
+        '--batch_size',
+        type=int,
+        default=16,
+        help='Batch size for the data loader.'
+    )
+    
+    parser.add_argument(
+        '--seed',
+        type=int,
+        default=1701,
+        help='Random seed for reproducibility.'
+    )
+    
+    parser.add_argument(
+        '--skip_search',
+        action='store_true',
+        help='Skip the parameter search and use the best parameters found so far.'
+    )
+    
+    return parser.parse_args()
+
+
+def main():
+
+    args = parse_args()
+    
+    os.makedirs(args.log_dir, exist_ok=True)
+    logger = Logger(os.path.join(args.log_dir, 'out.log'))
+    
+    device = get_torch_device()
+    model = UNet()
+    model.load_state_dict(load_pth(args.model_path, map_location='cpu'))
+    model.to(device)
+    model.eval()
+    torch.set_grad_enabled(False)
+    
+    mean = load_pth(args.mean_path)
+    std = load_pth(args.std_path)
+    
+    train_dataset = FineTuneDataset(
+        data_paths=glob(os.path.join(args.data_path, 'train', 'input', '*.tif')),
+        target_paths=glob(os.path.join(args.data_path, 'train', 'target', '*.tif')),
+        transform=None,
+        mean=mean,
+        std=std,
+    )
+    
+    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+    
+    X_train = []
+    y_hat_train = []
+    y_train = []
+    for i, (X, y) in tqdm(enumerate(train_loader), desc='Getting LC probs', total=len(train_loader)):
+        
+        X_train.append(X.numpy())
+        y_hat_train.append(model(X.to(device)).detach().cpu().numpy())
+        y_train.append(y.numpy())
+    
+    X_train = np.concatenate(X_train, axis=0)
+    y_hat_train = np.concatenate(y_hat_train, axis=0)
+    y_train = np.concatenate(y_train, axis=0)
+    
+    # y_train.shape = (n_samples, height, width)
+    # y_train_one_hot.shape = (n_samples, n_classes, height, width)
+    y_train_one_hot = np.stack([np.eye(8)[y_i] for y_i in y_train]).transpose(0, 3, 1, 2)
+
+    train_ce = cross_entropy(y_train_one_hot, y_hat_train)
+    train_f1 = f1_score(y_train.flatten(), np.argmax(y_hat_train, axis=1).flatten(), average='macro')
+    
+    print(f'Starting CE: {train_ce}')
+    print(f'Starting F1 (macro): {train_f1}')
+    
+    if not args.skip_search:
+        
+        def objective(trial: optuna.Trial) -> float:
+            
+            # scale = trial.suggest_float("scale", 10, 500)
+            # min_size = trial.suggest_int("min_size", 5, 100)
+            
+            # slic params
+            n_segments = trial.suggest_int("n_segments", 10, 1000)
+            compactness = trial.suggest_float("compactness", 1e-3, 10.0, log=True)
+            
+            # quickshift params
+            # ratio = trial.suggest_float("ratio", 0, 1)
+            # kernel_size = trial.suggest_int("kernel_size", 1, 5)
+            # max_dist = trial.suggest_int("max_dist", 1, 5)
+            
+            median_radius = trial.suggest_int("median_radius", 0, 10)
+            unsharp_radius = trial.suggest_int("unsharp_radius", 0, 20)
+            unsharp_amount = trial.suggest_float("unsharp_amount", 0.0, 10.0)
+            
+            median_radius = trial.params.get('median_radius', 0)
+            params_trial = {
+                ## felzenszwalb params
+                # 'scale': scale,
+                # 'min_size': min_size,
+                # 'sigma': 0,
+                ## slic params
+                'n_segments': n_segments,
+                'compactness': compactness,
+                'max_num_iter': 3,
+                ## quickshift params
+                # 'ratio': ratio,
+                # 'kernel_size': kernel_size,
+                # 'max_dist': max_dist,
+                'median_radius': median_radius,
+                'unsharp_radius': unsharp_radius,
+                'unsharp_amount': unsharp_amount,
+            }
+            
+            try:
+                
+                start_time = time.time()
+                
+                with mp.Pool(mp.cpu_count()) as pool:
+                    processed_probs = np.array(pool.starmap(
+                        segment_and_process,
+                        [(img, probs, slic, params_trial) for img, probs in zip(X_train, y_hat_train)]
+                    ))
+                
+                stop_time = time.time()
+                
+                algorithm_run_time = stop_time - start_time
+                
+                loss_value = cross_entropy(y_train_one_hot, processed_probs)
+                
+                trial.set_user_attr('seg_params', params_trial)
+                trial.set_user_attr('alg_runtime', algorithm_run_time)
+                
+                acc = accuracy_score(y_train.flatten(), np.argmax(processed_probs, axis=1).flatten())
+                trial.set_user_attr('accuracy', acc)
+                
+                for average_type in ['micro', 'macro', 'weighted']:
+                    precision = precision_score(y_train.flatten(), np.argmax(processed_probs, axis=1).flatten(), average=average_type, zero_division=0)
+                    recall = recall_score(y_train.flatten(), np.argmax(processed_probs, axis=1).flatten(), average=average_type, zero_division=0)
+                    f1 = f1_score(y_train.flatten(), np.argmax(processed_probs, axis=1).flatten(), average=average_type, zero_division=0)
+                    
+                    trial.set_user_attr(f'{average_type}_precision', precision)
+                    trial.set_user_attr(f'{average_type}_recall', recall)
+                    trial.set_user_attr(f'{average_type}_f1_score', f1)
+                
+            except Exception as e:
+                loss_value = np.inf
+                logger.log(f'====================')
+                logger.log(f'{type(e).__name__}: {e}')
+                logger.log(f'Trial params: {params_trial}')
+                logger.log(f'====================')
+            
+            return loss_value
+        
+        sampler = optuna.samplers.TPESampler(seed=args.seed)
+        study = optuna.create_study(study_name='seg_alg_eval_slic', direction='minimize', sampler=sampler)
+        study.optimize(objective, n_trials=args.n_trials)
+        
+        new_ce = study.best_trial.value
+        new_f1 = study.best_trial.user_attrs.get('macro_f1_score')
+        
+        ce_improvement = (train_ce - new_ce) / train_ce
+        f1_improvement = (new_f1 - train_f1) / train_f1
+        
+        logger.log(f'{"="*5} Train Set {"="*5}')
+        logger.log(f'Original CE: {train_ce}')
+        logger.log(f'New CE: {new_ce}')
+        logger.log(f'CE Improvement: {ce_improvement:.2%}')
+        
+        logger.log(f'Original F1 (macro): {train_f1}')
+        logger.log(f'New F1 (macro): {new_f1}')
+        logger.log(f'F1 Improvement: {f1_improvement:.2%}')
+        
+        test_dataset = FineTuneDataset(
+            data_paths=glob(os.path.join(args.data_path, 'test', 'input', '*.tif')) + glob(os.path.join(args.data_path, 'val', 'input', '*.tif')),
+            target_paths=glob(os.path.join(args.data_path, 'test', 'target', '*.tif')) + glob(os.path.join(args.data_path, 'val', 'target', '*.tif')),
+            transform=None,
+            mean=mean,
+            std=std,
+        )
+        
+        test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
+        
+        X_test = []
+        y_hat_test = []
+        y_test = []
+        
+        for i, (X, y) in tqdm(enumerate(test_loader), desc='Getting LC probs', total=len(test_loader)):
+            
+            X_test.append(X.numpy())
+            y_hat_test.append(model(X.to(device)).detach().cpu().numpy())
+            y_test.append(y.numpy())
+        
+        X_test = np.concatenate(X_test, axis=0)
+        y_hat_test = np.concatenate(y_hat_test, axis=0)
+        y_test = np.concatenate(y_test, axis=0)
+        
+        y_test_one_hot = np.stack([np.eye(8)[y_i] for y_i in y_test]).transpose(0, 3, 1, 2)
+        
+        test_ce = cross_entropy(y_test_one_hot, y_hat_test)
+        test_f1 = f1_score(y_test.flatten(), np.argmax(y_hat_test, axis=1).flatten(), average='macro')
+        
+        # get seg_params from best trial
+        best_params = study.best_trial.user_attrs.get('seg_params')
+        
+        with mp.Pool(mp.cpu_count()) as pool:
+            processed_probs = np.array(pool.starmap(
+                segment_and_process,
+                [(img, probs, slic, best_params) for img, probs in zip(X_test, y_hat_test)]
+            ))
+        
+        new_test_ce = cross_entropy(y_test_one_hot, processed_probs)
+        new_test_f1 = f1_score(y_test.flatten(), np.argmax(processed_probs, axis=1).flatten(), average='macro')
+        
+        new_ce_improvement = (test_ce - new_test_ce) / test_ce
+        new_f1_improvement = (new_test_f1 - test_f1) / test_f1
+        
+        logger.log(f'{"="*5} Test Set {"="*5}')
+        logger.log(f'Original CE: {test_ce}')
+        logger.log(f'New CE: {new_test_ce}')
+        logger.log(f'CE Improvement: {new_ce_improvement:.2%}')
+        logger.log(f'Original F1 (macro): {test_f1}')
+        logger.log(f'New F1 (macro): {new_test_f1}')
+        logger.log(f'F1 Improvement: {new_f1_improvement:.2%}')
+        
+        
+        out_path = os.path.join(args.log_dir, 'best_params.json')
+        json.dump(study.best_trial.params, open(out_path, 'w'))
+        logger.log(f'Best params saved to {out_path}')
+        
+        out_path = os.path.join(args.log_dir, 'study.pkl')
+        pickle.dump(study, open(out_path, 'wb'))
+        logger.log(f'Study results saved to {out_path}')
+
+
+
+
+def old_parse_args() -> argparse.Namespace:
     
     parser = argparse.ArgumentParser(description='Postprocessing parameter search')
     
@@ -90,7 +376,8 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main():
+
+def old_main():
         
     args = parse_args()
     
@@ -234,7 +521,6 @@ def main():
         sampler = optuna.samplers.TPESampler(seed=args.seed)
         study = optuna.create_study(study_name='seg_alg_eval_slic_felz', direction='minimize', sampler=sampler)
         study.optimize(objective, n_trials=args.n_trials)
-
         
         out_path = os.path.join(args.log_dir, 'best_params.json')
         json.dump(study.best_trial.params, open(out_path, 'w'))
@@ -448,7 +734,7 @@ def sample_points(
     return sampled_points_gdf
 
 
-@numba.njit(parallel=True)
+@njit(parallel=True)
 def process_chunk_vectorized(
     chunk_seg: np.ndarray, 
     lc_probs_chunk: np.ndarray,
@@ -749,6 +1035,59 @@ def segment_image_only(okt_imagery: np.ndarray, lc_probs: np.ndarray, best_param
             dst.write(out_data)
             dst.write_colormap(1, LEGEND_COLORS_RGBA)
         
+
+
+@njit(parallel=False)
+def postprocess_probs(segmented_image: np.ndarray, probs: np.ndarray) -> np.ndarray:
+    
+    unique_segments = np.unique(segmented_image)
+    # for seg in unique_segments:
+    for i in prange(unique_segments.shape[0]):
+        mask = (segmented_image == i)
+        for j in range(probs.shape[0]):
+            s_val = 0.0
+            cnt = 0
+            for idx in range(mask.size):
+                if mask.flat[idx]:
+                    s_val += probs[j].flat[idx]
+                    cnt += 1
+            mean_val = s_val / cnt if cnt > 0 else 0.0
+            for idx in range(mask.size):
+                if mask.flat[idx]:
+                    probs[j].flat[idx] = mean_val
+    return probs
+
+def segment_image(
+    img: np.ndarray,
+    seg_func: Callable[..., np.ndarray],
+    params: Dict[str, Union[int, float]],
+) -> np.ndarray:
+    
+    median_radius = params.pop('median_radius')
+    if median_radius > 0:
+        for i in range(3):
+            img[:, :, i] = median(img[:, :, i], disk(median_radius))
+    
+    unsharp_radius = params.pop('unsharp_radius')
+    unsharp_amount = params.pop('unsharp_amount')
+    if unsharp_radius > 0 and unsharp_amount > 0:
+        img = unsharp_mask(img, radius=unsharp_radius, amount=unsharp_amount)
+    
+    return seg_func(img, **params)
+
+
+
+def segment_and_process(
+    img: np.ndarray,
+    probs: np.ndarray,
+    seg_func: Callable[..., np.ndarray],
+    params: Dict[str, Union[int, float]],
+):
+    segmented_image = segment_image(img.copy().transpose(1, 2, 0), seg_func, params.copy())
+    return postprocess_probs(segmented_image, probs)
+    
+
+
 
 if __name__ == '__main__':
     main()
