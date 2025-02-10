@@ -38,6 +38,15 @@ def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Postprocessing parameter search')
     
     parser.add_argument(
+        '--algorithm',
+        type=str,
+        choices=['slic', 'felzenszwalb'],
+        # default='felzenszwalb',
+        default='slic',
+        help='The segmentation algorithm to use.'
+    )
+    
+    parser.add_argument(
         '--data_path',
         type=str,
         default='./data/splits',
@@ -75,7 +84,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         '--n_trials',
         type=int,
-        default=2,
+        default=1024,
         help='Number of trials to run for the optimization.'
     )
     
@@ -106,6 +115,7 @@ def main():
 
     args = parse_args()
     
+    args.log_dir = os.path.join(args.log_dir, f'{args.algorithm}_search')
     os.makedirs(args.log_dir, exist_ok=True)
     logger = Logger(os.path.join(args.log_dir, 'out.log'))
     
@@ -155,41 +165,31 @@ def main():
     if not args.skip_search:
         
         def objective(trial: optuna.Trial) -> float:
-            
-            # scale = trial.suggest_float("scale", 10, 500)
-            # min_size = trial.suggest_int("min_size", 5, 100)
-            
-            # slic params
-            n_segments = trial.suggest_int("n_segments", 10, 1000)
-            compactness = trial.suggest_float("compactness", 1e-3, 10.0, log=True)
-            
-            # quickshift params
-            # ratio = trial.suggest_float("ratio", 0, 1)
-            # kernel_size = trial.suggest_int("kernel_size", 1, 5)
-            # max_dist = trial.suggest_int("max_dist", 1, 5)
-            
-            median_radius = trial.suggest_int("median_radius", 0, 10)
-            unsharp_radius = trial.suggest_int("unsharp_radius", 0, 20)
-            unsharp_amount = trial.suggest_float("unsharp_amount", 0.0, 10.0)
-            
-            median_radius = trial.params.get('median_radius', 0)
+
             params_trial = {
-                ## felzenszwalb params
-                # 'scale': scale,
-                # 'min_size': min_size,
-                # 'sigma': 0,
-                ## slic params
-                'n_segments': n_segments,
-                'compactness': compactness,
-                'max_num_iter': 3,
-                ## quickshift params
-                # 'ratio': ratio,
-                # 'kernel_size': kernel_size,
-                # 'max_dist': max_dist,
-                'median_radius': median_radius,
-                'unsharp_radius': unsharp_radius,
-                'unsharp_amount': unsharp_amount,
+                'median_radius': trial.suggest_int("median_radius", 0, 10),
+                'unsharp_radius': trial.suggest_int("unsharp_radius", 0, 20),
+                'unsharp_amount': trial.suggest_float("unsharp_amount", 0.0, 10.0),
             }
+            
+            if args.algorithm == 'felzenszwalb':
+                seg_func = felzenszwalb
+                params_trial.update({
+                    'scale': trial.suggest_float("scale", 10, 500),
+                    'min_size': trial.suggest_int("min_size", 5, 100),
+                    'sigma': 0,
+                })
+                
+            elif args.algorithm == 'slic':
+                seg_func = slic
+                params_trial.update({
+                    'n_segments': trial.suggest_int("n_segments", 10, 1000),
+                    'compactness': trial.suggest_float("compactness", 1e-4, 1e4, log=True),
+                    'max_num_iter': 3,
+                })
+            
+            else:
+                raise ValueError(f"Invalid algorithm: {args.algorithm}")
             
             try:
                 
@@ -198,12 +198,13 @@ def main():
                 with mp.Pool(mp.cpu_count()) as pool:
                     processed_probs = np.array(pool.starmap(
                         segment_and_process,
-                        [(img, probs, slic, params_trial) for img, probs in zip(X_train, y_hat_train)]
+                        [(img, probs, seg_func, params_trial) for img, probs in zip(X_train, y_hat_train)]
                     ))
                 
                 stop_time = time.time()
                 
                 algorithm_run_time = stop_time - start_time
+                logger.log(f'Trial {trial.number} took {algorithm_run_time:.2f} seconds with params: {params_trial}')
                 
                 loss_value = cross_entropy(y_train_one_hot, processed_probs)
                 
@@ -232,7 +233,7 @@ def main():
             return loss_value
         
         sampler = optuna.samplers.TPESampler(seed=args.seed)
-        study = optuna.create_study(study_name='seg_alg_eval_slic', direction='minimize', sampler=sampler)
+        study = optuna.create_study(study_name=f'seg_alg_eval_{args.algorithm}', direction='minimize', sampler=sampler)
         study.optimize(objective, n_trials=args.n_trials)
         
         new_ce = study.best_trial.value
@@ -1037,7 +1038,7 @@ def segment_image_only(okt_imagery: np.ndarray, lc_probs: np.ndarray, best_param
         
 
 
-@njit(parallel=False)
+@njit(parallel=True)
 def postprocess_probs(segmented_image: np.ndarray, probs: np.ndarray) -> np.ndarray:
     
     unique_segments = np.unique(segmented_image)
