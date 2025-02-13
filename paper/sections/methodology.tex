@@ -1,0 +1,101 @@
+\section{Methodology}
+
+% Multiple steps: don't break into subsections - one single pipeline
+
+% Data description set into subsections, but model workflow in one section
+
+% Concern is time - for validation
+
+% Subset of geotiffs counties
+
+
+% \subsection{Sampling}
+
+% Ideally, land cover classification models should be trained and validated against samples that are representative of the study area. 
+% However, under the constraints of limited labeled data, it may be difficult that samples can capture the full range of variation in the study area. 
+% Stratified sampling is a common approach to adress this issue, where the study area is divided into strata based on some characeteristic (such as land cover class or sub-region) and samples are drawn from each stratum.
+% However, unlike traditional land cover classification models, our semantic segmentation model necessitates the use of densely annotated tiles that exhibit a high degree of diversity with regards to spatial characeteristics.
+% Ideally, a single training tile should consist of a mix of land cover classes, and the arrangement of land cover classes should similarly be representative of the study area as a whole.
+% In order to achieve this, we employ a stratified sampling strategy that uses the National Land Cover Database (NLCD) to guide the selection of training, validation, and testing tiles such that both the distribution of classes in the tiles is representative of the study area and the content of the tiles is heterogeneous and diverse in terms of spatial characteristics.
+
+
+% The NLCD provides land cover data at a 30m resolution for the entire United States, and the most recent edition (Annual NLCD) provides yearly land cover data between 19185 and 2023. 
+% We use 2023 NLCD data in order to ensure the land cover data is consistent with the NAIP imagery acquired during the same year. 
+% For our land cover product, we reclassify the level 1 land cover product to correspond with our choice of legend according to the mapping schema in Table \ref{tab:nlcd-reclass}.
+% A grid of 256 m x 256 m square tiles is overlaid over the study area and the proportion of each land cover class is calculated for each cell. 
+% Applying principal component analysis (PCA) to the land cover relative frequency data, we identify the first two principal components capture 94.24\% of the data. 
+% Figure \ref{fig:ms_pca} visualizes the first two principal components of the land cover data at the tile level --- higher values of the first principal component correspond to a higher proportion of developed land cover classes, while higher values of the second principal component correspond to a higher proportion of forested and herbaceous land cover, with lower values appearing to correlate with regions primarily composed of cultivated crops. 
+% Tiles are subsequently into 250 clusters using K-means clustering operating on these two principal components. From each cluster, we sample 2 candidate tiles for training, 1 for validation, and 1 for testing. 
+% This results in a total of 500 training tiles, 250 validation tiles, and 250 testing tiles.
+
+% Ensuring this strategy yields high-quality training data that is representative of the study area is crucial to the success of the model. 
+% However, we recognize that a rigid evaluation of such an approach to stratification is not possible due to the lack of ground truth data for the study area. 
+% One measure we take to ensure the stratification is effective is to inspect the distribution of land cover classes across the splits. 
+% Figure \ref{fig:land-cover-distribution} shows that the distribution of land cover classes is consistent across the training, validation, and testing splits, and that these distributions are fairly representative of the study area as a whole. 
+% One important note is that the distribution of land cover classes in the study area is highly imbalanced, with the majority of Mississippi's land cover being classified as forest, with a low density of urban and forested areas. 
+% In order to tackle this issue, other strategies employ a synthetic oversampling of minority classes or strategic undersampling of majority classes \note{CITE}. 
+% Even though our approach to stratifying the data does not explicitly enforce such policies, comparing the land cover class distribution in the sampeled tiles to the distribution across the entire state shows that our sampling strategy achieves a similar outcome to such oversampling and undersampling strategies. 
+% Further, our approach tends to avoid sampling tiles that are composed of a single land cover class --- in the original NLCD data, 29.96\% of the tiles are composed of a single land cover class, while only 1.90\% of the sampled tiles are composed of a single land cover class. This is promising, as these homogenous tiles are likely to be less imformative for training the model \note{CITE}. 
+
+\subsection{Sampling}
+
+Ideally, land cover classification models should be trained and validated against samples that are representative of the study area. 
+However, under the constraints of limited labeled data, it may be difficult to capture the full range of variation in the study area. 
+Stratified sampling is a common approach to address this issue, where the study area is divided into strata based on some characteristic (such as land cover class or sub-region) and samples are drawn from each stratum.
+Unlike traditional land cover classification models, our semantic segmentation model necessitates the use of densely annotated tiles that exhibit a high degree of diversity with regards to spatial characteristics.
+Ideally, a single training tile should consist of a mix of land cover classes, and the arrangement of land cover classes should similarly be representative of the study area as a whole.
+To achieve this, we employ a stratified sampling strategy using the National Land Cover Database (NLCD) to guide the selection of training, validation, and testing tiles.
+This ensures that both the distribution of classes in the tiles is representative of the study area and the content of the tiles is heterogeneous and diverse in terms of spatial characteristics.
+
+The NLCD provides land cover data at a 30m resolution for the entire United States, and the most recent edition (Annual NLCD) provides yearly land cover data between 1985 and 2023. 
+We use 2023 NLCD data to ensure the land cover data is consistent with the NAIP imagery acquired during the same year. 
+For our land cover product, we reclassify the level 1 land cover product to correspond with our choice of legend according to the mapping schema in Table \ref{tab:nlcd-reclass}.
+
+A grid of 256 m x 256 m square tiles is overlaid over the study area, and the proportion of each land cover class is calculated for each cell. 
+Applying principal component analysis (PCA) to the land cover relative frequency data, we identify that the first two principal components capture 94.24\% of the data variance. 
+Figure \ref{fig:ms_pca} visualizes the first two principal components of the land cover data at the tile level.
+Higher values of the first principal component correspond to a higher proportion of impervious land cover types in each tile, while higher values of the second principal component correspond to a higher proportion of forested and herbaceous land cover, with lower values correlating with regions that consist of tiles primarily or wholly composed of cultivated crops.
+These tiles are subsequently grouped into 250 clusters using K-means clustering operating on these two principal components. From each cluster, we sample 2 candidate tiles for training, 1 for validation, and 1 for testing. This results in a total of 500 training tiles, 250 validation tiles, and 250 testing tiles.
+
+Ensuring this strategy yields high-quality training data that is representative of the study area is crucial to the success of the model.
+However, we recognize that a rigid evaluation of such an approach to stratification is not possible due to the lack of ground truth data for the study area.
+One measure we take to ensure the stratification is effective is to inspect the distribution of land cover classes across the splits. Figure \ref{fig:land-cover-distribution} shows that the distribution of land cover classes is consistent across the training, validation, and testing splits, which is ideal for ensuring that the model is exposed to a representative sample of the study area's land cover diversity.
+One important note is that the distribution of land cover classes in the study area is highly imbalanced, with the majority of Mississippi's land cover being classified as forest, and a low density of urban and developed areas. 
+To tackle this issue, other strategies often employ synthetic oversampling of minority classes or strategic undersampling of majority classes \note{CITE}. 
+Although our approach to stratifying the data does not explicitly enforce such policies, comparing the land cover class distribution in the sampled tiles to the distribution across the entire state (as shown in Figure \ref{fig:land-cover-distribution}) demonstrates that our sampling strategy achieves a similar outcome to these oversampling and undersampling strategies.
+Furthermore, our approach tends to avoid sampling tiles that are composed of a single land cover class. 
+In the original NLCD data, 29.96\% of the tiles are composed of a single land cover class, while only 1.90\% of the sampled tiles are composed of a single land cover class. This is promising, as these homogeneous tiles are likely to be less informative for training the model \note{CITE}.
+% Further, our approach tends to avoid sampling tiles that are composed of a single land cover class. 
+% In the original NLCD data, 29.96\% of the tiles are composed of a single land cover class, while only 1.90\% of the sampled tiles are composed of a single land cover class. This is promising, as these homogeneous tiles are likely to be less informative for training the model \note{CITE}.
+
+\subsection{Model configuration}
+
+Our model is baed on the U-Net architecture, with three important modifications.
+First, in lieu of the original convolutional encoder network in the original implementation, we employ a much deeper ResNet-152 network as the encoder.
+Our reasoning for this choice is that the increased number of layers in the ResNet-152 network will facilitate more complex feature extraction, particularly during the self-supervised pre-training phase, where the large amount of unlabeled data will allow the encoder to learn to capture rich representations of spatial features in the input imagery.
+Second, we replace the transposed convolutional layers in the original U-Net decoder with bilinear upsampling to reduce the presence of checkerboard artifacts in the upsampled feature maps, which can inhibit the quality of the output segmentation maps \cite{odenaDeconvolutionCheckerboardArtifacts2016, sanjarImprovedUNetFully2020}.
+Finally, in each decoder block, we introduce a residual connection between the output of the first convolutional layer and the output of the second convolutional layer to facilitate the flow of information through the network and improve training stability \cite{heDeepResidualLearning2016}.
+
+% 1) the encoder network is a ResNet-152 convolutional network, 2) the decoder blocks do not use transposed convolutions, and instead use bilinear upsampling followed by 2 3x3 convolutions, 3) within each decoder block, a residual connection is added between the output of the first convolution and the output of the second convolution, and 4) after the final decoder block, an additional 2 3x3 convolutions (also with residual connections) operate on the full resolution feature maps prior to the final 1x1 convolutional layer. \note{COMPLETE ME!} 
+
+\subsection{Pre-training}
+
+Our pre-training approach consists of two phases: a self-supervised pre-training phase and a fully supervised pre-training phase.
+In the first stage, we construct a simple denoising convolutional autoencoder by resampling feature maps from each stage of the ResNet-152 encoder to the original input resolution, concatenating them, and passing them through a single 1x1 convolutional layer to reduce the number of channels to 3. 
+The reason for this approach is to reduce the number of parameters in the decoder such that backpropagation will primarily affect the encoder weights, which will be used in the subsequent supervised pre-training phase.
+Additionally, \note{FINISH ME!!!}
+
+
+% In the self-supervised pre-training phase, the outputs from each stage of the ResNet-152 encoder are resampled to the original input resolution, concatenated, then undergo a single 1x1 convolutional layer to reduce the number of channels to 3. The resulting output is then compared to the r
+
+\subsection{Fully supervised pre-training}
+
+Once the 
+
+\subsection{Fully supervised fine-tuning}
+
+\subsection{Post-processing}
+
+\subsection{Inference}
+
+\subsection{Evaluation}
