@@ -81,20 +81,27 @@ Finally, in each decoder block, we introduce a residual connection between the o
 \subsection{Pre-training}
 
 Our pre-training approach consists of two phases: a self-supervised pre-training phase and a fully supervised pre-training phase.
-In the first stage, we construct a simple denoising convolutional autoencoder by resampling feature maps from each stage of the ResNet-152 encoder to the original input resolution, concatenating them, and passing them through a single 1x1 convolutional layer to reduce the number of channels to 3. 
-The reason for this approach is to reduce the number of parameters in the decoder such that backpropagation will primarily affect the encoder weights, which will be used in the subsequent supervised pre-training phase.
-Additionally, \note{FINISH ME!!!}
 
+\subsubsection{Self-supervised pre-training}
+In the first stage, we construct a simple denoising convolutional autoencoder by resampling feature maps from each stage of the ResNet-152 encoder to the original input resolution, concatenating them, and passing them through a single 1\(\times\)1 convolutional layer to produce an output with the same dimensions as the input.
+As the decoder network only consists of a single layer, the encoder network is primarily responsible for robust feature extraction in this phase.
 
+Two types of noise are added to the image: Gaussian noise and Poisson noise.
+The intensity of the Gaussian noise is controlled by the standard deviation parameter \(\sigma\), which is randomly sampled from a uniform distribution \(U(0, 2)\).
+Similarly, the intensity of the Poisson noise is controlled by the rate parameter \(\lambda\), which is also randomly sampled from a uniform distribution \(U(0, 2)\). % NOTE: THIS HAS BEEN CHANGED IN NEWER EXPERIMENTS TO 0,1 
+
+% Since random variables sampled from a Poisson distribution are strictly non-negative, Poisson noise is both added and subtracted from the input image (using the same \(\lambda\) value) to increase the effect of the noise. % NOTE: THIS IS ONLY TRUE IN NEWER EXPERIMENTS
+Our implementation is distinct from other denoising autoencoders in that the amount and type of noises added to an image is random, and not a fixed amount \note{CITE!!!}.
+Ideally, while this may inhibit the model's ability to effectively denoise an image, it will force the model to learn robust features that are invariant to the type and amount of noise present in the input image \note{CITE!!!???}.
+
+During this phase 
 % In the self-supervised pre-training phase, the outputs from each stage of the ResNet-152 encoder are resampled to the original input resolution, concatenated, then undergo a single 1x1 convolutional layer to reduce the number of channels to 3. The resulting output is then compared to the r
 
-\subsection{Fully supervised pre-training}
+\subsubsection{Fully supervised pre-training}
 
 Once the 
 
-\subsection{Fully supervised fine-tuning}
-
-\subsection{Post-processing}
+\subsection{Fine-tuning}
 
 \subsection{Inference}
 
