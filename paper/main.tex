@@ -1,0 +1,37 @@
+\documentclass{article}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+
+% \note command for adding notes to the document
+\newcommand*{\note}[1]{\textbf{\textcolor{red}{#1}}}
+
+% \specialcell command for multi-line cells in tables
+\newcommand{\specialcell}[1]{% Multi-Line
+  \shortstack[l]{#1}
+}
+
+\title{Label-efficient learning for High-Resolution Land Cover Classification using Large-Scale Self-Supervised Pre-Training and Transfer Learning}
+\author{Dakota Hester, et al.}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\input{sections/abstract.tex}
+
+\input{sections/introduction.tex}
+
+\input{sections/related_works.tex}
+
+\input{sections/data.tex}
+
+\input{sections/Methodology.tex}
+
+\input{sections/results.tex}
+
+\input{sections/discussion.tex}
+
+\input{sections/conclusion.tex}
+
+\end{document}
