@@ -51,3 +51,10 @@ data/NAIP_MS/ms_c.zip
 data/NAIP_MS
 /temp_reprojected.tif
 /data/postprocessing_trials
+
+.tex
+.bbl
+.blg
+.synctex
+.synctex.gz
+.aux
