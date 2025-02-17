@@ -53,9 +53,18 @@ For our land cover product, we reclassify the level 1 land cover product to corr
 
 A grid of 256 m x 256 m square tiles is overlaid over the study area, and the proportion of each land cover class is calculated for each cell. 
 Applying principal component analysis (PCA) to the land cover relative frequency data, we identify that the first two principal components capture 94.24\% of the data variance. 
-Figure \ref{fig:ms_pca} visualizes the first two principal components of the land cover data at the tile level.
+Figure \ref{fig:ms_lc_pcs} visualizes the first two principal components of the land cover data at the tile level.
 Higher values of the first principal component correspond to a higher proportion of impervious land cover types in each tile, while higher values of the second principal component correspond to a higher proportion of forested and herbaceous land cover, with lower values correlating with regions that consist of tiles primarily or wholly composed of cultivated crops.
-These tiles are subsequently grouped into 250 clusters using K-means clustering operating on these two principal components. From each cluster, we sample 2 candidate tiles for training, 1 for validation, and 1 for testing. This results in a total of 500 training tiles, 250 validation tiles, and 250 testing tiles.
+These tiles are subsequently grouped into 250 clusters using K-means clustering operating on these two principal components. 
+As shown in Figure \ref{fig:clusters}, the clustering algorithm effectively divides the principal component space into regions that correspond to differing land cover compositions.
+From each cluster, we sample 2 candidate tiles for training, 1 for validation, and 1 for testing.
+This results in a total of 500 training tiles, 250 validation tiles, and 250 testing tiles.
+
+\input{figures/ms_lc_pcs.tex}
+
+\input{figures/clusters.tex}
+
+\input{figures/sample_locations.tex}
 
 Ensuring this strategy yields high-quality training data that is representative of the study area is crucial to the success of the model.
 However, we recognize that a rigid evaluation of such an approach to stratification is not possible due to the lack of ground truth data for the study area.
@@ -67,6 +76,8 @@ Furthermore, our approach tends to avoid sampling tiles that are composed of a s
 In the original NLCD data, 29.96\% of the tiles are composed of a single land cover class, while only 1.90\% of the sampled tiles are composed of a single land cover class. This is promising, as these homogeneous tiles are likely to be less informative for training the model \note{CITE}.
 % Further, our approach tends to avoid sampling tiles that are composed of a single land cover class. 
 % In the original NLCD data, 29.96\% of the tiles are composed of a single land cover class, while only 1.90\% of the sampled tiles are composed of a single land cover class. This is promising, as these homogeneous tiles are likely to be less informative for training the model \note{CITE}.
+
+
 
 \subsection{Model configuration}
 
@@ -85,21 +96,42 @@ Our pre-training approach consists of two phases: a self-supervised pre-training
 \subsubsection{Self-supervised pre-training}
 In the first stage, we construct a simple denoising convolutional autoencoder by resampling feature maps from each stage of the ResNet-152 encoder to the original input resolution, concatenating them, and passing them through a single 1\(\times\)1 convolutional layer to produce an output with the same dimensions as the input.
 As the decoder network only consists of a single layer, the encoder network is primarily responsible for robust feature extraction in this phase.
+To reduce the computational cost of pre-training the model during this phase, images are randomly cropped to 96\(\times\)96 pixels before being passed through the model.
 
 Two types of noise are added to the image: Gaussian noise and Poisson noise.
 The intensity of the Gaussian noise is controlled by the standard deviation parameter \(\sigma\), which is randomly sampled from a uniform distribution \(U(0, 2)\).
-Similarly, the intensity of the Poisson noise is controlled by the rate parameter \(\lambda\), which is also randomly sampled from a uniform distribution \(U(0, 2)\). % NOTE: THIS HAS BEEN CHANGED IN NEWER EXPERIMENTS TO 0,1 
+Similarly, the intensity of the Poisson noise is controlled by the rate parameter \(\lambda\), which is also randomly sampled from a uniform distribution \(U(0, 2)\). % TODO: NOTE: THIS HAS BEEN CHANGED IN NEWER EXPERIMENTS TO 0,1 
 
-% Since random variables sampled from a Poisson distribution are strictly non-negative, Poisson noise is both added and subtracted from the input image (using the same \(\lambda\) value) to increase the effect of the noise. % NOTE: THIS IS ONLY TRUE IN NEWER EXPERIMENTS
+% Since random variables sampled from a Poisson distribution are strictly non-negative, Poisson noise is both added and subtracted from the input image (using the same \(\lambda\) value) to increase the effect of the noise. % TODO: NOTE: THIS IS ONLY TRUE IN NEWER EXPERIMENTS
 Our implementation is distinct from other denoising autoencoders in that the amount and type of noises added to an image is random, and not a fixed amount \note{CITE!!!}.
 Ideally, while this may inhibit the model's ability to effectively denoise an image, it will force the model to learn robust features that are invariant to the type and amount of noise present in the input image \note{CITE!!!???}.
+Model inputs are standardized to have zero mean and unit variance on a per-band basis using the mean and standard deviation of the pre-training data prior to adding noise.
+% TODO: Add pre-training paramaters from GCER-A100 server (check logs)
+The loss function used during this self-supervised pre-training phase the mean squared error between the model's raw output and the normalized input image.
+After each epoch of pre-training, the model is evaluated using the pre-training validation set to ensure that the model is fitting the data properly and to adjust the learning rate if necessary.
+If the model's pretraining validation loss does not decrease for \note{CHECK ME: 3} consecutive epochs, the learning rate is reduced by a factor of 0.1.
+Additionally, if the pretraining validation loss does not decrease for \note{CHECK ME: 10} consecutive epochs, the pre-training phase is terminated early.
+Due to the large number of samples in the pre-training dataset, the model converges quickly, and the pre-training phase was terminated after only \note{XX} epochs, with the lowest validation loss achieved at epoch \note{XX}.
 
-During this phase 
-% In the self-supervised pre-training phase, the outputs from each stage of the ResNet-152 encoder are resampled to the original input resolution, concatenated, then undergo a single 1x1 convolutional layer to reduce the number of channels to 3. The resulting output is then compared to the r
 
 \subsubsection{Fully supervised pre-training}
 
-Once the 
+Once the self-supervised pre-training phase is complete, the encoder network is used as the encoder in the U-Net architecture, and the decoder network is initialized with random weights.
+During this phase, the entire model is trained using the labeled data from Fairfax County, Virginia.
+% Oversampling strategy
+In order to increase the diversity of the training data, oversampling is employed in this stage. If a tile contains a minority class in greater proportion that the average proportion 
+\note{TODO: Describe oversampling strategy} - under this strategy, minority classes are defined as any class comprising less than \note{X.XX}\% of the total pixels in the training set.
+If a tile contains a minority class that is in greater proportion that the relatvie frequency of that class in the training set, then the tile is duplicated \note{X} times.
+In order to further compensate for the class imbalance, the loss function used during this phase is \note{UNIFIED TVERSKY-FOCAL LOSS} with each class weighted according to
+\begin{equation}
+    \alpha_c = \frac{\left(1 - p_c\right)^\phi}{\sum_{c=1}^{C} \left(1 - p_c\right)^\phi}
+    \label{eq:class_weight}
+\end{equation}
+where \(p_c\) is the proportion of class \(c\) in the training set, \(\phi\) is a hyperparameter that controls the degree of class weighting, and \(C\) is the total number of classes.
+
+Additionally, further data augmentation is applied to the training data \note{DESCRIBE AUGMENTATION PIPELINE}.
+The model is trained using the Adam
+
 
 \subsection{Fine-tuning}
 
