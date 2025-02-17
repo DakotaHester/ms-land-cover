@@ -53,7 +53,7 @@ data/NAIP_MS
 /data/postprocessing_trials
 
 # LaTeX
-*.tex
+# *.tex
 *.bbl
 *.blg
 *.synctex
