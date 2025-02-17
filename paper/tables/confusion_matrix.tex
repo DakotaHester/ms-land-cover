@@ -1,17 +1,21 @@
 \begin{table}[ht]
-    \begin{tabular}{@{}lllllllll|l@{}}
-    \toprule
-    True Label \textbackslash Predicted Label           & Open Water    & Impervious (raised structures) & Impervious (paved surfaces) & Barren Land     & Tree Canopy/Woody Vegetation & Low Vegetation/Herbaceous & Cultivated Crops & Unclassified    & Prod. Acc.          \\ \midrule
-    \multicolumn{1}{l|}{Open Water}                     & \textbf{7154} & 344                            & 41                          & 45              & 16                           & 141                       & 0                & 1066            & 81.23\%             \\
-    \multicolumn{1}{l|}{Impervious Structures}          & 13            & \textbf{20776}                 & 2041                        & 1335            & 115                          & 4891                      & 0                & 1708            & 67.28\%             \\
-    \multicolumn{1}{l|}{Impervious Surfaces}            & 19            & 2590                           & \textbf{124159}             & 9058            & 1722                         & 14407                     & 13               & 3225            & 80.00\%             \\
-    \multicolumn{1}{l|}{Barren Land}                    & 298           & 1964                           & 21482                       & \textbf{130287} & 2798                         & 100670                    & 24151            & 4008            & 45.61\%             \\
-    \multicolumn{1}{l|}{Tree Canopy/Woody Vegetation}   & 924           & 244                            & 1403                        & 1064            & \textbf{2336744}             & 94750                     & 26166            & 101005          & 91.20\%             \\
-    \multicolumn{1}{l|}{Low Vegetation/Herbaceous}      & 469           & 2596                           & 24339                       & 57498           & 58379                        & \textbf{851272}           & 136447           & 29850           & 73.33\%             \\
-    \multicolumn{1}{l|}{Cultivated Crops}               & 0             & 0                              & 171                         & 3079            & 6685                         & 48908                     & \textbf{148924}  & 603             & 54.73\%             \\
-    \multicolumn{1}{l|}{Unclassified}                   & 208           & 940                            & 3546                        & 384             & 14128                        & 8236                      & 106              & \textbf{147915} & 62.64\%             \\ \midrule
-    \multicolumn{1}{l|}{User Acc.}                      & 78,75\%       & 70.54\%                        & 70.07\%                     & 64.26\%         & 96.53\%                      & 75.78\%                   & 44.34\%          & 51.11\%         & Overall Accuracy: 82.12\%                   \\ \bottomrule
-    \end{tabular}
+    \centering
+    \renewcommand{\arraystretch}{1.75} % Adjust the row height
+    \resizebox{\textwidth}{!}{
+        \begin{tabular}{@{}|l|rrrrrrrr|r|@{}}
+            \toprule
+            \diagbox{\makecell{True\\Label}}{\makecell{Predicted\\Label}}           & \makecell[lb]{Open\\Water}    & \makecell[lb]{Impervious\\Structures}          & \makecell[lb]{Impervious\\Surfaces}         & \makecell[lb]{Barren\\Land}     & \makecell[lb]{Tree Canopy/\\Woody Vegetation} & \makecell[lb]{Low Vegetation/\\Herbaceous} & \makecell[lb]{Cultivated\\Crops} & \makecell[lb]{Unclassified}    & \makecell[lb]{Producer's\\Accuracy}          \\ \midrule
+            {Open Water}                                     & \textbf{7154} & 344                            & 41                          & 45              & 16                           & 141                       & 0                & 1066            & 81.23\%             \\
+            \makecell[l]{Impervious\\Structures}             & 13            & \textbf{20776}                 & 2041                        & 1335            & 115                          & 4891                      & 0                & 1708            & 67.28\%             \\
+            \makecell[l]{Impervious\\Surfaces}               & 19            & 2590                           & \textbf{124159}             & 9058            & 1722                         & 14407                     & 13               & 3225            & 80.00\%             \\
+            {Barren Land}                                    & 298           & 1964                           & 21482                       & \textbf{130287} & 2798                         & 100670                    & 24151            & 4008            & 45.61\%             \\
+            \makecell[l]{Tree Canopy/\\Woody Vegetation}     & 924           & 244                            & 1403                        & 1064            & \textbf{2336744}             & 94750                     & 26166            & 101005          & 91.20\%             \\
+            \makecell[l]{Low Vegetation/\\Herbaceous}        & 469           & 2596                           & 24339                       & 57498           & 58379                        & \textbf{851272}           & 136447           & 29850           & 73.33\%             \\
+            {Cultivated Crops}                               & 0             & 0                              & 171                         & 3079            & 6685                         & 48908                     & \textbf{148924}  & 603             & 54.73\%             \\
+            {Unclassified}                                   & 208           & 940                            & 3546                        & 384             & 14128                        & 8236                      & 106              & \textbf{147915} & 62.64\%             \\ \midrule
+            {User Acc.}                                      & 78.75\%       & 70.54\%                        & 70.07\%                     & 64.26\%         & 96.53\%                      & 75.78\%                   & 44.34\%          & 51.11\%         & \makecell[r]{Overall Accuracy\\82.12\%}      \\ \bottomrule
+        \end{tabular}
+    }
     \label{tab:confusion_matrix}
     \caption{Confusion matrix for the Mississippi dataset \note{REFERENCE ME!}.}
 \end{table}
