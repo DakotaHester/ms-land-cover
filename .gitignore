@@ -52,9 +52,12 @@ data/NAIP_MS
 /temp_reprojected.tif
 /data/postprocessing_trials
 
-.tex
-.bbl
-.blg
-.synctex
-.synctex.gz
-.aux
+# LaTeX
+*.tex
+*.bbl
+*.blg
+*.synctex
+*.synctex.gz
+*.aux
+*.nav
+*.snm
