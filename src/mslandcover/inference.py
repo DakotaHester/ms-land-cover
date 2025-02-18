@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 import math
 import numpy as np
@@ -12,16 +13,20 @@ import torch.nn.functional as F
 from shapely import Polygon
 from tqdm import tqdm
 from src.mslandcover.utils import Logger, get_torch_device
-from typing import Dict, List, Tuple, Optional, Union
+from typing import Callable, Dict, List, Tuple, Optional, Union
 from queue import Queue
 from threading import Thread
 import cv2 as cv
 from shapely.geometry import shape
 import geopandas as gpd
 from src.mslandcover.config import LEGEND_CLASSES
+from src.mslandcover.data.transforms import normalize
 from multiprocessing import Pool, shared_memory, cpu_count
 from scipy.special import softmax
 from skimage.segmentation import quickshift, felzenszwalb
+from skimage.filters import unsharp_mask, median
+from skimage.morphology import disk
+from numba import jit, njit, prange
 
 
 def process_batch(args):
@@ -364,19 +369,25 @@ class GPURasterProcessor:
     def __init__(
         self, 
         model: nn.Module,
-        tile_size: int = 256,
-        stride: int = 64,
-        gaussian_sigma: float = 128,
-        batch_size: int = 32,
-        mean: Optional[torch.Tensor] = None,
-        std: Optional[torch.Tensor] = None,
-        device: torch.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
+        tile_size: int=256,
+        stride: int=64,
+        gaussian_sigma: float=128,
+        batch_size: int=32,
+        mean: Optional[torch.Tensor]=None,
+        std: Optional[torch.Tensor]=None,
+        device: torch.device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
+        seg_func: Optional[Callable]=None,
+        seg_func_params: Optional[Dict[str, Union[int, float]]]=None,
+        apply_random_transformations: bool=True,
     ):
         self.tile_size = tile_size
         self.stride = stride
         self.sigma = gaussian_sigma
         self.batch_size = batch_size
         self.device = device
+        self.seg_func = seg_func
+        self.seg_func_params = seg_func_params
+        self.apply_random_transformations = apply_random_transformations
         
         # Move model to device and set to eval mode
         self.model = model.to(device)
@@ -442,12 +453,58 @@ class GPURasterProcessor:
             - Processed tiles with weights applied, shape (B, num_classes, H, W)
             - Original coordinates for each tile
         """
-        batch_tiles = batch_tiles.to(self.device)
+        batch_tiles_norm = normalize(batch_tiles, self.mean, self.std)
+        
+        if self.apply_random_transformations:
+            # randomly flip and rotate individual tiles
+            is_hflip = torch.randint(0, 2, (batch_tiles.shape[0],)).bool()
+            is_vflip = torch.randint(0, 2, (batch_tiles.shape[0],)).bool()
+            rot_angle = torch.randint(0, 4, (batch_tiles.shape[0],))
+            
+            for i in range(batch_tiles.shape[0]):
+                if is_hflip[i]:
+                    batch_tiles_norm[i] = torch.flip(batch_tiles_norm[i], [2])
+                if is_vflip[i]:
+                    batch_tiles_norm[i] = torch.flip(batch_tiles_norm[i], [1])
+                batch_tiles_norm[i] = torch.rot90(batch_tiles_norm[i], rot_angle[i], [1, 2])
+            
+        batch_tiles_norm = batch_tiles_norm.to(self.device)
         
         with torch.no_grad():
-            probs = self.model(batch_tiles)
-            weighted_probs = probs * self.weights_gpu
+            probs = self.model(batch_tiles_norm).cpu()
+            # weighted_probs = probs * self.weights_gpu
+        
+        if self.apply_random_transformations:
+            # undo transformations
+            for i in range(batch_tiles.shape[0]):
+                probs[i] = torch.rot90(probs[i], -rot_angle[i], [1, 2])
+                if is_vflip[i]:
+                    probs[i] = torch.flip(probs[i], [1])
+                if is_hflip[i]:
+                    probs[i] = torch.flip(probs[i], [2])
             
+        if self.seg_func:
+            # Apply segmentation function if provided
+            batch_tiles = batch_tiles.numpy()
+            probs = probs.numpy()
+            
+            # segmented_images = segment_images(batch_tiles, self.seg_func, self.seg_func_params)
+            # with mp.Pool(mp.cpu_count()) as pool:
+            with ThreadPoolExecutor(max_workers=4*mp.cpu_count()) as pool:
+                # segmented_images = pool.map(partial(segment_image, seg_func=self.seg_func, params=self.seg_func_params), batch_tiles)
+                probs = pool.map(partial(segment_and_process, seg_func=self.seg_func, params=self.seg_func_params), batch_tiles, probs)
+            
+            # for i, segmented_image in enumerate(segmented_images):
+                # probs[i] = postprocess_probs(segmented_image, probs[i])
+            
+            # for i, tile in enumerate(batch_tiles):
+                # probs[i] = segment_and_process(tile, probs[i], self.seg_func, self.seg_func_params)
+            # with mp.Pool(mp.cpu_count()) as pool:
+                # probs = pool.starmap(segment_and_process, [(tile, probs[i], self.seg_func, self.seg_func_params) for i, tile in enumerate(batch_tiles)])
+            # probs = torch.from_numpy(np.stack(probs))
+        
+        probs = torch.from_numpy(np.array(list(probs)))
+        weighted_probs = probs * self.weights_cpu
         return weighted_probs, batch_coords
 
     def process_raster(self, raster_data: np.ndarray) -> np.ndarray:
@@ -467,10 +524,10 @@ class GPURasterProcessor:
             raster_data = raster_data.astype(np.float32) / 255.0
         
         # Normalize if mean and std provided
-        if self.mean is not None and self.std is not None:
-            raster_data = np.transpose(raster_data, (1, 2, 0))
-            raster_data = (raster_data - self.mean) / self.std
-            raster_data = np.transpose(raster_data, (2, 0, 1))
+        # if self.mean is not None and self.std is not None:
+        #     raster_data = np.transpose(raster_data, (1, 2, 0))
+        #     raster_data = (raster_data - self.mean) / self.std
+        #     raster_data = np.transpose(raster_data, (2, 0, 1))
         
         height, width = raster_data.shape[1:]
         num_classes = self.model.num_classes
@@ -490,7 +547,7 @@ class GPURasterProcessor:
             
             # Accumulate results
             for idx, (y, x) in enumerate(coords):
-                outputs[:, y:y+self.tile_size, x:x+self.tile_size] += weighted_probs[idx].to('cpu')
+                outputs[:, y:y+self.tile_size, x:x+self.tile_size] += weighted_probs[idx]
                 weights_sum[y:y+self.tile_size, x:x+self.tile_size] += self.weights_cpu
         
         # Get final probabilities
@@ -708,3 +765,63 @@ def parallel_quickshift(raster_data, kernel_size=3, max_dist=6, ratio=0.5, chunk
     final_segments = vectorized_map(final_segments)
     
     return final_segments
+
+
+@njit(parallel=True)
+def postprocess_probs(segmented_image: np.ndarray, probs: np.ndarray) -> np.ndarray:
+    
+    unique_segments = np.unique(segmented_image)
+    # for seg in unique_segments:
+    for i in prange(unique_segments.shape[0]):
+        mask = (segmented_image == i)
+        for j in range(probs.shape[0]):
+            s_val = 0.0
+            cnt = 0
+            for idx in range(mask.size):
+                if mask.flat[idx]:
+                    s_val += probs[j].flat[idx]
+                    cnt += 1
+            mean_val = s_val / cnt if cnt > 0 else 0.0
+            for idx in range(mask.size):
+                if mask.flat[idx]:
+                    probs[j].flat[idx] = mean_val
+    return probs
+
+def segment_image(
+    img: np.ndarray,
+    seg_func: Callable[..., np.ndarray],
+    params: Dict[str, Union[int, float]],
+) -> np.ndarray:
+    
+    # img = img.transpose(1, 2, 0)  # Convert to (H, W, C)
+    # params = params.copy()
+    median_radius = params.pop('median_radius')
+    if median_radius > 0:
+        for i in range(3):
+            img[:, :, i] = median(img[:, :, i], disk(median_radius))
+    
+    unsharp_radius = params.pop('unsharp_radius')
+    unsharp_amount = params.pop('unsharp_amount')
+    if unsharp_radius > 0 and unsharp_amount > 0:
+        img = unsharp_mask(img, radius=unsharp_radius, amount=unsharp_amount)
+    
+    return seg_func(img, **params)
+
+
+@njit(parallel=True)
+def segment_images(imgs, seg_func, params):
+    segmented_images = np.empty_like(imgs[:, 0, :, :])
+    for i in prange(imgs.shape[0]):
+        segmented_images[i] = segment_image(imgs[i], seg_func, params.copy())
+    return segmented_images
+
+
+
+def segment_and_process(
+    img: np.ndarray,
+    probs: np.ndarray,
+    seg_func: Callable[..., np.ndarray],
+    params: Dict[str, Union[int, float]],
+):
+    segmented_image = segment_image(img.copy().transpose(1, 2, 0), seg_func, params.copy())
+    return postprocess_probs(segmented_image, probs)

@@ -41,8 +41,8 @@ def parse_args() -> argparse.Namespace:
         '--algorithm',
         type=str,
         choices=['slic', 'felzenszwalb'],
-        # default='felzenszwalb',
-        default='slic',
+        default='felzenszwalb',
+        # default='slic',
         help='The segmentation algorithm to use.'
     )
     
@@ -129,40 +129,40 @@ def main():
     mean = load_pth(args.mean_path)
     std = load_pth(args.std_path)
     
-    train_dataset = FineTuneDataset(
-        data_paths=glob(os.path.join(args.data_path, 'train', 'input', '*.tif')),
-        target_paths=glob(os.path.join(args.data_path, 'train', 'target', '*.tif')),
-        transform=None,
-        mean=mean,
-        std=std,
-    )
-    
-    train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
-    
-    X_train = []
-    y_hat_train = []
-    y_train = []
-    for i, (X, y) in tqdm(enumerate(train_loader), desc='Getting LC probs', total=len(train_loader)):
-        
-        X_train.append(X.numpy())
-        y_hat_train.append(model(X.to(device)).detach().cpu().numpy())
-        y_train.append(y.numpy())
-    
-    X_train = np.concatenate(X_train, axis=0)
-    y_hat_train = np.concatenate(y_hat_train, axis=0)
-    y_train = np.concatenate(y_train, axis=0)
-    
-    # y_train.shape = (n_samples, height, width)
-    # y_train_one_hot.shape = (n_samples, n_classes, height, width)
-    y_train_one_hot = np.stack([np.eye(8)[y_i] for y_i in y_train]).transpose(0, 3, 1, 2)
-
-    train_ce = cross_entropy(y_train_one_hot, y_hat_train)
-    train_f1 = f1_score(y_train.flatten(), np.argmax(y_hat_train, axis=1).flatten(), average='macro')
-    
-    print(f'Starting CE: {train_ce}')
-    print(f'Starting F1 (macro): {train_f1}')
-    
     if not args.skip_search:
+        
+        train_dataset = FineTuneDataset(
+            data_paths=glob(os.path.join(args.data_path, 'train', 'input', '*.tif')),
+            target_paths=glob(os.path.join(args.data_path, 'train', 'target', '*.tif')),
+            transform=None,
+            mean=mean,
+            std=std,
+        )
+        
+        train_loader = DataLoader(train_dataset, batch_size=args.batch_size, shuffle=True)
+        
+        X_train = []
+        y_hat_train = []
+        y_train = []
+        for i, (X, y) in tqdm(enumerate(train_loader), desc='Getting LC probs', total=len(train_loader)):
+            
+            X_train.append(X.numpy())
+            y_hat_train.append(model(X.to(device)).detach().cpu().numpy())
+            y_train.append(y.numpy())
+        
+        X_train = np.concatenate(X_train, axis=0)
+        y_hat_train = np.concatenate(y_hat_train, axis=0)
+        y_train = np.concatenate(y_train, axis=0)
+        
+        # y_train.shape = (n_samples, height, width)
+        # y_train_one_hot.shape = (n_samples, n_classes, height, width)
+        y_train_one_hot = np.stack([np.eye(8)[y_i] for y_i in y_train]).transpose(0, 3, 1, 2)
+
+        train_ce = cross_entropy(y_train_one_hot, y_hat_train)
+        train_f1 = f1_score(y_train.flatten(), np.argmax(y_hat_train, axis=1).flatten(), average='macro')
+        
+        print(f'Starting CE: {train_ce}')
+        print(f'Starting F1 (macro): {train_f1}')
         
         def objective(trial: optuna.Trial) -> float:
 
@@ -251,59 +251,6 @@ def main():
         logger.log(f'New F1 (macro): {new_f1}')
         logger.log(f'F1 Improvement: {f1_improvement:.2%}')
         
-        test_dataset = FineTuneDataset(
-            data_paths=glob(os.path.join(args.data_path, 'test', 'input', '*.tif')) + glob(os.path.join(args.data_path, 'val', 'input', '*.tif')),
-            target_paths=glob(os.path.join(args.data_path, 'test', 'target', '*.tif')) + glob(os.path.join(args.data_path, 'val', 'target', '*.tif')),
-            transform=None,
-            mean=mean,
-            std=std,
-        )
-        
-        test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
-        
-        X_test = []
-        y_hat_test = []
-        y_test = []
-        
-        for i, (X, y) in tqdm(enumerate(test_loader), desc='Getting LC probs', total=len(test_loader)):
-            
-            X_test.append(X.numpy())
-            y_hat_test.append(model(X.to(device)).detach().cpu().numpy())
-            y_test.append(y.numpy())
-        
-        X_test = np.concatenate(X_test, axis=0)
-        y_hat_test = np.concatenate(y_hat_test, axis=0)
-        y_test = np.concatenate(y_test, axis=0)
-        
-        y_test_one_hot = np.stack([np.eye(8)[y_i] for y_i in y_test]).transpose(0, 3, 1, 2)
-        
-        test_ce = cross_entropy(y_test_one_hot, y_hat_test)
-        test_f1 = f1_score(y_test.flatten(), np.argmax(y_hat_test, axis=1).flatten(), average='macro')
-        
-        # get seg_params from best trial
-        best_params = study.best_trial.user_attrs.get('seg_params')
-        
-        with mp.Pool(mp.cpu_count()) as pool:
-            processed_probs = np.array(pool.starmap(
-                segment_and_process,
-                [(img, probs, slic, best_params) for img, probs in zip(X_test, y_hat_test)]
-            ))
-        
-        new_test_ce = cross_entropy(y_test_one_hot, processed_probs)
-        new_test_f1 = f1_score(y_test.flatten(), np.argmax(processed_probs, axis=1).flatten(), average='macro')
-        
-        new_ce_improvement = (test_ce - new_test_ce) / test_ce
-        new_f1_improvement = (new_test_f1 - test_f1) / test_f1
-        
-        logger.log(f'{"="*5} Test Set {"="*5}')
-        logger.log(f'Original CE: {test_ce}')
-        logger.log(f'New CE: {new_test_ce}')
-        logger.log(f'CE Improvement: {new_ce_improvement:.2%}')
-        logger.log(f'Original F1 (macro): {test_f1}')
-        logger.log(f'New F1 (macro): {new_test_f1}')
-        logger.log(f'F1 Improvement: {new_f1_improvement:.2%}')
-        
-        
         out_path = os.path.join(args.log_dir, 'best_params.json')
         json.dump(study.best_trial.params, open(out_path, 'w'))
         logger.log(f'Best params saved to {out_path}')
@@ -311,6 +258,69 @@ def main():
         out_path = os.path.join(args.log_dir, 'study.pkl')
         pickle.dump(study, open(out_path, 'wb'))
         logger.log(f'Study results saved to {out_path}')
+    
+    # study = pickle.load(open(os.path.join(args.log_dir, 'study.pkl'), 'rb'))
+        
+    test_dataset = FineTuneDataset(
+        data_paths=glob(os.path.join(args.data_path, 'test', 'input', '*.tif')) + glob(os.path.join(args.data_path, 'val', 'input', '*.tif')),
+        target_paths=glob(os.path.join(args.data_path, 'test', 'target', '*.tif')) + glob(os.path.join(args.data_path, 'val', 'target', '*.tif')),
+        transform=None,
+        mean=mean,
+        std=std,
+    )
+    
+    test_loader = DataLoader(test_dataset, batch_size=args.batch_size, shuffle=True)
+    
+    X_test = []
+    y_hat_test = []
+    y_test = []
+    
+    for i, (X, y) in tqdm(enumerate(test_loader), desc='Getting LC probs', total=len(test_loader)):
+        
+        X_test.append(X.numpy())
+        y_hat_test.append(model(X.to(device)).detach().cpu().numpy())
+        y_test.append(y.numpy())
+    
+    X_test = np.concatenate(X_test, axis=0)
+    y_hat_test = np.concatenate(y_hat_test, axis=0)
+    y_test = np.concatenate(y_test, axis=0)
+    
+    y_test_one_hot = np.stack([np.eye(8)[y_i] for y_i in y_test]).transpose(0, 3, 1, 2)
+    
+    test_ce = cross_entropy(y_test_one_hot, y_hat_test)
+    test_f1 = f1_score(y_test.flatten(), np.argmax(y_hat_test, axis=1).flatten(), average='macro')
+    
+    # get seg_params from best trial
+    # best_params = study.best_trial.user_attrs.get('seg_params')
+    best_params = {'median_radius': 2, 'unsharp_radius': 0, 'unsharp_amount': 3.649424294678024, 'scale': 41.17665570830897, 'min_size': 5, 'sigma': 0}
+    
+    if args.algorithm == 'felzenszwalb':
+        seg_func = felzenszwalb
+    else:
+        seg_func = slic
+    
+    with mp.Pool(mp.cpu_count()) as pool:
+        processed_probs = np.array(pool.starmap(
+            segment_and_process,
+            [(img, probs, seg_func, best_params) for img, probs in zip(X_test, y_hat_test)]
+        ))
+    
+    new_test_ce = cross_entropy(y_test_one_hot, processed_probs)
+    new_test_f1 = f1_score(y_test.flatten(), np.argmax(processed_probs, axis=1).flatten(), average='macro')
+    
+    new_ce_improvement = (test_ce - new_test_ce) / test_ce
+    new_f1_improvement = (new_test_f1 - test_f1) / test_f1
+    
+    logger.log(f'{"="*5} Test Set {"="*5}')
+    logger.log(f'Original CE: {test_ce}')
+    logger.log(f'New CE: {new_test_ce}')
+    logger.log(f'CE Improvement: {new_ce_improvement:.2%}')
+    logger.log(f'Original F1 (macro): {test_f1}')
+    logger.log(f'New F1 (macro): {new_test_f1}')
+    logger.log(f'F1 Improvement: {new_f1_improvement:.2%}')
+        
+        
+
 
 
 
@@ -1038,7 +1048,7 @@ def segment_image_only(okt_imagery: np.ndarray, lc_probs: np.ndarray, best_param
         
 
 
-@njit(parallel=True)
+@njit(parallel=False)
 def postprocess_probs(segmented_image: np.ndarray, probs: np.ndarray) -> np.ndarray:
     
     unique_segments = np.unique(segmented_image)
