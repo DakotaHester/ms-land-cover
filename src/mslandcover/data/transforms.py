@@ -65,15 +65,28 @@ def random_resize_crop(
 
 def normalize(tensor: torch.Tensor, mean: torch.Tensor, std: torch.Tensor) -> torch.Tensor:
     
-    permuted = False
-    if tensor.size(0) == 3:
-        tensor = tensor.permute(1, 2, 0)
-        permuted = True
+    dim = tensor.dim()
+    if dim == 3:
+        permuted = False
+        if tensor.size(0) == 3:
+            tensor = tensor.permute(1, 2, 0)
+            permuted = True
+        
+        tensor = (tensor - mean) / std
+        
+        if permuted:
+            tensor = tensor.permute(2, 0, 1)
     
-    tensor = (tensor - mean) / std
-    
-    if permuted:
-        tensor = tensor.permute(2, 0, 1)
+    elif dim == 4:
+        permuted = False
+        if tensor.size(1) == 3:
+            tensor = tensor.permute(0, 2, 3, 1)
+            permuted = True
+        
+        tensor = (tensor - mean) / std
+        
+        if permuted:
+            tensor = tensor.permute(0, 3, 1, 2)
     
     return tensor
     

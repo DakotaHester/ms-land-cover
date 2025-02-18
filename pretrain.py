@@ -35,7 +35,7 @@ def parse_arguments():
     parser.add_argument(
         '--pretrain_scheme',
         type=str,
-        default='dae_lab',
+        default='dae',
         choices=['ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr', 'lab', 'dae_lab', 'simclr_lab', 'dae_simclr_lab', 'ae_lab', 'simclr_ae_lab'],
         help='The pretraining scheme to use. One of [ae, dae, hsv, dae_hsv, simclr, ae_simclr, dae_simclr, hsv_simclr, dae_hsv_simclr, lab, dae_lab, simclr_lab, dae_simclr_lab, ae_lab, simclr_ae_lab],.',
     )
@@ -43,7 +43,7 @@ def parse_arguments():
     parser.add_argument(
         '--model',
         type=str,
-        default='unet',
+        default='resnet152',
         choices=['unet', 'hrnet_w48', 'hrnet_w18', 'resnet152'],
     )
     
@@ -92,7 +92,7 @@ def parse_arguments():
     parser.add_argument(
         '--early_stopping_patience',
         type=int,
-        default=15,
+        default=10,
         help='The number of epochs to wait for validation loss improvement before stopping training.',
     )
     
@@ -106,7 +106,7 @@ def parse_arguments():
     parser.add_argument(
         '--init_lr',
         type=float,
-        default=1e-5,
+        default=1e-7,
         help='The initial learning rate to use for training.',
     )
     
@@ -120,14 +120,14 @@ def parse_arguments():
     parser.add_argument(
         '--full_batch_size', 
         type=int, 
-        default=256, # 4096 in original SimCLR implementation
+        default=2048, # 4096 in original SimCLR implementation
         help='The batch size to use for pretraining.',
     )
     
     parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=32,
+        default=8,
         help='The mini-batch size to use for gradient caching.',
     )
     
@@ -171,7 +171,7 @@ def parse_arguments():
     parser.add_argument(
         '--num_workers',
         type=int,
-        default=16,
+        default=4,
         help='The number of workers to use for data loading.',
     )
     
@@ -381,8 +381,9 @@ def main():
         model = ResNetAutoencoder(
             img_decoder_head=is_reconstruction,
             aux_simclr_head=is_contrastive,
-            img_decoder_activation='sigmoid' if is_output_transformed or 'lab' in args.pre else 'none',
+            img_decoder_activation='sigmoid' if is_output_transformed or 'lab' in args.pretrain_scheme else 'none',
             pretrained=not args.rand_init,
+            dropout_rate=0.0, # use dropout prior to final 1x1 conv layer
         )
     elif args.model == 'unet':
         if not is_reconstruction or is_multitask:
@@ -563,7 +564,11 @@ def main():
                         X, y = X.to(device), y.to(device)
                         
                         y_hat = model(X)
-                        reconstruction_loss = F.mse_loss(y_hat, y, reduction='sum')
+                        # reconstruction_loss = F.mse_loss(y_hat, y, reduction='sum')
+                        # NOTE: L1/MAE loss is used instead of MSE loss 
+                        # https://research.nvidia.com/sites/default/files/pubs/2017-03_Loss-Functions-for/NN_ImgProc.pdf
+                        # https://openaccess.thecvf.com/content/WACV2022/papers/Mustafa_Training_a_Task-Specific_Image_Reconstruction_Loss_WACV_2022_paper.pdf
+                        reconstruction_loss = F.l1_loss(y_hat, y, reduction='sum') 
                         reconstruction_loss_values.append(reconstruction_loss.item())
                         
                         if phase == 'train':
@@ -606,7 +611,7 @@ def main():
                                 reconstruction_loss += cached_mse_loss_call(cache[view]['y_hat'], cache[view]['y'])
                             reconstruction_loss_values.append(reconstruction_loss.item() / n_views)
                         epoch_reconstruction_loss = np.sum(reconstruction_loss_values) / ((step * args.mini_batch_size) + len(batch)) 
-                        tqdm_postfix['MSE Loss'] = f'{epoch_reconstruction_loss:.2e}'
+                        tqdm_postfix['MAE Loss'] = f'{epoch_reconstruction_loss:.2e}'
                     
                     if is_multitask:
                         loss = [reconstruction_loss, contrastive_loss]

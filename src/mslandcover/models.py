@@ -905,13 +905,18 @@ class ResNetAutoencoder(nn.Module):
         img_decoder_activation: str='sigmoid',
         num_classes: int=3, 
         aux_simclr_head: bool=False,
-        pretrained: bool=True
+        pretrained: bool=True,
+        dropout_rate: float=0.5,
     ):
         super(ResNetAutoencoder, self).__init__()
         
         self.encoder = resnet152(weights=ResNet152_Weights.DEFAULT if pretrained else None)
         self.encoder.avgpool = nn.Identity()
         self.encoder.fc = nn.Identity()
+        self.dropout_rate = dropout_rate
+        
+        if dropout_rate > 0:
+            self.dropout = nn.Dropout(p=dropout_rate)
         
         if unet_like_decoder:
             self.encoder_output_channels = 3840
@@ -981,6 +986,8 @@ class ResNetAutoencoder(nn.Module):
         returns = []
         if self.decoder is not None:
             y = self.decoder(h)
+            if self.dropout_rate > 0:
+                y = self.dropout(y)
             y = self.img_decoder_activation(y)
             returns.append(y)
         
@@ -1159,3 +1166,18 @@ class UNet(nn.Module):
         for decoder_block in self.decoder_blocks:
             for param in decoder_block.parameters():
                 param.requires_grad = True
+
+
+
+# class UConvNeXT(UNet, nn.Module):
+    
+#     def __init__(self, 
+#         num_classes: int=8,
+#         pretrained: bool=True, 
+#         activation: nn.Module=nn.Softmax(dim=1),
+#         use_extended_decoder: bool=True,
+#         auxillary_simclr_head: bool=False
+#     ):
+#         super(UConvNeXT, self).__init__(num_classes=num_classes, pretrained=pretrained, activation=activation, use_extended_decoder=use_extended_decoder, auxillary_simclr_head=auxillary_simclr_head)
+        
+#         self.encoder = convnext_tiny(weights=ResNet152_Weights.DEFAULT if pretrained else None).features

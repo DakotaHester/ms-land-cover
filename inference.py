@@ -17,6 +17,7 @@ import cv2 as cv
 from concurrent.futures import ThreadPoolExecutor
 from skimage.segmentation import quickshift, felzenszwalb
 from tqdm import tqdm
+from skimage.segmentation import felzenszwalb
 
 
 from src.mslandcover.inference import GPURasterProcessor, compute_segment_means, process_batch
@@ -34,14 +35,15 @@ def main():
     SKIP_POSTPROCESSING = True
     
         
-    model_weights_path = './weights/multistage_finetuning_stage2/dae/s1_full_train/s2_decoder_train/best_model.pth'
+    # model_weights_path = './weights/multistage_finetuning_stage2/dae/s1_full_train/s2_decoder_train/best_model.pth'
+    model_weights_path = './weights/finetuned_unet2/best_model.pth' # new weights
     # model_weights_path = './weights/multistage_unet/best_model.pth'
     
     if os.environ.get('MSLC_INFERENCE_COUNTY_INDEX') is not None:
         county_index = int(os.environ.get('MSLC_INFERENCE_COUNTY_INDEX'))
     else:
-        county_index = 74 # warren county
-        # county_index = 52 # oktibbeha county
+        # county_index = 74 # warren county
+        county_index = 52 # oktibbeha county
     
     log_dir = f'./data/inference_results/logs/{county_index}'
     
@@ -60,7 +62,21 @@ def main():
     county_name = county_series['NAME']
     county_fp_code = county_series['COUNTYFP']
     raster_path = county_series['raster_path']
+    
+    ## For NYC inference test    
+    # us_counties = gpd.read_file('/home/dhester/server/dbcenter/dbgis/admin_usa/counties/cb_2016_us_county_5m.shp')
+    # ny_county = us_counties[(us_counties['STATEFP'] == '36') & (us_counties['COUNTYFP'] == '061')].to_crs(MSTM_PROJ4)
+    # county_name = ny_county['NAME'].values[0]
+    # county_fp_code = ny_county['COUNTYFP'].values[0]
+    
+    # raster_path = f'/home/dhester/server/dbcenter/images/naip/scenes/2022/NY/ny_c/ortho_1-1_hc_s_ny{county_fp_code}_2022_1/ortho_1-1_hc_s_ny{county_fp_code}_2022_1.tif'
+    # with rio.open(raster_path) as src:
+    #     crs = src.crs
+    
+    # ny_county = ny_county.to_crs(crs)
+    # county_geom = ny_county['geometry'].values[0]
 
+    
     
     # load starkville and msu countuy geom
     # okt_raster_path = '/Volumes/dhester_ssd/NAIP_MS_2023/ortho_1-1_hc_s_ms105_2023_1/ortho_1-1_hc_s_ms105_2023_1_1m.tif'
@@ -82,15 +98,13 @@ def main():
     else:
         bounding_polygons = [shapely.geometry.Polygon(polygon.exterior) for polygon in county_geom.geoms]
     
-    out_path = f'/home/dhester/server/guser/dh/MS_HiRes_LC_Prelim/{int(county_fp_code):03}'
-    # use whole state for now
-    # bounding_polygons = [ms_counties_gdf.unary_union]
+    out_path = f'/home/dhester/server/guser/dh/LC_Tests/MS_new_20250210/postprocessed_short_stride'
+    os.makedirs(out_path, exist_ok=True)
     
     logger.log(f'Loaded county {county_name} with FIPS code {county_fp_code}')
     
     logger.log('Loading model...')
-    model = UNet(use_extended_decoder=False).to(get_torch_device())
-    # if len(model.decoder_blocks > 5):
+    model = UNet(use_extended_decoder=True).to(get_torch_device())
         
     model.load_state_dict(load_pth(model_weights_path, map_location=device))
     model.eval()
@@ -101,10 +115,12 @@ def main():
         tile_size=256,
         stride=64,
         gaussian_sigma=128,
-        batch_size=128,
+        batch_size=512,
         mean=load_pth('./weights/pretrain_mean.pth'),
         std=load_pth('./weights/pretrain_std.pth'),
         device=device,
+        seg_func=felzenszwalb,
+        seg_func_params= {'median_radius': 2, 'unsharp_radius': 0, 'unsharp_amount': 3.649424294678024, 'scale': 41.17665570830897, 'min_size': 5, 'sigma': 0}
     )
     
     logger.log('Loading raster data...')
