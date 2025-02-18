@@ -23,6 +23,7 @@ from src.mslandcover.data import transforms
 from src.mslandcover.models import HRNetSegmentationModel, ResNetAutoencoder, UNet
 from src.mslandcover.optim import LARS, PCGradAMP
 from src.mslandcover.loss import cached_mse_loss_call, cached_contrastive_loss_call
+from src.mslandcover.metrics import psnr, ssim
 from src.mslandcover.gradcaching import cached_model_call, init_grad_cache_closure_dicts, call_closures
 from src.mslandcover.utils import Logger, ProfilerHistory, get_torch_device, load_pth
 from src.mslandcover.config import HRNET_W48_CONFIG, HRNET_W18_CONFIG
@@ -99,14 +100,14 @@ def parse_arguments():
     parser.add_argument(
         '--reduce_lr_patience',
         type=int,
-        default=3,
+        default=0,
         help='The number of epochs to wait for validation loss improvement before reducing the learning rate.',
     )
     
     parser.add_argument(
         '--init_lr',
         type=float,
-        default=1e-7,
+        default=1e-5,
         help='The initial learning rate to use for training.',
     )
     
@@ -383,7 +384,7 @@ def main():
             aux_simclr_head=is_contrastive,
             img_decoder_activation='sigmoid' if is_output_transformed or 'lab' in args.pretrain_scheme else 'none',
             pretrained=not args.rand_init,
-            dropout_rate=0.0, # use dropout prior to final 1x1 conv layer
+            dropout_rate=0.5, # use dropout prior to final 1x1 conv layer
         )
     elif args.model == 'unet':
         if not is_reconstruction or is_multitask:
@@ -443,6 +444,7 @@ def main():
     reduce_lr_on_plateau = ReduceLROnPlateau(
         optimizer=optimizer,
         patience=args.reduce_lr_patience,
+        factor=0.1,
         eps=0,
     )
     
@@ -478,6 +480,9 @@ def main():
         if is_multitask:
             history_dict[f'{phase}_reconstruction_loss'] = []
             history_dict[f'{phase}_contrastive_loss'] = []
+        if is_reconstruction:
+            history_dict[f'{phase}_psnr'] = []
+            history_dict[f'{phase}_ssim'] = []
     
     profiler = ProfilerHistory(device)
     profiler.update(epoch=-1, phase='init', step=0, time=0)
@@ -542,6 +547,8 @@ def main():
             
             if is_reconstruction:
                 reconstruction_loss_values = []
+                psnr_values = []
+                ssim_values = []
             
             if is_multitask:
                 total_loss_values = []
@@ -564,12 +571,16 @@ def main():
                         X, y = X.to(device), y.to(device)
                         
                         y_hat = model(X)
+                        
                         # reconstruction_loss = F.mse_loss(y_hat, y, reduction='sum')
                         # NOTE: L1/MAE loss is used instead of MSE loss 
                         # https://research.nvidia.com/sites/default/files/pubs/2017-03_Loss-Functions-for/NN_ImgProc.pdf
                         # https://openaccess.thecvf.com/content/WACV2022/papers/Mustafa_Training_a_Task-Specific_Image_Reconstruction_Loss_WACV_2022_paper.pdf
                         reconstruction_loss = F.l1_loss(y_hat, y, reduction='sum') 
                         reconstruction_loss_values.append(reconstruction_loss.item())
+                        
+                        ssim_values.append(ssim(y_hat, y, reduction='sum').item())
+                        psnr_values.append(psnr(y_hat, y, reduction='sum').item())
                         
                         if phase == 'train':
                             if args.use_amp:
@@ -610,8 +621,14 @@ def main():
                             for view in range(n_views):
                                 reconstruction_loss += cached_mse_loss_call(cache[view]['y_hat'], cache[view]['y'])
                             reconstruction_loss_values.append(reconstruction_loss.item() / n_views)
+                            
                         epoch_reconstruction_loss = np.sum(reconstruction_loss_values) / ((step * args.mini_batch_size) + len(batch)) 
+                        epoch_psnr = np.sum(psnr_values) / ((step * args.mini_batch_size) + len(batch))
+                        epoch_ssim = np.sum(ssim_values) / ((step * args.mini_batch_size) + len(batch))
                         tqdm_postfix['MAE Loss'] = f'{epoch_reconstruction_loss:.2e}'
+                        tqdm_postfix['PSNR'] = f'{epoch_psnr:.2f}'
+                        tqdm_postfix['SSIM'] = f'{epoch_ssim:.2f}'
+                        
                     
                     if is_multitask:
                         loss = [reconstruction_loss, contrastive_loss]
@@ -661,6 +678,9 @@ def main():
             if is_multitask:
                 history_dict[f'{phase}_reconstruction_loss'].append(epoch_reconstruction_loss)
                 history_dict[f'{phase}_contrastive_loss'].append(epoch_contrastive_loss)
+            if is_reconstruction:
+                history_dict[f'{phase}_psnr'].append(epoch_psnr)
+                history_dict[f'{phase}_ssim'].append(epoch_ssim)
             
             profiler.save(os.path.join(log_dir, 'profiler.csv'))
             
