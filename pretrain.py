@@ -93,7 +93,7 @@ def parse_arguments():
     parser.add_argument(
         '--early_stopping_patience',
         type=int,
-        default=10,
+        default=5,
         help='The number of epochs to wait for validation loss improvement before stopping training.',
     )
     
@@ -107,7 +107,7 @@ def parse_arguments():
     parser.add_argument(
         '--init_lr',
         type=float,
-        default=1e-5,
+        default=1e-6,
         help='The initial learning rate to use for training.',
     )
     
@@ -118,10 +118,12 @@ def parse_arguments():
         help='The factor by which to reduce the learning rate after loading the imagenet weights.',
     )
     
+    # "Friends don't let friends use large batch sizes" - Yann LeCun
+    # https://arxiv.org/pdf/1804.07612
     parser.add_argument(
         '--full_batch_size', 
         type=int, 
-        default=2048, # 4096 in original SimCLR implementation
+        default=8, # 4096 in original SimCLR implementation
         help='The batch size to use for pretraining.',
     )
     
@@ -172,7 +174,7 @@ def parse_arguments():
     parser.add_argument(
         '--num_workers',
         type=int,
-        default=4,
+        default=16,
         help='The number of workers to use for data loading.',
     )
     
