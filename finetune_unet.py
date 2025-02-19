@@ -6,7 +6,7 @@ from time import time
 import numpy as np
 import pandas as pd
 import torch
-from torch.optim import Adam
+from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
 from sklearn.metrics import confusion_matrix, classification_report
@@ -78,21 +78,21 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=16,
+        default=8,
         help='The mini-batch size to use for training (for gradient accumulation)',
     )
     
     parser.add_argument(
         '--full_batch_size',
         type=int,
-        default=16,
+        default=8,
         help='The effective batch size to use for training',
     )
     
     parser.add_argument(
         '--lr',
         type=float,
-        default=1e-4,
+        default=1e-6,
         help='The learning rate to use for training',
     )
     
@@ -188,7 +188,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--alpha_power',
         type=float,
-        default=2.0,
+        default=5.0,
         help='The power to raise the class weights to',
     )
     
@@ -345,9 +345,10 @@ def main() -> None:
     logger.log(f'Total parameters: {total_params}')
     logger.log(f'Trainable parameters: {trainable_params}')
 
-    optimizer = Adam(
+    optimizer = AdamW(
         params=model.parameters(),
         lr=args.lr,
+        weight_decay=1e-2,
     )
     
     scaler = GradScaler()
@@ -361,6 +362,7 @@ def main() -> None:
     scheduler = ReduceLROnPlateau(
         optimizer=optimizer,
         patience=args.reduce_lr_patience,
+        eps=0,
     )
     
     metric_fns = [
