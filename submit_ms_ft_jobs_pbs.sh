@@ -2,9 +2,9 @@
 
 # Set common PBS parameters
 QUEUE="biggpu"
-NCPUS="8"
+NCPUS="4"
 NGPUS="1"
-MEMORY="64GB"
+MEMORY="4GB"
 TIME="240:00:00"
 MAIL_USER="dh2306@msstate.edu"
 
@@ -16,17 +16,17 @@ DAE_WEIGHTS_PATH="./weights/resnet152_a100_20250114/dae.pth"
 # Ensure the log directory exists
 mkdir -p "$PBS_LOG_DIR"
 
-pretrain_schemes=('randinit')
-# ft_datas=("./data/splits" "./data/cpb_tests/splits")
+pretrain_schemes=('randinit', 'imagenet', 'dae')
+ft_datas=("./data/splits" "./data/cpb_tests/splits")
 
-freeze_encoders=("--freeze_encoder")
+freeze_encoders=("--freeze_encoder", "")
 
 # source $PYTHON_ENV
 
 for pretrain_scheme in "${pretrain_schemes[@]}"; do
     for freeze_encoder in "${freeze_encoders[@]}"; do
         if [[ "$pretrain_scheme" == "randinit" && "$freeze_encoder" == "--freeze_encoder" ]]; then
-            :
+            continue
         fi
 
         SUB_DIR="multistage_finetuning_stage1/${pretrain_scheme}"
