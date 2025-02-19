@@ -299,7 +299,7 @@ def main() -> None:
         drop_last=True,
         num_workers=args.num_workers if args.num_workers > 1 else 0,
         pin_memory=True if args.num_workers > 1 else False,
-        prefetch_factor=4 if args.num_workers > 1 else 0,
+        # prefetch_factor=4 if args.num_workers > 1 else 0,
     )
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
@@ -307,7 +307,7 @@ def main() -> None:
         shuffle=False,
         num_workers=args.num_workers if args.num_workers > 1 else 0,
         pin_memory=True if args.num_workers > 1 else False,
-        prefetch_factor=4 if args.num_workers > 1 else 0,
+        # prefetch_factor=4 if args.num_workers > 1 else 0,
     )
     
     alpha = (1 - class_dist) ** args.alpha_power
