@@ -192,6 +192,13 @@ def parse_arguments() -> argparse.Namespace:
         help='The power to raise the class weights to',
     )
     
+    parser.add_argument(
+        '--focal_gamma',
+        type=float,
+        default=5.0,
+        help='The gamma parameter for the focal loss',
+    )
+    
     args = parser.parse_args()
     
     if args.lr <= 0:
@@ -306,7 +313,8 @@ def main() -> None:
     alpha = (1 - class_dist) ** args.alpha_power
     alpha = alpha / alpha.mean()
     logger.log(f'Class weights: {alpha}')
-    criterion = UnifiedFocalLoss(alpha=alpha, reduction='sum').to(device)
+    # criterion = UnifiedFocalLoss(alpha=alpha, reduction='sum').to(device)
+    criterion = FocalLoss(alpha=alpha, gamma=args.focal_gamma, reduction='sum').to(device)
     
     num_classes = 7 if 'cpb' in args.train_dir else 8
     

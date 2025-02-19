@@ -346,11 +346,11 @@ class FocalLoss(nn.Module):
         y_true = y_true.float()
         
         # Calculate focal loss with stable log
-        log_prob = torch.log(y_pred + self.smooth)
+        log_prob = torch.log(y_pred)
         prob = torch.exp(log_prob)
         
         # Calculate focal term
-        focal_term = torch.pow(1 - prob + self.smooth, self.gamma)
+        focal_term = torch.pow(1 - prob, self.gamma)
         
         # Combine terms
         focal_loss = -y_true * focal_term * log_prob
