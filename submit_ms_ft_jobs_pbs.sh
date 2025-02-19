@@ -5,13 +5,13 @@ QUEUE="biggpu"
 NCPUS="4"
 NGPUS="1"
 MEMORY="4GB"
-TIME="240:00:00"
+TIME="48:00:00"
 MAIL_USER="dh2306@msstate.edu"
 
 SCRIPT_NAME="finetune_unet.py"
-PBS_LOG_DIR="./logs/ms_ft_stage1/pbs"
+PBS_LOG_DIR="./logs/ms_ft_stage1_202502/pbs"
 FT_DATA="./data/cpb_tests/splits"
-DAE_WEIGHTS_PATH="./weights/resnet152_a100_20250114/dae.pth"
+DAE_WEIGHTS_PATH="./weights/resnet152/dae.pth"
 
 # Ensure the log directory exists
 mkdir -p "$PBS_LOG_DIR"
@@ -29,7 +29,7 @@ for pretrain_scheme in "${pretrain_schemes[@]}"; do
             continue
         fi
 
-        SUB_DIR="multistage_finetuning_stage1/${pretrain_scheme}"
+        SUB_DIR="multistage_finetuning_stage1_202502/${pretrain_scheme}"
 
         if [[ "$FT_DATA" == *"cpb_tests"* ]]; then
             SUB_DIR="${SUB_DIR}/cpb"
