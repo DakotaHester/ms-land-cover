@@ -167,7 +167,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--minimum_class_proportion',
         type=float,
-        default=1.0, # set to 1 to disable oversampling
+        default=0.0, # set to 0 to disable oversampling
         help='Minimum proportion of a class in the dataset for it to be considered for oversampling',
     )
     
