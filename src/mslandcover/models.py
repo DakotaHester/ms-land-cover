@@ -1037,7 +1037,7 @@ class UNet(nn.Module):
         num_classes: int=8,
         pretrained: bool=True, 
         activation: nn.Module=nn.Softmax(dim=1),
-        use_extended_decoder: bool=True,
+        use_extended_decoder: bool=False,
         auxillary_simclr_head: bool=False
     ):
         super(UNet, self).__init__()
