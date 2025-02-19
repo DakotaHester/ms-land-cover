@@ -29,7 +29,7 @@ for pretrain_scheme in "${pretrain_schemes[@]}"; do
             continue
         fi
 
-        SUB_DIR="multistage_finetuning_stage1_202502/${pretrain_scheme}"
+        SUB_DIR="msft1_202502/${pretrain_scheme}"
 
         if [[ "$FT_DATA" == *"cpb_tests"* ]]; then
             SUB_DIR="${SUB_DIR}/cpb"
