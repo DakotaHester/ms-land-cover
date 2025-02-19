@@ -52,7 +52,12 @@ for pretrain_scheme in "${pretrain_schemes[@]}"; do
                 continue
             fi
 
-            JOB_NAME="resunet_${pretrain_scheme}_ft_stage1${freeze_encoder}"
+            JOB_NAME="resunet_${pretrain_scheme}_ft_stage1${freeze_encoder}_{$ft_data##*/}"
+            if [[ "$ft_data" == *"cpb_tests"* ]]; then
+                JOB_NAME="${JOB_NAME}_cpb"
+            else
+                JOB_NAME="${JOB_NAME}_mslc"
+            fi
                                     
             # Create a PBS script for the job
             PBS_SCRIPT="./pbs_scripts/${JOB_NAME}.pbs"
