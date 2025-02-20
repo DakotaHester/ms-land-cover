@@ -86,6 +86,12 @@ for pretrain_scheme in "${pretrain_schemes[@]}"; do
                 "$freeze_encoder"
                 "--load_data_from_disk" # save RAM
             )
+
+            # if running on GCER GPU server, run directly
+            if [[ "$HOSTNAME" == "gcer-a100" ]]; then
+                python "${arguments[@]}"
+                continue
+            fi
             
             cat > "$PBS_SCRIPT" <<EOL
 #!/bin/bash
