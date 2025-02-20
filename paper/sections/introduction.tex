@@ -1,1 +1,13 @@
 \section{Introduction}
+
+Land cover data provides valuable information about the characteristics of the Earth's surface for a wide variety of applications across many domains, including agriculture, urban planning, and environmental monitoring \note{CITE!}.
+Research into automated methods for land cover classificaiton from remotely sensed data has been ongoing for several decades, with a majority of methods relying on supervised learning techniques to classify land cover using multispectral aerial or satellite imagery \note{CITE!}.
+Historically, these methods operate on a per-pixel basis, hand-engineered features are crafted from the raw data and used to train a classifier to predict the land cover class of each pixel in the image \note{CITE!}.
+However, these methods have shown to scale poorly with the increasing resolution of modern remote sensing data due to increased local variance and decreased inter-class separability \note{CITE!}.
+
+Object-based Image Analysis (OBIA) techniques have been proposed  as a potential workflow to address these issues, but their performance is highly dependent on the quality of objects or superpixels extracted from the imagery during the segmentation process \note{CITE!}.
+Further, the segmentation process is often computationally expensive, and the parameters of the segmentation algorithm must be carefully tuned to achieve optimal results, resulting in poor generalization to areas outside of the training data \note{CITE!}.
+Deep learning methods have shown promise in addressing these issues by learning to extract hierarchical, spatially organized, translation invariant features from the raw data, then using these feature maps to predict the land cover class of each pixel in the image based on the presence of learned spectral and spatial patterns \note{CITE!}.
+Such methods have been shown to be effective at classifying land cover from high spatial resolution multispectral imagery at scale, addressing the limitations of traditional pixel-wise algorithms as welk as OBIA-based methods \note{CITE!}.
+However, these methods often require large amounts of labeled training data to achieve optimal performance, which can be difficult to obtain due to the inherent cost of labeling such data at scale.
+Transfer learning has been shown to be effective at this solution by leveraging models pre-trained on large, diverse datasets to extract features 
