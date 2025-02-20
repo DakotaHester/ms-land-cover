@@ -13,7 +13,7 @@ SCRIPT_NAME="finetune_unet.py"
 DAE_WEIGHTS_PATH="./weights/resnet152/dae.pth"
 
 # Ensure the log directory exists
-mkdir -p "$PBS_LOG_DIR"
+# mkdir -p "$PBS_LOG_DIR"
 
 pretrain_schemes=('randinit' 'imagenet' 'dae')
 ft_datas=("./data/splits" "./data/cpb_tests/splits")
@@ -84,7 +84,6 @@ for pretrain_scheme in "${pretrain_schemes[@]}"; do
                 "--output_dir" "$OUT_DIR"
                 "--num_workers" "$NCPUS"
                 "$freeze_encoder"
-                "--load_data_from_disk" # save RAM
             )
 
             # if running on GCER GPU server, run directly
@@ -113,7 +112,7 @@ conda init
 source ~/.bashrc
 conda activate mslc
 export CUDA_VISIBLE_DEVICES=0
-python ${arguments[@]}
+python ${arguments[@]} --load_data_from_disk
 EOL
             # Submit the job
             timestamp=$(date -u +"[%Y-%m-%d %H:%M:%SZ]")

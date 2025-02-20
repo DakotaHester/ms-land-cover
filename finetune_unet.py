@@ -199,7 +199,10 @@ def parse_arguments() -> argparse.Namespace:
         help='The gamma parameter for the focal loss',
     )
     
-    args = parser.parse_args()
+    args, unkown = parser.parse_known_args()
+    if len(unkown) > 0:
+        for arg in unkown:
+            print(f'Unknown argument: {arg}')
     
     if args.lr <= 0:
         parser.error('--lr must be greater than 0')
