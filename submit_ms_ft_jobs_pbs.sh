@@ -4,12 +4,11 @@
 QUEUE="biggpu"
 NCPUS="1"
 NGPUS="1"
-MEMORY="8GB"
+MEMORY="16GB"
 TIME="48:00:00"
 MAIL_USER="dh2306@msstate.edu"
 
 SCRIPT_NAME="finetune_unet.py"
-PBS_LOG_DIR="./logs/ms_ft_stage1_202502/pbs"
 # FT_DATA="./data/cpb_tests/splits"
 DAE_WEIGHTS_PATH="./weights/resnet152/dae.pth"
 
@@ -48,9 +47,9 @@ for pretrain_scheme in "${pretrain_schemes[@]}"; do
             OUT_DIR="./weights/${SUB_DIR}"
 
             # if classification_report.csv already exists in log_dir, skip
-            if [[ -f "${LOG_DIR}/classification_report.csv" ]]; then
-                continue
-            fi
+            # if [[ -f "${LOG_DIR}/classification_report.csv" ]]; then
+                # continue
+            # fi
 
             JOB_NAME="resunet_${pretrain_scheme}_ft_stage1${freeze_encoder}"
             if [[ "$ft_data" == *"cpb_tests"* ]]; then
@@ -93,7 +92,7 @@ for pretrain_scheme in "${pretrain_schemes[@]}"; do
 #PBS -N $JOB_NAME
 #PBS -q $QUEUE
 #PBS -j oe
-#PBS -o $PBS_LOG_DIR/$JOB_NAME.out
+#PBS -o $LOG_DIR/job.out
 #PBS -l ncpus=$NCPUS
 #PBS -l ngpus=$NGPUS
 #PBS -l mem=$MEMORY
