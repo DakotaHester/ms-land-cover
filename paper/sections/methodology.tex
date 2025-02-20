@@ -81,11 +81,12 @@ In the original NLCD data, 29.96\% of the tiles are composed of a single land co
 
 \subsection{Model configuration}
 
-Our model is baed on the U-Net architecture, with three important modifications.
+Our model is baed on the U-Net architecture, which is a popular choice for semantic segmentation tasks due to its relatively simple yet effective design \cite{ronnebergerUNetConvolutionalNetworks2015e} \note{OTHERS!!!}.
 First, in lieu of the original convolutional encoder network in the original implementation, we employ a much deeper ResNet-152 network as the encoder.
 Our reasoning for this choice is that the increased number of layers in the ResNet-152 network will facilitate more complex feature extraction, particularly during the self-supervised pre-training phase, where the large amount of unlabeled data will allow the encoder to learn to capture rich representations of spatial features in the input imagery.
+The number of channels accepted and produced by the decoder convolutions are subsequently adjusted to match the output of their corresponding encoder blocks.
 Second, we replace the transposed convolutional layers in the original U-Net decoder with bilinear upsampling to reduce the presence of checkerboard artifacts in the upsampled feature maps, which can inhibit the quality of the output segmentation maps \cite{odenaDeconvolutionCheckerboardArtifacts2016, sanjarImprovedUNetFully2020}.
-Finally, in each decoder block, we introduce a residual connection between the output of the first convolutional layer and the output of the second convolutional layer to facilitate the flow of information through the network and improve training stability \cite{heDeepResidualLearning2016}.
+Finally, in each decoder block, we introduce a residual connection between the output of the first convolutional layer and the output of the second convolutional layer to facilitate the flow of information through the network and improve training stability \cite{heDeepResidualLearning2016c}.
 
 % 1) the encoder network is a ResNet-152 convolutional network, 2) the decoder blocks do not use transposed convolutions, and instead use bilinear upsampling followed by 2 3x3 convolutions, 3) within each decoder block, a residual connection is added between the output of the first convolution and the output of the second convolution, and 4) after the final decoder block, an additional 2 3x3 convolutions (also with residual connections) operate on the full resolution feature maps prior to the final 1x1 convolutional layer. \note{COMPLETE ME!} 
 
@@ -93,48 +94,70 @@ Finally, in each decoder block, we introduce a residual connection between the o
 
 Our pre-training approach consists of two phases: a self-supervised pre-training phase and a fully supervised pre-training phase.
 
-\subsubsection{Self-supervised pre-training}
-In the first stage, we construct a simple denoising convolutional autoencoder by resampling feature maps from each stage of the ResNet-152 encoder to the original input resolution, concatenating them, and passing them through a single 1\(\times\)1 convolutional layer to produce an output with the same dimensions as the input.
-As the decoder network only consists of a single layer, the encoder network is primarily responsible for robust feature extraction in this phase.
-To reduce the computational cost of pre-training the model during this phase, images are randomly cropped to 96\(\times\)96 pixels before being passed through the model.
+\paragraph{Self-supervised pre-training}
+% In the first stage, we construct a simple denoising convolutional autoencoder by resampling feature maps from each stage of the ResNet-152 encoder to the original input resolution, concatenating them, and passing them through a single 1\(\times\)1 convolutional layer to produce an output with the same dimensions as the input.
+In the first stage of pre-training, we train a denoting autoencoder using the unannotated NAIP imagery over the state of Mississippi.
+Our denoising autoencoder consists of a ResNet-152 encoder network and a simple decoder network that receives feature maps from each stage of the encoder network, resamples them to the original input resolution using bilinear interpolation, concatenates them, and passes them through a single 1\(\times\)1 convolutional layer to produce an output with the same dimensions as the input.
+The ResNet-152 encoder network is initialized with ImageNet-1k pre-trained weights, while the decoder network is randomly initialized.
+A full decoder network (as is common in traditional autoencoders) is not used in this phase, as our primary goal is to force the encoder network to learn robust features present in the imagery that are necessary for reconstruction, rather than to necessarily learn to denoise the input images with a high degree of accuracy.
+Further, a U-Net architecture (like the one used in the subsequent fully supervised stages of training) are not used, as the presence of skip connections in the network can inhibit strong representation learning in the encoder network
+The single-layer decoder network is designed to ensure that backpropagation primarily influences the parameters of the encoder network
+% To reduce the computational cost of pre-training the model during this phase, images are randomly cropped to 96\(\times\)96 pixels before being passed through the model.
 
 Two types of noise are added to the image: Gaussian noise and Poisson noise.
 The intensity of the Gaussian noise is controlled by the standard deviation parameter \(\sigma\), which is randomly sampled from a uniform distribution \(U(0, 2)\).
-Similarly, the intensity of the Poisson noise is controlled by the rate parameter \(\lambda\), which is also randomly sampled from a uniform distribution \(U(0, 2)\). % TODO: NOTE: THIS HAS BEEN CHANGED IN NEWER EXPERIMENTS TO 0,1 
-
-% Since random variables sampled from a Poisson distribution are strictly non-negative, Poisson noise is both added and subtracted from the input image (using the same \(\lambda\) value) to increase the effect of the noise. % TODO: NOTE: THIS IS ONLY TRUE IN NEWER EXPERIMENTS
-Our implementation is distinct from other denoising autoencoders in that the amount and type of noises added to an image is random, and not a fixed amount \note{CITE!!!}.
-Ideally, while this may inhibit the model's ability to effectively denoise an image, it will force the model to learn robust features that are invariant to the type and amount of noise present in the input image \note{CITE!!!???}.
+Similarly, the intensity of the Poisson noise is controlled by the rate parameter \(\lambda\), which is also randomly sampled from a uniform distribution \(U(0, 1)\). 
+Since random variables sampled from a Poisson distribution are strictly non-negative, Poisson noise is both added and subtracted from the input image (using the same \(\lambda\) value) to increase the impact of the noise on the input image.
+% Our implementation is distinct from other denoising autoencoders in that the amount and type of noises added to an image is random, and not a fixed amount \note{CITE!!!}.
+% Ideally, while this may inhibit the model's ability to effectively denoise an image, it will force the model to learn robust features that are invariant to the type and amount of noise present in the input image \note{CITE!!!???}.
 Model inputs are standardized to have zero mean and unit variance on a per-band basis using the mean and standard deviation of the pre-training data prior to adding noise.
-% TODO: Add pre-training paramaters from GCER-A100 server (check logs)
-The loss function used during this self-supervised pre-training phase the mean squared error between the model's raw output and the normalized input image.
+We opt for a relatively small batch size of 8 to reduce the memory requirements of the model during pre-training and to better approximate the stochasticity of the training data, improving the model's generalization ability --- an important consideration given our goal of transfering the encoder network to a downstream task \cite{keskarLargeBatchTrainingDeep2017, mastersRevisitingSmallBatch2018}.
+The loss function used during this self-supervised pre-training phase the mean absolute error between the model's raw output and the normalized input image.
+While the mean squared error is a common choice for autoencoder models, we opt for the mean absolute error as it tends to produce sharper images in the output \cite{zhaoLossFunctionsImage2017,mustafaTrainingTaskSpecificImage2022}.
+The AdamW optimizer is used to train the model, with an initial learning rate of 1e-6 and a weight decay of 1e-2 \cite{loshchilovDecoupledWeightDecay2019}.
 After each epoch of pre-training, the model is evaluated using the pre-training validation set to ensure that the model is fitting the data properly and to adjust the learning rate if necessary.
-If the model's pretraining validation loss does not decrease for \note{CHECK ME: 3} consecutive epochs, the learning rate is reduced by a factor of 0.1.
-Additionally, if the pretraining validation loss does not decrease for \note{CHECK ME: 10} consecutive epochs, the pre-training phase is terminated early.
-Due to the large number of samples in the pre-training dataset, the model converges quickly, and the pre-training phase was terminated after only \note{XX} epochs, with the lowest validation loss achieved at epoch \note{XX}.
+If the validation loss does not decrease after an epoch, the learning rate is reduced by a factor of 0.1.
+While such a scheduler is aggressive, given the large volume of samples in the pretraining dataset and the sheer number of parameter updates that occur within a single epoch, we find that the model tends to optimize quickly and that there is little benefit to continuing to train at a learning rate where previous epochs have not shown improvement.
+Further, if the pretraining validation loss does not decrease for 5 consecutive epochs, the pre-training phase is terminated early.
+As such, while the model is trained for a maximum of 100 epochs, our model is capable of converging in 9 epochs \note{ADD FIGURE FOR PRE-TRAINING LOSS CURVE}.
+In order to estimate the quality of the reconstructions, we track the peak signal-to-noise ratio (PSNR) and structural similarity index (SSIM) between the input and output images during training \cite{horeImageQualityMetrics2010}.
+
+\note{FIGURE: DIFFERENT TYPES OF NOISE}
 
 
-\subsubsection{Fully supervised pre-training}
+\paragraph{Fully supervised pre-training}
 
 Once the self-supervised pre-training phase is complete, the encoder network is used as the encoder in the U-Net architecture, and the decoder network is initialized with random weights.
-During this phase, the entire model is trained using the labeled data from Fairfax County, Virginia.
 % Oversampling strategy
-In order to increase the diversity of the training data, oversampling is employed in this stage. If a tile contains a minority class in greater proportion that the average proportion 
-\note{TODO: Describe oversampling strategy} - under this strategy, minority classes are defined as any class comprising less than \note{X.XX}\% of the total pixels in the training set.
-If a tile contains a minority class that is in greater proportion that the relatvie frequency of that class in the training set, then the tile is duplicated \note{X} times.
-In order to further compensate for the class imbalance, the loss function used during this phase is \note{UNIFIED TVERSKY-FOCAL LOSS} with each class weighted according to
+% In order to increase the diversity of the training data, oversampling is employed in this stage. If a tile contains a minority class in greater proportion that the average proportion 
+% \note{TODO: Describe oversampling strategy} - under this strategy, minority classes are defined as any class comprising less than \note{X.XX}\% of the total pixels in the training set.
+% If a tile contains a minority class that is in greater proportion that the relatvie frequency of that class in the training set, then the tile is duplicated \note{X} times.
+The model is trained to minimize the Focal loss, defined as:
 \begin{equation}
-    \alpha_c = \frac{\left(1 - p_c\right)^\phi}{\sum_{c=1}^{C} \left(1 - p_c\right)^\phi}
+    \mathcal{L}_{\text{Focal}}\left( p_c \right) = 
+    \begin{cases}
+        -\alpha_c \left(1 - p_c\right)^\gamma \log\left(p_c\right) & \text{if } y = c \\
+        -\left(1 - \alpha_c\right) p_c^\gamma \log\left(1 - p_c\right) & \text{otherwise}
+    \end{cases}
+\end{equation}
+where \(p_c\) is the predicted probability of class \(c\), \(y\) is the true class label, \(\alpha_c\) is the class weight for class \(c\), and \(\gamma\) is a hyperparameter that controls the degree of class weighting.
+In order to address the class imbalance present in the data (\note{REFERENCE FIGURE HERE}, we employ a class weighting strategy that assigns class weights according to the formula:
+\begin{equation}
+    \alpha_c = \frac{\left(1 - \rho_c\right)^\beta}{\sum_{c=1}^{C} \left(1 - \rho_c\right)^\beta}
     \label{eq:class_weight}
 \end{equation}
-where \(p_c\) is the proportion of class \(c\) in the training set, \(\phi\) is a hyperparameter that controls the degree of class weighting, and \(C\) is the total number of classes.
+where \(\rho_c\) is the proportion of class \(c\) in the training set, \(\beta\) is a hyperparameter that controls the degree of class weighting, and \(C\) is the total number of classes.
+For our experiments, we set \(\gamma = 2.0\) in accordance with the authors' findings in the original Focal loss paper \cite{linFocalLossDense2017}, and \(\beta=2.0\) such that minority classes are emphasized without majority classes being under-represented in the loss function.
+Like the previous pre-training stage, the model's parameters are updated using the AdamW optimizer, with an initial learning rate of 
+Like the previous pre-training stage, the model is evaluated after every epoch using the validation set to adjust the learning rate and terminate the training early if necessary: if no improvement is observed in the validation loss for 3 consecutive epochs, the learning rate is reduced by a factor of 0.1, and if no improvement is observed for 15 consecutive epochs, the training is terminated early.
 
-Additionally, further data augmentation is applied to the training data \note{DESCRIBE AUGMENTATION PIPELINE}.
-The model is trained using the Adam
+The model 
 
 
 \subsection{Fine-tuning}
 
 \subsection{Inference}
+
+Once the models have been trained and evaluated, they are 
 
 \subsection{Evaluation}
