@@ -52,6 +52,8 @@ def main() -> None:
     
     reclassify_full = {k: reclassify_2[v] for k, v in reclassify_1.items()}
     reclassify_func = np.vectorize(reclassify_full.get)
+    for k, v in reclassify_full.items():
+        print(f'{k}: {original_class_names[k]} -> {v}: {reclassify_2_class_names[v]}')
     return
     with rio.open(naip_raster_path) as naip_src, rio.open(landcover_raster_path) as landcover_src:
         
