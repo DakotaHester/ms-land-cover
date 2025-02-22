@@ -1,6 +1,6 @@
-\documentclass{article}
+\documentclass[12pt]{article}
+\usepackage[margin=1in, papersize={8.5in,11in}]{geometry}
 \usepackage{xcolor}
-\usepackage[margin=1in]{geometry}
 \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{hyperref}
@@ -9,6 +9,7 @@
 \usepackage{makecell}
 \usepackage{array} % Add this package
 \usepackage{diagbox}
+\usepackage{amsmath}
 
 % \note command for adding notes to the document
 \newcommand*{\note}[1]{\textbf{\textcolor{red}{#1}}}
@@ -41,5 +42,8 @@
 \input{sections/discussion.tex}
 
 \input{sections/conclusion.tex}
+
+\bibliographystyle{plain}
+\bibliography{bibliography}
 
 \end{document}

@@ -92,7 +92,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--lr',
         type=float,
-        default=1e-6,
+        default=1e-5,
         help='The learning rate to use for training',
     )
     
@@ -188,14 +188,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--alpha_power',
         type=float,
-        default=5.0,
+        default=2.0,
         help='The power to raise the class weights to',
     )
     
     parser.add_argument(
         '--focal_gamma',
         type=float,
-        default=5.0,
+        default=2.0,
         help='The gamma parameter for the focal loss',
     )
     
