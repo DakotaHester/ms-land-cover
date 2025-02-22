@@ -16,14 +16,14 @@ DAE_WEIGHTS_PATH="./weights/resnet152/dae.pth"
 # mkdir -p "$PBS_LOG_DIR"
 
 pretrain_schemes=('randinit' 'imagenet' 'dae')
-ft_datas=("./data/splits" "./data/cpb_tests/splits")
+ft_datas=("./data/cpb_tests/splits" "./data/splits")
 
 freeze_encoders=("--freeze_encoder" "")
 
 # source $PYTHON_ENV
-for pretrain_scheme in "${pretrain_schemes[@]}"; do
-    for freeze_encoder in "${freeze_encoders[@]}"; do
-        for ft_data in "${ft_datas[@]}"; do
+for ft_data in "${ft_datas[@]}"; do
+    for pretrain_scheme in "${pretrain_schemes[@]}"; do
+        for freeze_encoder in "${freeze_encoders[@]}"; do
 
             if [[ "$pretrain_scheme" == "randinit" && "$freeze_encoder" == "--freeze_encoder" ]]; then
                 continue
@@ -79,17 +79,24 @@ for pretrain_scheme in "${pretrain_schemes[@]}"; do
                 "--train_dir" "$TRAIN_DIR"
                 "--val_dir" "$VAL_DIR"
                 "--test_dir" "$TEST_DIR"
-                "$WEIGHTS_PARAMETER"
                 "--log_dir" "$LOG_DIR"
                 "--output_dir" "$OUT_DIR"
-                "--num_workers" "$NCPUS"
+                # "--num_workers" "$NCPUS"
                 "$freeze_encoder"
             )
 
+            # Split WEIGHTS_PARAMETER into separate elements
+            IFS=' ' read -r -a weights_array <<< "$WEIGHTS_PARAMETER"
+            arguments+=("${weights_array[@]}")
+
             # if running on GCER GPU server, run directly
             if [[ "$HOSTNAME" == "gcer-a100" ]]; then
+                echo "python ${arguments[@]}"
                 python "${arguments[@]}"
                 continue
+            else
+                # add --num_workers to arguments
+                arguments+=("--num_workers" "$NCPUS")
             fi
             
             cat > "$PBS_SCRIPT" <<EOL
