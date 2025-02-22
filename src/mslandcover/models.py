@@ -902,7 +902,7 @@ class ResNetAutoencoder(nn.Module):
         use_simple_decoder: bool=True, # if True, use SimpleImageDecoderHead, else use ImageDecoderHead with multiple blocks\
         use_se_decoder: bool=False,
         unet_like_decoder: bool=True,
-        img_decoder_activation: str='sigmoid',
+        img_decoder_activation_fn: nn.Module=nn.Sigmoid(),
         num_classes: int=3, 
         aux_simclr_head: bool=False,
         pretrained: bool=True,
@@ -954,13 +954,10 @@ class ResNetAutoencoder(nn.Module):
             else:
                 self.decoder = ImageDecoderHead(in_channels=self.encoder_output_channels, num_classes=num_classes)
             
-            # self.img_decoder_activation = nn.Identity()
-            if img_decoder_activation == 'sigmoid':
-                self.img_decoder_activation = nn.Sigmoid()
-            elif img_decoder_activation == 'softmax':
-                self.img_decoder_activation = nn.Softmax(dim=1)
-            else:
+            if img_decoder_activation_fn is None:
                 self.img_decoder_activation = nn.Identity()
+            else:
+                self.img_decoder_activation = img_decoder_activation_fn
                     
         self.projection_head = None
         if aux_simclr_head:

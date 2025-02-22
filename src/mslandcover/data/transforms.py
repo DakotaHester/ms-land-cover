@@ -527,3 +527,88 @@ class ResizeTransform:
         if y is not None:
             return X, y
         return X
+
+
+
+def calculate_ndvi(X: torch.Tensor, eps: float=1e-6) -> torch.Tensor:
+    """
+    Calculate the Normalized Difference Vegetation Index (NDVI) from an input
+    image tensor. The NDVI is calculated as follows:
+    
+    NDVI = (NIR - RED) / (NIR + RED)
+    
+    Parameters
+    ----------
+    X : torch.Tensor
+        Input image tensor with shape (B, C, H, W) or (C, H, W) where C is the
+        number of channels. Channels should be ordered as (NIR, R, G).
+    eps : float, optional
+        Small value to prevent division by zero, by default 1e-6.
+    
+    """
+    rank = X.dim()
+    unsqueezed = rank == 3
+    if unsqueezed:
+        X = X.unsqueeze(0)
+    
+    red = X[:, 1]
+    nir = X[:, 0]
+    
+    ndvi = (nir - red) / (nir + red + 1e-6)
+    
+    if unsqueezed:
+        return ndvi.squeeze(0)
+    return ndvi
+
+
+
+def calculate_gndvi(X: torch.Tensor, eps: float=1e-6):
+    
+    rank = X.dim()
+    unsqueezed = rank == 3
+    if unsqueezed:
+        X = X.unsqueeze(0)
+    
+    green = X[:, 2]
+    nir = X[:, 0]
+    
+    gndvi = (nir - green) / (nir + green + 1e-6)
+    
+    if unsqueezed:
+        return gndvi.squeeze(0)
+    return gndvi
+
+
+
+def calculate_ndwi(X: torch.Tensor, eps: float=1e-6):
+    
+    rank = X.dim()
+    unsqueezed = rank == 3
+    if unsqueezed:
+        X = X.unsqueeze(0)
+    
+    green = X[:, 2]
+    nir = X[:, 0]
+    
+    ndwi = (green - nir) / (green + nir + 1e-6)
+    
+    if unsqueezed:
+        return ndwi.squeeze(0)
+    return ndwi
+
+
+
+def calculate_ngrdi(X: torch.Tensor, eps: float=1e-6):
+    
+    rank = X.dim()
+    unsqueezed = rank == 3
+    if unsqueezed:
+        X = X.unsqueeze(0)
+    
+    green = X[:, 2]
+    red = X[:, 1]
+    
+    ngrdi = (green - red) / (green + red + 1e-6)
+    if unsqueezed:
+        return ngrdi.squeeze(0)
+    return ngrdi

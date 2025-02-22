@@ -29,6 +29,7 @@ class PreTrainDataset(Dataset):
         transform: Optional[transforms.Compose]=T.SimCLRDataAugmentation(),
         return_hsv: bool=False,
         return_lab: bool=False,
+        return_spectral_indices: bool=False,
         noisy_input: bool=False,
         return_metadata: bool=False,
         device: torch.device=torch.device('cpu'),
@@ -51,6 +52,9 @@ class PreTrainDataset(Dataset):
         
         if return_lab and return_hsv:
             raise ValueError('Cannot return both hsv and lab color spaces.')
+        
+        if sum([return_hsv, return_lab, return_spectral_indices]) > 1:
+            raise ValueError('Only one of return_hsv, return_lab, and return_spectral_indices can be True.')
 
         # if return_hsv and noisy_input:
             # raise ValueError('Cannot return hsv and noisy input at the same time.')
@@ -62,6 +66,7 @@ class PreTrainDataset(Dataset):
         self.transform = transform
         self.return_hsv = return_hsv
         self.return_lab = return_lab
+        self.return_spectral_indices = return_spectral_indices
         self.noisy_input = noisy_input
         self.return_metadata = return_metadata
         self.device = device
@@ -189,7 +194,17 @@ class PreTrainDataset(Dataset):
                     returns.append((noisy_view.to(self.device), lab.to(self.device)))
                 else:
                     returns.append((norm_view.to(self.device), lab.to(self.device)))
-                    
+            
+            elif self.return_spectral_indices:
+                ndvi = T.ndvi(view)
+                ndwi = T.ndwi(view)
+                ngrdi = T.ngrdi(view)
+                si = torch.cat([ndvi, ndwi, ngrdi], dim=0)
+                if self.noisy_input:
+                    returns.append((noisy_view.to(self.device), si.to(self.device)))
+                else:
+                    returns.append((norm_view.to(self.device), si.to(self.device)))
+            
             else:
                 if self.noisy_input:
                     returns.append((noisy_view.to(self.device), norm_view.to(self.device)))
