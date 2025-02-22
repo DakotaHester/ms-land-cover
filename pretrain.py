@@ -36,9 +36,9 @@ def parse_arguments():
     parser.add_argument(
         '--pretrain_scheme',
         type=str,
-        default='dae',
-        choices=['ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr', 'lab', 'dae_lab', 'simclr_lab', 'dae_simclr_lab', 'ae_lab', 'simclr_ae_lab'],
-        help='The pretraining scheme to use. One of [ae, dae, hsv, dae_hsv, simclr, ae_simclr, dae_simclr, hsv_simclr, dae_hsv_simclr, lab, dae_lab, simclr_lab, dae_simclr_lab, ae_lab, simclr_ae_lab],.',
+        default='dae_si',
+        choices=['ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr', 'lab', 'dae_lab', 'simclr_lab', 'dae_simclr_lab', 'ae_lab', 'simclr_ae_lab', 'dae_si'],
+        help='The pretraining scheme to use. One of [ae, dae, hsv, dae_hsv, simclr, ae_simclr, dae_simclr, hsv_simclr, dae_hsv_simclr, lab, dae_lab, simclr_lab, dae_simclr_lab, ae_lab, simclr_ae_lab, dae_rs],.',
     )
     
     parser.add_argument(
@@ -267,6 +267,7 @@ def main():
     is_contrastive = 'simclr' in args.pretrain_scheme
     is_reconstruction = 'hsv' in args.pretrain_scheme or 'dae' in args.pretrain_scheme or 'ae' in args.pretrain_scheme or 'lab' in args.pretrain_scheme
     is_output_transformed = 'hsv' in args.pretrain_scheme or 'lab' in args.pretrain_scheme
+    is_output_spectral_index = 'si' in args.pretrain_scheme
     is_multitask = is_contrastive and is_reconstruction
     
     device = get_torch_device()
@@ -369,6 +370,14 @@ def main():
         )
         return
 
+    # determine appropriate activation function for the output layer    
+    if is_output_spectral_index:
+        activation_fn = nn.Tanh() # spectral index is in the range [-1, 1]
+    elif is_output_transformed:
+        activation_fn = nn.Sigmoid() # output in [0, 1]
+    else:
+        activation_fn = nn.Identity()
+
     if 'hrnet' in args.model:
         model_config = HRNET_W48_CONFIG if args.model == 'hrnet_w48' else HRNET_W18_CONFIG
         model = HRNetSegmentationModel(
@@ -384,17 +393,18 @@ def main():
         model = ResNetAutoencoder(
             img_decoder_head=is_reconstruction,
             aux_simclr_head=is_contrastive,
-            img_decoder_activation='sigmoid' if is_output_transformed or 'lab' in args.pretrain_scheme else 'none',
             pretrained=not args.rand_init,
             dropout_rate=0.5, # use dropout prior to final 1x1 conv layer
+            img_decoder_activation_fn=activation_fn,
         )
     elif args.model == 'unet':
         if not is_reconstruction or is_multitask:
             raise ValueError('Only single-task reconstruction is supported for U-Nets.')
+
         model = UNet(
             num_classes=3,
             pretrained=not args.rand_init,
-            activation=nn.Sigmoid() if is_output_transformed else nn.Identity(),
+            activation=activation_fn,
         )
     else:
         raise ValueError(f'Invalid model: {args.model}')
@@ -514,8 +524,8 @@ def main():
         
         logger.log(f'Loaded checkpoint from epoch {starting_epoch}.')
     
-    logger.log(f'Starting training at epoch {starting_epoch+1}...')
-    for epoch in range(starting_epoch+1, args.num_epochs+1):
+    logger.log(f'Starting training at epoch {starting_epoch}...')
+    for epoch in range(starting_epoch, args.num_epochs+1):
         
         lr = optimizer.param_groups[0]['lr']
         history_dict['learning_rate'].append(lr)
@@ -525,7 +535,7 @@ def main():
             tqdm_postfix = {'lr': f'{lr:.0e}',}
             
             if phase == 'train':
-                torch.set_grad_enabled(True)
+                torch.set_grad_enabled(epoch != 0) # disable backpropagation for the first epoch to get a baseline loss
                 optimizer.zero_grad() # just in case
                 model.train()
                 loader = train_loader 
@@ -584,7 +594,7 @@ def main():
                         ssim_values.append(ssim(y_hat, y, reduction='sum').item())
                         psnr_values.append(psnr(y_hat, y, reduction='sum').item())
                         
-                        if phase == 'train':
+                        if phase == 'train' and epoch != 0:
                             if args.use_amp:
                                 scaler.scale(reconstruction_loss).backward()
                             else:
@@ -642,7 +652,7 @@ def main():
                         loss = contrastive_loss if is_contrastive else reconstruction_loss
                         epoch_loss = epoch_contrastive_loss if is_contrastive else epoch_reconstruction_loss
                     
-                    if phase == 'train':
+                    if phase == 'train' and epoch != 0:
                         if args.use_pcgrad:
                             grad_optimizer.backward(loss) 
                             call_closures(cache, closures) 
