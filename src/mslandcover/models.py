@@ -17,7 +17,7 @@ import torch._utils
 import torch.nn.functional as F
 
 from torchvision.models import ConvNeXt_Tiny_Weights, convnext_tiny
-from torchvision.models import ResNet152_Weights, resnet152
+from torchvision.models import ResNet152_Weights, resnet152, ResNet50_Weights, resnet50, ResNet34_Weights, resnet34
 from .utils import load_pth
 
 BN_MOMENTUM = 0.1
@@ -1173,15 +1173,22 @@ class HighResUNet(nn.Module):
         num_classes: int=8,
         pretrained: bool=True, 
         activation: nn.Module=nn.Softmax(dim=1),
-        deep_supervision: bool=False
+        deep_supervision: bool=False,
+        encoder_network: str='resnet34' # 
     ):
         super(HighResUNet, self).__init__()
         
         self.pretrained = pretrained
         self.num_classes = num_classes
         self.deep_supervision = deep_supervision
+        self.encoder_network = encoder_network
         
-        self.encoder = resnet152(weights=ResNet152_Weights.DEFAULT if pretrained else None)
+        if encoder_network == 'resnet34':
+            self.encoder = resnet34(weights=ResNet34_Weights.DEFAULT if pretrained else None)
+        elif encoder_network == 'resnet152':
+            self.encoder = resnet152(weights=ResNet152_Weights.DEFAULT if pretrained else None)
+        else:
+            raise ValueError('Invalid value for `encoder_network`. Must be one of ["resnet34", "resnet152"].')
         self.encoder.avgpool = nn.Identity()
         self.encoder.fc = nn.Identity()
         
@@ -1197,21 +1204,38 @@ class HighResUNet(nn.Module):
             self.encoder.layer4,
         ])
         
-        self.decoder_blocks = nn.ModuleList([
-            UNetUpBlock(3072, 1024),
-            UNetUpBlock(1536, 512),
-            UNetUpBlock(768, 256),
-        ])
-        
-        if self.deep_supervision:
-            self.classifiers = nn.ModuleList([
-                nn.Conv2d(256, num_classes, kernel_size=1),
-                nn.Conv2d(512, num_classes, kernel_size=1),
-                nn.Conv2d(1024, num_classes, kernel_size=1),
-                nn.Conv2d(2048, num_classes, kernel_size=1),
+        if self.encoder_network == 'resnet34':
+            self.decoder_blocks = nn.ModuleList([
+                UNetUpBlock(768, 256),
+                UNetUpBlock(384, 128),
+                UNetUpBlock(192, 64),
             ])
+            
+            if self.deep_supervision:
+                self.classifiers = nn.ModuleList([
+                    nn.Conv2d(64, num_classes, kernel_size=1),
+                    nn.Conv2d(128, num_classes, kernel_size=1),
+                    nn.Conv2d(256, num_classes, kernel_size=1),
+                    nn.Conv2d(512, num_classes, kernel_size=1),
+                ])
+            else:
+                self.classifier = nn.Conv2d(64, num_classes, kernel_size=1)
         else:
-            self.classifier = nn.Conv2d(256, num_classes, kernel_size=1)
+            self.decoder_blocks = nn.ModuleList([
+                UNetUpBlock(3072, 1024),
+                UNetUpBlock(1536, 512),
+                UNetUpBlock(768, 256),
+            ])
+            
+            if self.deep_supervision:
+                self.classifiers = nn.ModuleList([
+                    nn.Conv2d(256, num_classes, kernel_size=1),
+                    nn.Conv2d(512, num_classes, kernel_size=1),
+                    nn.Conv2d(1024, num_classes, kernel_size=1),
+                    nn.Conv2d(2048, num_classes, kernel_size=1),
+                ])
+            else:
+                self.classifier = nn.Conv2d(256, num_classes, kernel_size=1)
     
         self.activation = activation
 
@@ -1265,15 +1289,26 @@ class HighResUNet(nn.Module):
     
     
     def reinit_classifier(self, num_classes: int=8) -> None:
-        if self.deep_supervision:
-            self.classifiers = nn.ModuleList([
-                nn.Conv2d(256, num_classes, kernel_size=1),
-                nn.Conv2d(512, num_classes, kernel_size=1),
-                nn.Conv2d(1024, num_classes, kernel_size=1),
-                nn.Conv2d(2048, num_classes, kernel_size=1),
-            ])
+        if self.encoder_network == 'resnet34':
+            if self.deep_supervision:
+                self.classifiers = nn.ModuleList([
+                    nn.Conv2d(64, num_classes, kernel_size=1),
+                    nn.Conv2d(128, num_classes, kernel_size=1),
+                    nn.Conv2d(256, num_classes, kernel_size=1),
+                    nn.Conv2d(512, num_classes, kernel_size=1),
+                ])
+            else:
+                self.classifier = nn.Conv2d(64, num_classes, kernel_size=1)
         else:
-            self.classifier = nn.Conv2d(256, num_classes, kernel_size=1)
+            if self.deep_supervision:
+                self.classifiers = nn.ModuleList([
+                    nn.Conv2d(256, num_classes, kernel_size=1),
+                    nn.Conv2d(512, num_classes, kernel_size=1),
+                    nn.Conv2d(1024, num_classes, kernel_size=1),
+                    nn.Conv2d(2048, num_classes, kernel_size=1),
+                ])
+            else:
+                self.classifier = nn.Conv2d(256, num_classes, kernel_size=1)
         self.num_classes = num_classes
         return self
     
