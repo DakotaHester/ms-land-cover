@@ -722,7 +722,7 @@ def main():
         with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
             f.write(str(best_epoch)) # just in case
         
-        history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch) + 1))
+        history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch + 1)))
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
                 
         if epoch - best_epoch > args.early_stopping_patience:
