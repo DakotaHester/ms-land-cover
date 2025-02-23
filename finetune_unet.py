@@ -15,7 +15,7 @@ from src.mslandcover.utils import Logger, get_torch_device, ProfilerHistory, loa
 from src.mslandcover.config import HRNET_W18_CONFIG, HRNET_W48_CONFIG, LEGEND_CLASSES
 from src.mslandcover.data.datasets import FineTuneDataset
 from src.mslandcover.data.transforms import StandardDataAugmentations
-from src.mslandcover.models import UNet
+from src.mslandcover.models import UNet, HighResUNet
 from src.mslandcover.loss import FocalLoss, FocalTverskyLoss, UnifiedFocalLoss
 from src.mslandcover import metrics
 
@@ -27,6 +27,14 @@ except ImportError:
 
 def parse_arguments() -> argparse.Namespace:
     parser = argparse.ArgumentParser()
+    
+    parser.add_argument(
+        '--model',
+        type=str,
+        choices=['unet', 'hrunet'],
+        default='unet',
+        help='The model to use for training',
+    )
     
     parser.add_argument(
         '--encoder_weights',
@@ -321,34 +329,57 @@ def main() -> None:
     
     num_classes = 7 if 'cpb' in args.train_dir else 8
     
-    # if full model weights are provided, load them and replace the old
-    if args.model_weights is not None:
-        # pretrained_model_classes = 7 if 'cpb' in args.model_weights else 8
-        pretrained_model_classes = 3 # TODO: automatically determine number of classes from model weights
-        model = UNet(num_classes=pretrained_model_classes).to(device)
-        model.load_state_dict(load_pth(args.model_weights))
-        model.classifier = torch.nn.Conv2d(64, num_classes, kernel_size=1)
+    if args.model == 'unet':
+        # if full model weights are provided, load them and replace the old
+        if args.model_weights is not None:
+            # pretrained_model_classes = 7 if 'cpb' in args.model_weights else 8
+            pretrained_model_classes = 3 # TODO: automatically determine number of classes from model weights
+            model = UNet(num_classes=pretrained_model_classes).to(device)
+            model.load_state_dict(load_pth(args.model_weights))
+            model.classifier = torch.nn.Conv2d(64, num_classes, kernel_size=1)
+            model = model.to(device)
+        
+        # if encoder weights only are provided, load them and keep the random decoder
+        elif args.encoder_weights is not None and args.encoder_weights != 'imagenet':
+            model = UNet(num_classes=num_classes).to(device)
+            model.load_encoder_weights(load_pth(args.encoder_weights))
+        
+        else:
+            model = UNet(num_classes=num_classes, pretrained=args.encoder_weights == 'imagenet').to(device)
+            
+        if args.freeze_encoder:
+            # for param in model.encoder.parameters():
+            for encoder_block in model.encoder_blocks:
+                for param in encoder_block.parameters():
+                    param.requires_grad = False
+    
+        if args.freeze_decoder:
+            # for param in model.decoder.parameters():
+            for decoder_block in model.decoder_blocks:
+                for param in decoder_block.parameters():
+                    param.requires_grad = False 
+    
+    elif args.model == 'hrunet':
+        # ignore load encoder weights for now
+        model = HighResUNet(
+            num_classes=num_classes if args.model_weights is None else 3,
+            pretrained=args.encoder_weights == 'imagenet',
+            activation=torch.nn.Softmax(dim=1),
+            deep_supervision=False if args.model_weights is None else True, # model pre-trainined using deep supervision
+        )
+        if args.model_weights is not None:
+            logger.log(f'Loading model weights from {args.model_weights}')
+            model.load_state_dict(load_pth(args.model_weights))
+            model.disable_deep_supervision()
+            model.reinit_classifier(num_classes)
         model = model.to(device)
-    
-    # if encoder weights only are provided, load them and keep the random decoder
-    elif args.encoder_weights is not None and args.encoder_weights != 'imagenet':
-        model = UNet(num_classes=num_classes).to(device)
-        model.load_encoder_weights(load_pth(args.encoder_weights))
-    
-    else:
-        model = UNet(num_classes=num_classes, pretrained=args.encoder_weights == 'imagenet').to(device)
-    
-    if args.freeze_encoder:
-        # for param in model.encoder.parameters():
-        for encoder_block in model.encoder_blocks:
-            for param in encoder_block.parameters():
-                param.requires_grad = False
-    
-    if args.freeze_decoder:
-        # for param in model.decoder.parameters():
-        for decoder_block in model.decoder_blocks:
-            for param in decoder_block.parameters():
-                param.requires_grad = False
+        
+        if args.freeze_encoder:
+            model.freeze_encoder()
+        
+        if args.freeze_decoder:
+            model.freeze_decoder()
+        
     
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
