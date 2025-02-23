@@ -470,3 +470,36 @@ class UnifiedFocalLoss(nn.Module):
         combined_loss = torch.nan_to_num(combined_loss, nan=0.0, posinf=1e6, neginf=-1e6)
         
         return combined_loss
+
+
+
+def deep_supervision_loss(
+    y_list: List[torch.Tensor], 
+    y_true: torch.Tensor, 
+    criterion: Union[nn.Module, callable]=nn.L1Loss(reduction='sum'), 
+    weights: List[float]=[0.5, 0.25, 0.15, 0.1]
+) -> torch.Tensor:
+    """
+    Compute the deep supervision loss for multi-scale predictions.
+    
+    Parameters
+    ----------
+    y_list : List[torch.Tensor]
+        List of predictions at different scales.
+    y_true : torch.Tensor
+        Ground truth labels.
+    criterion : Union[nn.Module, callable]
+        Loss function to use for computing the loss.
+    weights : List[float]
+        Weights for each scale prediction.
+    
+    Returns
+    -------
+    torch.Tensor
+        Computed deep supervision loss.
+    """
+    loss = 0
+    for y in y_list:
+        y_true_resized = F.interpolate(y_true, size=y.shape[2:], mode='bilinear', align_corners=False)
+        loss += criterion(y, y_true_resized) * weights[i]
+    return loss
