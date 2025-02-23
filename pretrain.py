@@ -118,7 +118,10 @@ def parse_arguments():
         help='The factor by which to reduce the learning rate after loading the imagenet weights.',
     )
     
-    # "Friends don't let friends use large batch sizes" - Yann LeCun
+    # "Training with large minibatches is bad for your health.
+    #  More importantly, it's bad for your test error.
+    #  Friends dont let friends use minibatches larger than 32.""
+    # - Yann LeCun (https://twitter.com/ylecun/status/989610208497360896)
     # https://arxiv.org/pdf/1804.07612
     parser.add_argument(
         '--full_batch_size', 
