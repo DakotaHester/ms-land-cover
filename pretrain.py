@@ -20,7 +20,7 @@ import math
 
 from src.mslandcover.data.datasets import PreTrainDataset
 from src.mslandcover.data import transforms
-from src.mslandcover.models import HRNetSegmentationModel, ResNetAutoencoder, UNet, HighResUNet
+from src.mslandcover.models import HRNetSegmentationModel, ResNetAutoencoder, UNet, HighResUNet, UResNetD
 from src.mslandcover.optim import LARS, PCGradAMP
 from src.mslandcover.loss import cached_mse_loss_call, cached_contrastive_loss_call, deep_supervision_loss
 from src.mslandcover.metrics import psnr, ssim
@@ -44,8 +44,8 @@ def parse_arguments():
     parser.add_argument(
         '--model',
         type=str,
-        default='hrunet',
-        choices=['unet', 'hrnet_w48', 'hrnet_w18', 'resnet152', 'hrunet'],
+        default='uresnetd',
+        choices=['unet', 'hrnet_w48', 'hrnet_w18', 'resnet152', 'hrunet', 'uresnetd'],
     )
     
     parser.add_argument(
@@ -107,7 +107,7 @@ def parse_arguments():
     parser.add_argument(
         '--init_lr',
         type=float,
-        default=1e-6,
+        default=1e-7, # NOTE: TYPICALLY SET TO 1e-6, setting to 1e-7 for uresnetd
         help='The initial learning rate to use for training.',
     )
     
@@ -240,8 +240,12 @@ def main():
         logger.log('WARNING! Frozen encoder is only supported for U-Net models. Continuing without freezing the encoder.')
         args.frozen_encoder = False
     
-    if args.model == 'hrunet' and 'simclr' in args.pretrain_scheme:
-        raise ValueError('HRUNet does not support contrastive learning. Please choose a different pretraining scheme.')
+    if 'simclr' in args.pretrain_scheme:
+        if args.model == 'hrunet':
+            raise ValueError('HRUNet does not support contrastive learning. Please choose a different pretraining scheme.')
+        elif args.model == 'uresnetd':
+            raise ValueError('UResNetD does not support contrastive learning. Please choose a different pretraining scheme.')
+    
     
     torch.random.manual_seed(args.seed)
     np.random.seed(args.seed)
@@ -418,6 +422,17 @@ def main():
             activation=activation_fn,
             deep_supervision=True,
         )
+        deep_supervision_weights = [0.5, 0.25, 0.15, 0.1]
+    elif args.model == 'uresnetd':
+        if not is_reconstruction or is_multitask:
+            raise ValueError('Only single-task reconstruction is supported for UResNetD.')
+        model = UResNetD(
+            num_classes=3,
+            pretrained=not args.rand_init,
+            activation=activation_fn,
+            deep_supervision=True,
+        )
+        deep_supervision_weights = [0.5, 0.20, 0.15, 0.10, 0.05]
     else:
         raise ValueError(f'Invalid model: {args.model}')
     
@@ -596,8 +611,8 @@ def main():
                         
                         y_hat = model(X)
                         
-                        if args.model == 'hrunet' and model.deep_supervision:
-                            reconstruction_loss = deep_supervision_loss(y_hat, y)
+                        if (args.model in ['hrunet', 'uresnetd']) and model.deep_supervision:
+                            reconstruction_loss = deep_supervision_loss(y_hat, y, weights=deep_supervision_weights)
                             y_hat = y_hat[0] # only use the first (full resolution) output
                         
                         # reconstruction_loss = F.mse_loss(y_hat, y, reduction='sum')

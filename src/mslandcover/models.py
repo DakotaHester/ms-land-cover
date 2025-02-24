@@ -18,6 +18,7 @@ import torch.nn.functional as F
 
 from torchvision.models import ConvNeXt_Tiny_Weights, convnext_tiny
 from torchvision.models import ResNet152_Weights, resnet152, ResNet50_Weights, resnet50, ResNet34_Weights, resnet34
+from timm.models import resnet
 from .utils import load_pth
 
 BN_MOMENTUM = 0.1
@@ -1028,6 +1029,49 @@ class UNetUpBlock(nn.Module):
 
 
 
+class ImprovedUnetUpBlock(nn.Module):
+    
+    def __init__(self,
+        encoder_channels: int,
+        decoder_channels: int,
+        out_channels: int,
+        bilinear_upsample: bool=False,
+        n_convs: int=2,
+    ):
+        super(ImprovedUnetUpBlock, self).__init__()
+        self.encoder_channels = encoder_channels
+        self.decoder_channels = decoder_channels
+        self.out_channels = out_channels
+        self.bilinear_upsample = bilinear_upsample
+        
+        if bilinear_upsample:
+            self.up = nn.Sequential(
+                nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
+                nn.Conv2d(decoder_channels, out_channels, kernel_size=1)
+            )
+        else:
+            self.up = nn.ConvTranspose2d(decoder_channels, out_channels, kernel_size=2, stride=2)
+        
+        self.conv_blocks = nn.ModuleList([])
+        for i in range(n_convs):
+            channels = encoder_channels + out_channels if i == 0 else out_channels
+            self.conv_blocks.append(nn.Sequential(
+                nn.Conv2d(channels, out_channels, kernel_size=3, padding=1),
+                nn.BatchNorm2d(out_channels),
+                nn.ReLU(inplace=True)
+            ))
+    
+    def forward(self, x: torch.Tensor, x_enc: Optional[torch.Tensor]=None) -> torch.Tensor:
+        
+        x = self.up(x)
+        if x_enc is not None:
+            x = torch.cat([x, x_enc], dim=1)
+        for conv_block in self.conv_blocks:
+            x = conv_block(x)
+        return x
+
+
+
 class UNet(nn.Module):
     
     def __init__(self, 
@@ -1035,7 +1079,7 @@ class UNet(nn.Module):
         pretrained: bool=True, 
         activation: nn.Module=nn.Softmax(dim=1),
         use_extended_decoder: bool=False,
-        auxillary_simclr_head: bool=False
+        auxillary_simclr_head: bool=False,
     ):
         super(UNet, self).__init__()
         
@@ -1078,6 +1122,7 @@ class UNet(nn.Module):
                     nn.ReLU(inplace=True)
                 ))
         
+
         self.classifier = nn.Conv2d(64, num_classes, kernel_size=1)
         self.activation = activation
         
@@ -1088,10 +1133,10 @@ class UNet(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         
         # encoder blocks
-        x_list = []
+        x_enc_list = []
         for block in self.encoder_blocks:
             x = block(x)
-            x_list.append(x)
+            x_enc_list.append(x)
         # x_list = [
         #     stem_features,                (B, 64, 128, 128)
         #     residual_block_1_features,    (B, 256, 64, 64)
@@ -1100,10 +1145,10 @@ class UNet(nn.Module):
         #     residual_block_4_features,    (B, 2048, 8, 8)
         # ]
         
-        x = self.decoder_blocks[0](x_list[-1], x_list[-2]) # (B, 1024, 16, 16)
-        x = self.decoder_blocks[1](x, x_list[-3])          # (B, 512, 32, 32)
-        x = self.decoder_blocks[2](x, x_list[-4])          # (B, 256, 64, 64)
-        x = self.decoder_blocks[3](x, x_list[-5])          # (B, 128, 128, 128)
+        x = self.decoder_blocks[0](x_enc_list[-1], x_enc_list[-2]) # (B, 1024, 16, 16)
+        x = self.decoder_blocks[1](x, x_enc_list[-3])          # (B, 512, 32, 32)
+        x = self.decoder_blocks[2](x, x_enc_list[-4])          # (B, 256, 64, 64)
+        x = self.decoder_blocks[3](x, x_enc_list[-5])          # (B, 128, 128, 128)
         
         # no concatenation with encoder features for last block, just bringing features back up to original size
         x_1 = self.decoder_blocks[4](x)                    # (B, 64, 256, 256)
@@ -1119,7 +1164,7 @@ class UNet(nn.Module):
         x = self.activation(x)
         
         if self.projection_head is not None:
-            return x, self.projection_head(x_list[-1])
+            return x, self.projection_head(x_enc_list[-1])
         
         return x
 
@@ -1312,6 +1357,122 @@ class HighResUNet(nn.Module):
         self.num_classes = num_classes
         return self
     
+    
+    
+    def disable_deep_supervision(self) -> None:
+        self.deep_supervision = False
+        self.classifiers = None
+
+
+
+class UResNetD(nn.Module):
+    
+    def __init__(self,
+        num_classes: int=8,
+        pretrained: bool=True,
+        activation: nn.Module=nn.Softmax(dim=1),
+        deep_supervision: bool=False,
+    ):
+        super(UResNetD, self).__init__()
+        self.num_classes = num_classes
+        self.pretrained = pretrained
+        self.activation = activation
+        self.deep_supervision = deep_supervision
+        
+        self.encoder = resnet.resnet152d(pretrained=pretrained)
+        self.encoder.global_pool = nn.Identity()
+        self.encoder.fc = nn.Identity()
+        
+        self.encoder_blocks = nn.ModuleList([
+            nn.Sequential(
+                self.encoder.conv1,
+                self.encoder.bn1,
+                self.encoder.act1,
+            ),
+            nn.Sequential(
+                self.encoder.maxpool,
+                self.encoder.layer1
+            ),
+            self.encoder.layer2,
+            self.encoder.layer3,
+            self.encoder.layer4,
+        ])
+        
+        self.decoder_blocks = nn.ModuleList([
+            ImprovedUnetUpBlock(1024, 2048, 1024),
+            ImprovedUnetUpBlock(512, 1024, 512),
+            ImprovedUnetUpBlock(256, 512, 256),
+            ImprovedUnetUpBlock(64, 256, 64),
+            ImprovedUnetUpBlock(0, 64, 64),
+        ])
+        
+        if self.deep_supervision:
+            self.classifiers = nn.ModuleList([
+                nn.Conv2d(64, num_classes, kernel_size=1),
+                nn.Conv2d(64, num_classes, kernel_size=1),
+                nn.Conv2d(256, num_classes, kernel_size=1),
+                nn.Conv2d(512, num_classes, kernel_size=1),
+                nn.Conv2d(1024, num_classes, kernel_size=1),
+            ])
+        else:
+            self.classifier = nn.Conv2d(64, num_classes, kernel_size=1)
+    
+    def forward(self, x: torch.Tensor) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+        
+        x_enc_feature_maps = []
+        for block in self.encoder_blocks:
+            x = block(x)
+            x_enc_feature_maps.append(x)
+        
+        if self.deep_supervision:
+            x_dec_feature_maps = [x_enc_feature_maps[-1]]
+        
+        for i, block in enumerate(self.decoder_blocks):
+            if i == len(self.decoder_blocks) - 1:
+                x = block(x)
+            else:
+                x = block(x, x_enc_feature_maps[-(i+2)])
+            
+            if self.deep_supervision:
+                x_dec_feature_maps.append(x)
+        
+        if self.deep_supervision:
+            y_out = []
+            for i, classifier in enumerate(self.classifiers):
+                y = classifier(x_dec_feature_maps[-(i+1)])
+                y = self.activation(y)
+                y_out.append(y)
+            return tuple(y_out)
+        
+        y = self.classifier(x)
+        return self.activation(y)
+
+    
+    
+    def freeze_encoder(self) -> None:
+        for encoder_block in self.encoder_blocks:
+            for param in encoder_block.parameters():
+                param.requires_grad = False
+    
+    def freeze_decoder(self) -> None:
+        for decoder_block in self.decoder_blocks:
+            for param in decoder_block.parameters():
+                param.requires_grad = False
+    
+    
+    def reinit_classifier(self, num_classes: int=8) -> None:
+        if self.deep_supervision:
+            self.classifiers = nn.ModuleList([
+                nn.Conv2d(64, num_classes, kernel_size=1),
+                nn.Conv2d(64, num_classes, kernel_size=1),
+                nn.Conv2d(256, num_classes, kernel_size=1),
+                nn.Conv2d(512, num_classes, kernel_size=1),
+                nn.Conv2d(1024, num_classes, kernel_size=1),
+            ])
+        else:
+            self.classifier = nn.Conv2d(64, num_classes, kernel_size=1)
+        self.num_classes = num_classes
+        return self
     
     
     def disable_deep_supervision(self) -> None:
