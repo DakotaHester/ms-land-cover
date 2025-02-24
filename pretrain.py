@@ -239,8 +239,8 @@ def main():
     
     args = parse_arguments()
     
-    if args.frozen_encoder and args.model != 'unet':
-        logger.log('WARNING! Frozen encoder is only supported for U-Net models. Continuing without freezing the encoder.')
+    if args.frozen_encoder and args.model not in  ['unet', 'uresnetd']:
+        print('WARNING! Frozen encoder is only supported for U-Net models. Continuing without freezing the encoder.')
         args.frozen_encoder = False
     
     if 'simclr' in args.pretrain_scheme:
