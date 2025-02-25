@@ -345,6 +345,69 @@ class SimCLRDataAugmentation:
         return self.composed_transforms(X)
 
 
+
+
+class SimpleRandomCrop:
+    
+    def __init__(self, size: int=128):
+        self.size = size
+    
+    def __call__(self, X: torch.Tensor, y: Optional[torch.Tensor]=None) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
+        
+        # determine upper left corner of crop - make sure that crop is completely within the image
+        x_offset = torch.randint(0, X.shape[1] - self.size, (1,)).item()
+        y_offset = torch.randint(0, X.shape[2] - self.size, (1,)).item()
+        
+        X = F.crop(X, x_offset, y_offset, self.size, self.size)
+        if y is not None:
+            y = F.crop(y, x_offset, y_offset, self.size, self.size)
+            return X, y
+        return X
+
+
+class ModifiedSimCLRDataAugmentation:
+    """
+    Instead of random resize and cropping, simply clip a random region from the 
+    image at the desired size - no resizing, stretching, or squishing.
+    Also, add VerticalFlip as a data augmentation.
+    """
+    
+    def __init__(self, size: int=96):
+        
+        self.size = size
+        # self.resize_transform = ResizeTransform(size=size)
+        # self.random_resize_crop = transforms.RandomResizedCrop(size=size)
+        self.random_crop = SimpleRandomCrop(size=size)
+        self.random_horizontal_flip = transforms.RandomHorizontalFlip()
+        self.random_vertical_flip = transforms.RandomVerticalFlip()
+        self.color_transforms = get_color_transforms(s=1.0)
+        self.composed_transforms = transforms.Compose([
+            self.random_crop,
+            self.random_horizontal_flip,
+            self.random_vertical_flip,
+            self.color_transforms,
+        ])
+    
+    
+    def __call__(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Apply data augmentation to the input image tensor.
+        
+        Parameters
+        ----------
+        X : torch.Tensor
+            Input image tensor.
+        
+        Returns
+        -------
+        torch.Tensor
+            Augmented image tensor 
+        """
+                
+        # resize and random crop
+        return self.composed_transforms(X)
+
+
 class StandardDataAugmentations:
     '''
     Simple data augmentations for training a segmentation model. Includes random 

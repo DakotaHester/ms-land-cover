@@ -10,12 +10,12 @@ MAIL_USER="dh2306@msstate.edu"
 
 SCRIPT_NAME="finetune_unet.py"
 # FT_DATA="./data/cpb_tests/splits"
-DAE_SI_WEIGHTS_PATH="./weights/hrunet/dae_si.pth"
+DAE_SI_WEIGHTS_PATH="./weights/uresnetd_frozenencoder/dae_si.pth"
 
 # Ensure the log directory exists
 # mkdir -p "$PBS_LOG_DIR"
 
-pretrain_schemes=('imagenet' 'dae_si' 'randinit')
+pretrain_schemes=('dae_si' 'imagenet' 'randinit')
 # ft_datas=("./data/cpb_tests/splits" "./data/splits")
 ft_datas=("./data/splits")
 
@@ -31,7 +31,7 @@ for ft_data in "${ft_datas[@]}"; do
                     continue
                 fi
 
-                SUB_DIR="msft1_HRUNET/${pretrain_scheme}"
+                SUB_DIR="msft1_URESNETD_FEPT/${pretrain_scheme}"
 
                 if [[ "$ft_data" == *"cpb_tests"* ]]; then
                     SUB_DIR="${SUB_DIR}/cpb"
@@ -101,13 +101,17 @@ for ft_data in "${ft_datas[@]}"; do
                 TEST_DIR="${ft_data}/test/"
                 
                 arguments=(
-                    "finetune_unet.py"
-                    "--model" "hrunet"
+                    "finetune_unet2.py"
+                    "--model" "uresnetd"
                     "--train_dir" "$TRAIN_DIR"
                     "--val_dir" "$VAL_DIR"
                     "--test_dir" "$TEST_DIR"
                     "--log_dir" "$LOG_DIR"
                     "--output_dir" "$OUT_DIR"
+                    "--lr" "1e-4"
+                    "--mini_batch_size" "4"
+                    "--full_batch_size" "4"
+                    "--focal_gamma" "10.0"
                     # "--num_workers" "$NCPUS"
                     "$freeze_encoder"
                     "$freeze_decoder"

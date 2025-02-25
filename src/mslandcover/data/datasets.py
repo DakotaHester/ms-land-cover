@@ -178,8 +178,9 @@ class PreTrainDataset(Dataset):
             norm_view = T.normalize(view, mean=self.mean, std=self.std)
             
             if self.noisy_input:
-                std, lam = torch.rand(1).item() / (self.n_views), torch.rand(1).item() / (self.n_views)
-                noisy_view = T.add_noise(norm_view, std=std, lam=lam)
+                # std, lam = torch.rand(1).item() / (self.n_views), torch.rand(1).item() / (self.n_views)
+                noisy_view = T.add_gaussian_noise(norm_view, std=1)
+                # noisy_view = T.add_noise(norm_view, std=std, lam=lam)
                 
             if self.return_hsv:
                 hsv = T.rgb_to_hsv(view)
