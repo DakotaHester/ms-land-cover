@@ -321,8 +321,11 @@ def main() -> None:
         # prefetch_factor=4 if args.num_workers > 1 else 0,
     )
     
-    alpha = (1 - class_dist) ** args.alpha_power
-    alpha = alpha / alpha.mean()
+    # alpha = (1 - class_dist) ** args.alpha_power
+    # alpha = alpha / alpha.mean()
+    # alpha = 1 / class_dist
+    # alpha = alpha / alpha.sum()
+    alpha = torch.ones_like(class_dist)
     logger.log(f'Class weights: {alpha}')
     # criterion = UnifiedFocalLoss(alpha=alpha, reduction='sum').to(device)
     criterion = FocalLoss(alpha=alpha, gamma=args.focal_gamma, reduction='sum').to(device)

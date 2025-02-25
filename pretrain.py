@@ -1,3 +1,4 @@
+from typing import OrderedDict
 import torch
 import torch.nn as nn
 from torch.nn import functional as F
@@ -17,10 +18,11 @@ import pandas as pd
 from time import time
 import json
 import math
+from timm.models.resnet import resnet152d
 
 from src.mslandcover.data.datasets import PreTrainDataset
 from src.mslandcover.data import transforms
-from src.mslandcover.models import HRNetSegmentationModel, ResNetAutoencoder, UNet, HighResUNet, UResNetD
+from src.mslandcover.models import HRNetSegmentationModel, ResNetAutoencoder, UNet, HighResUNet, UResNetD, AttentionUResNetD, ProjectionHead
 from src.mslandcover.optim import LARS, PCGradAMP
 from src.mslandcover.loss import cached_mse_loss_call, cached_contrastive_loss_call, deep_supervision_loss
 from src.mslandcover.metrics import psnr, ssim
@@ -44,8 +46,15 @@ def parse_arguments():
     parser.add_argument(
         '--model',
         type=str,
-        default='uresnetd',
-        choices=['unet', 'hrnet_w48', 'hrnet_w18', 'resnet152', 'hrunet', 'uresnetd'],
+        default='att_unet',
+        choices=['unet', 'hrnet_w48', 'hrnet_w18', 'resnet152', 'hrunet', 'uresnetd', 'resnet152d'],
+    )
+    
+    parser.add_argument(
+        '--deep_supervision',
+        default=False,
+        action='store_true',
+        help='Use deep supervision during training. Only supported for some models.',
     )
     
     parser.add_argument(
@@ -107,7 +116,7 @@ def parse_arguments():
     parser.add_argument(
         '--init_lr',
         type=float,
-        default=1e-7, # NOTE: TYPICALLY SET TO 1e-6, setting to 1e-7 for uresnetd
+        default=1e-6, # 1e-7, # NOTE: TYPICALLY SET TO 1e-6, setting to 1e-7 for uresnetd
         help='The initial learning rate to use for training.',
     )
     
@@ -239,7 +248,7 @@ def main():
     
     args = parse_arguments()
     
-    if args.frozen_encoder and args.model not in  ['unet', 'uresnetd']:
+    if args.frozen_encoder and args.model not in  ['unet', 'uresnetd', 'att_unet']:
         print('WARNING! Frozen encoder is only supported for U-Net models. Continuing without freezing the encoder.')
         args.frozen_encoder = False
     
@@ -248,6 +257,9 @@ def main():
             raise ValueError('HRUNet does not support contrastive learning. Please choose a different pretraining scheme.')
         elif args.model == 'uresnetd':
             raise ValueError('UResNetD does not support contrastive learning. Please choose a different pretraining scheme.')
+    else:
+        if args.model == 'resnet152d':
+            raise ValueError('ResNet152D ONLY supports SimCLR pretraining.')
     
     
     torch.random.manual_seed(args.seed)
@@ -287,7 +299,7 @@ def main():
         torch.backends.cudnn.deterministic = True
         torch.cuda.manual_seed_all(args.seed)
     
-    transform = transforms.SimCLRDataAugmentation(size=args.image_size) if is_contrastive \
+    transform = transforms.ModifiedSimCLRDataAugmentation(size=args.image_size) if is_contrastive \
         else transforms.StandardDataAugmentations(size=args.image_size, use_color_transforms=False)
     return_hsv = 'hsv' in args.pretrain_scheme
     return_lab = 'lab' in args.pretrain_scheme
@@ -423,9 +435,10 @@ def main():
             num_classes=3,
             pretrained=not args.rand_init,
             activation=activation_fn,
-            deep_supervision=True,
+            deep_supervision=args.deep_supervision,
         )
-        deep_supervision_weights = [0.5, 0.25, 0.15, 0.1]
+        if args.deep_supervision:
+            deep_supervision_weights = [0.5, 0.25, 0.15, 0.1]
     elif args.model == 'uresnetd':
         if not is_reconstruction or is_multitask:
             raise ValueError('Only single-task reconstruction is supported for UResNetD.')
@@ -433,9 +446,30 @@ def main():
             num_classes=3,
             pretrained=not args.rand_init,
             activation=activation_fn,
-            deep_supervision=True,
+            deep_supervision=args.deep_supervision,
         )
-        deep_supervision_weights = [0.5, 0.20, 0.15, 0.10, 0.05]
+        # deep_supervision_weights = [0.5, 0.20, 0.15, 0.10, 0.05]
+        if args.deep_supervision:
+            deep_supervision_weights = [1.0, 1.0, 1.0, 1.0, 1.0]
+    elif args.model == 'att_unet':
+        if not is_reconstruction or is_multitask:
+            raise ValueError('Only single-task reconstruction is supported for Attention U-Nets.')
+        model = AttentionUResNetD(
+            num_classes=3,
+            pretrained=not args.rand_init,
+            activation=activation_fn,
+            deep_supervision=args.deep_supervision,
+        )
+        if args.deep_supervision:
+            deep_supervision_weights = [0.5, 0.20, 0.15, 0.10, 0.05]
+    elif args.model == 'resnet152d':
+        encoder_model = resnet152d(pretrained=not args.rand_init)
+        encoder_model.global_pool = nn.Identity()
+        encoder_model.fc = nn.Identity()
+        model = nn.Sequential(OrderedDict([
+            ('encoder', encoder_model),
+            ('projection_head', ProjectionHead(in_channels=2048))
+        ]))
     else:
         raise ValueError(f'Invalid model: {args.model}')
     
@@ -529,7 +563,7 @@ def main():
     profiler = ProfilerHistory(device)
     profiler.update(epoch=-1, phase='init', step=0, time=0)
     
-    starting_epoch = 0
+    starting_epoch = 1
     best_val_loss = np.inf
     best_epoch = -1
     
@@ -601,7 +635,10 @@ def main():
                     
                     if is_contrastive and not is_multitask:
                         for view in range(n_views):
-                            X, _ = batch[view] # only need the first element of the tuple - the "target" is irrelevant here
+                            X = batch[view] # only need the first element of the tuple - the "target" is irrelevant here
+                            # if X is tuple, then only grab the first element
+                            if isinstance(X, tuple) or isinstance(X, list):
+                                X = X[0]
                             X = X.to(device)
                             z, closure = cached_model_call(model, X)
                             
@@ -614,7 +651,7 @@ def main():
                         
                         y_hat = model(X)
                         
-                        if (args.model in ['hrunet', 'uresnetd']) and model.deep_supervision:
+                        if (args.model in ['hrunet', 'uresnetd', 'att_unet']) and model.deep_supervision:
                             reconstruction_loss = deep_supervision_loss(y_hat, y, weights=deep_supervision_weights)
                             y_hat = y_hat[0] # only use the first (full resolution) output
                         
@@ -660,7 +697,7 @@ def main():
                         contrastive_loss = cached_contrastive_loss_call(cache[0]['z'], cache[1]['z'])
                         contrastive_loss_values.append(contrastive_loss.item())
                         epoch_contrastive_loss = np.sum(contrastive_loss_values) / ((step * args.mini_batch_size) + len(batch)) 
-                        tqdm_postfix['NT-Xent Loss'] = f'{epoch_contrastive_loss:.2e}'
+                        tqdm_postfix['NT-Xent Loss'] = f'{epoch_contrastive_loss:.3e}'
                     
                     if is_reconstruction:
                         if is_multitask:
