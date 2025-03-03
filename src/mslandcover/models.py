@@ -1718,7 +1718,7 @@ class AttentionUnetUpBlock(nn.Module):
                 nn.ConvTranspose2d(decoder_channels, out_channels, kernel_size=2, stride=2),
                 nn.BatchNorm2d(out_channels),
                 nn.ReLU(inplace=True),
-                CBAM(out_channels, reduction=16, kernel_size=7)
+                # CBAM(out_channels, reduction=16, kernel_size=7)
             )
         
         # Add attention gate
