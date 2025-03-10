@@ -32,7 +32,7 @@ def parse_arguments() -> argparse.Namespace:
         '--model',
         type=str,
         choices=['unet', 'hrunet', 'uresnetd'],
-        default='unet',
+        default='uresnetd',
         help='The model to use for training',
     )
     
@@ -388,13 +388,27 @@ def main() -> None:
             num_classes=num_classes if args.model_weights is None else 3,
             pretrained=args.encoder_weights == 'imagenet',
             activation=torch.nn.Softmax(dim=1),
-            deep_supervision=False if args.model_weights is None else True, # model pre-trainined using deep supervision
+            # deep_supervision=False if args.model_weights is None else True, # model pre-trainined using deep supervision\
+            deep_supervision=True,
         )
-        if args.model_weights is not None:
-            logger.log(f'Loading model weights from {args.model_weights}')
-            model.load_state_dict(load_pth(args.model_weights))
-            model.disable_deep_supervision()
-            model.reinit_classifier(num_classes)
+        if args.encoder_weights is not None and args.encoder_weights != 'imagenet':
+            # make sure to only load encoder weights
+            weights = load_pth(args.encoder_weights)
+            for k, v in weights.items():
+                if k.startswith('encoder'): # remove encoder prefix
+                    new_k = k.replace('encoder.', '')
+                    weights[new_k] = v
+                    del weights[k]
+                else:
+                    del weights[k]
+            model.load_state_dict(weights)
+                    
+            
+        # if args.model_weights is not None:
+        #     logger.log(f'Loading model weights from {args.model_weights}')
+        #     model.load_state_dict(load_pth(args.model_weights))
+        #     model.disable_deep_supervision()
+        #     model.reinit_classifier(num_classes)
         model = model.to(device)
         
         if args.freeze_encoder:
