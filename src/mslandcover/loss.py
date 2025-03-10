@@ -11,7 +11,7 @@ from .utils import get_torch_device
 
 from typing import Optional, Union, List, Literal
 
-def nt_xent_loss(z_0: torch.Tensor, z_1: torch.Tensor, temperature: float=1.0, reduction='sum') -> torch.Tensor:
+def nt_xent_loss(z_0: torch.Tensor, z_1: torch.Tensor, temperature: float=0.5, reduction='sum') -> torch.Tensor:
     """
     Functional implementation of the normalized temperature-scaled cross entropy loss.
 
@@ -22,7 +22,7 @@ def nt_xent_loss(z_0: torch.Tensor, z_1: torch.Tensor, temperature: float=1.0, r
     z_1 : torch.Tensor
         The embeddings for the second view of the batch.
     temperature : float
-        The temperature scaling factor.
+        The temperature scaling factor. The SimCLR paper used 0.5.
     reduction : str
         Specifies the reduction to apply to the output: 'none' | 'mean' | 'sum'.
 
