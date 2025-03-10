@@ -1,0 +1,20 @@
+#!/bin/bash
+#PBS -N resunet_dae_ft_stage2_s1_decoder_train_s2_decoder_train
+#PBS -q biggpu
+#PBS -j oe
+#PBS -o ./logs/ms_ft_stage2/pbs/resunet_dae_ft_stage2_s1_decoder_train_s2_decoder_train.out
+#PBS -l ncpus=8
+#PBS -l ngpus=1
+#PBS -l mem=64GB
+#PBS -l walltime=240:00:00
+#PBS -m abe
+#PBS -M dh2306@msstate.edu
+
+cd ${PBS_O_WORKDIR}
+module load cuda10.2/toolkit
+module load python
+conda init
+source ~/.bashrc
+conda activate mslc
+export CUDA_VISIBLE_DEVICES=0
+python finetune_unet.py --train_dir ./data/splits/train/ --val_dir ./data/splits/val/ --test_dir ./data/splits/test/ --weights ./weights/msft1_202502/dae/cpb/cpb/decoder_train/best_model.pth --log_dir ./logs/msft2_202502/dae/s1_frozen_encoder/s2_decoder_train --output_dir ./weights/msft2_202502/dae/s1_frozen_encoder/s2_decoder_train

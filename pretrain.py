@@ -47,7 +47,7 @@ def parse_arguments():
         '--model',
         type=str,
         default='att_unet',
-        choices=['unet', 'hrnet_w48', 'hrnet_w18', 'resnet152', 'hrunet', 'uresnetd', 'resnet152d'],
+        choices=['unet', 'hrnet_w48', 'hrnet_w18', 'resnet152', 'hrunet', 'uresnetd', 'resnet152d', 'att_unet'],
     )
     
     parser.add_argument(
@@ -116,7 +116,7 @@ def parse_arguments():
     parser.add_argument(
         '--init_lr',
         type=float,
-        default=1e-6, # 1e-7, # NOTE: TYPICALLY SET TO 1e-6, setting to 1e-7 for uresnetd
+        default=1e-7, # NOTE: TYPICALLY SET TO 1e-6, setting to 1e-7 for uresnetd
         help='The initial learning rate to use for training.',
     )
     
@@ -167,6 +167,13 @@ def parse_arguments():
         help='The directory from which model weights will be loaded and saved.' + \
             'The directory should have the following structure: ' + \
                 'output_dir/model_name/imagenet.pth'
+    )
+    
+    parser.add_argument(
+        '--encoder_weights',
+        type=str,
+        default=None,
+        help='Path to the encoder weights to use for training.',
     )
     
     parser.add_argument(
@@ -451,6 +458,7 @@ def main():
         # deep_supervision_weights = [0.5, 0.20, 0.15, 0.10, 0.05]
         if args.deep_supervision:
             deep_supervision_weights = [1.0, 1.0, 1.0, 1.0, 1.0]
+        # if args.model_weights 
     elif args.model == 'att_unet':
         if not is_reconstruction or is_multitask:
             raise ValueError('Only single-task reconstruction is supported for Attention U-Nets.')
@@ -462,6 +470,18 @@ def main():
         )
         if args.deep_supervision:
             deep_supervision_weights = [0.5, 0.20, 0.15, 0.10, 0.05]
+        if args.encoder_weights is not None:
+            encoder_weights = load_pth(args.encoder_weights)
+            # only load the encoder weights
+            for k in list(encoder_weights.keys()):
+                name_parts = k.split('.')
+                if name_parts[0] == 'encoder':
+                    encoder_weights['.'.join(name_parts[1:])] = encoder_weights.pop(k)
+                else:
+                    encoder_weights.pop(k)
+            model.encoder.load_state_dict(encoder_weights)
+            logger.log(f'Loaded encoder weights from {args.encoder_weights}.')
+        
     elif args.model == 'resnet152d':
         encoder_model = resnet152d(pretrained=not args.rand_init)
         encoder_model.global_pool = nn.Identity()

@@ -1547,7 +1547,7 @@ class CBAM(nn.Module):
 
 
 
-class CBAMConvBlock(nn.Module):
+class ConvBlock(nn.Module):
     
     """A simple convolutional block followed by batch normalization and ReLU activation."""
     def __init__(self, 
@@ -1560,9 +1560,9 @@ class CBAMConvBlock(nn.Module):
         activation='relu',
         cbam_kernel_size=7,
         cba_reduction=16,
-        enable_cbam=False # #NOTE: DISABLE TO REMOVE CBAM FROM ALL CONV BLOCKS THAT USE THIS CLASS
+        enable_cbam=False,
     ):
-        super(CBAMConvBlock, self).__init__()
+        super(ConvBlock, self).__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
         self.kernel_size = kernel_size
@@ -1630,14 +1630,14 @@ class AttentionGate(nn.Module):
         #     nn.Conv2d(f_g, f_int, kernel_size=1, stride=1, padding=0, bias=True),
         #     nn.BatchNorm2d(f_int)
         # )
-        self.W_g = CBAMConvBlock(f_g, f_int, kernel_size=1, stride=1, padding=0, batch_norm=True, activation=None)
+        self.W_g = ConvBlock(f_g, f_int, kernel_size=1, stride=1, padding=0, batch_norm=True, activation=None)
         
         # Skip connection convolution (signals from the encoder)
         # self.W_x = nn.Sequential(
         #     nn.Conv2d(f_l, f_int, kernel_size=1, stride=1, padding=0, bias=True),
         #     nn.BatchNorm2d(f_int)
         # )
-        self.W_x = CBAMConvBlock(f_l, f_int, kernel_size=1, stride=1, padding=0, batch_norm=True, activation=None)
+        self.W_x = ConvBlock(f_l, f_int, kernel_size=1, stride=1, padding=0, batch_norm=True, activation=None)
         
         # Output convolution
         # self.psi = nn.Sequential(
@@ -1645,7 +1645,7 @@ class AttentionGate(nn.Module):
         #     nn.BatchNorm2d(1),
         #     nn.Sigmoid()
         # )
-        self.psi = CBAMConvBlock(f_int, 1, kernel_size=1, stride=1, padding=0, batch_norm=True, activation='sigmoid')
+        self.psi = ConvBlock(f_int, 1, kernel_size=1, stride=1, padding=0, batch_norm=True, activation='sigmoid')
         
         self.relu = nn.ReLU(inplace=True)
 
@@ -1711,7 +1711,7 @@ class AttentionUnetUpBlock(nn.Module):
             self.up = nn.Sequential(
                 nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False),
                 # nn.Conv2d(decoder_channels, out_channels, kernel_size=1)
-                CBAMConvBlock(decoder_channels, out_channels, kernel_size=1, stride=1, padding=0, batch_norm=True, activation='relu')
+                ConvBlock(decoder_channels, out_channels, kernel_size=1, stride=1, padding=0, batch_norm=True, activation='relu')
             )
         else:
             self.up = nn.Sequential(
@@ -1730,7 +1730,7 @@ class AttentionUnetUpBlock(nn.Module):
             )
         
         # self.proj = nn.Conv2d(encoder_channels + out_channels, out_channels, kernel_size=1)
-        self.proj = CBAMConvBlock(encoder_channels + out_channels, out_channels, kernel_size=1, stride=1, padding=0, batch_norm=True, activation='relu')
+        self.proj = ConvBlock(encoder_channels + out_channels, out_channels, kernel_size=1, stride=1, padding=0, batch_norm=True, activation='relu')
         self.conv_blocks = nn.ModuleList([])
         for i in range(n_convs):
             channels = encoder_channels + out_channels if i == 0 else out_channels
@@ -1739,7 +1739,7 @@ class AttentionUnetUpBlock(nn.Module):
             #     nn.BatchNorm2d(out_channels),
             #     nn.ReLU(inplace=True)
             # ))
-            self.conv_blocks.append(CBAMConvBlock(channels, out_channels, kernel_size=3, stride=1, padding=1, batch_norm=True, activation='relu'))
+            self.conv_blocks.append(ConvBlock(channels, out_channels, kernel_size=3, stride=1, padding=1, batch_norm=True, activation='relu'))
     
     def forward(self, x: torch.Tensor, x_enc: Optional[torch.Tensor]=None) -> torch.Tensor:
         """

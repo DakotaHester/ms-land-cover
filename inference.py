@@ -36,8 +36,9 @@ def main():
     
         
     # model_weights_path = './weights/multistage_finetuning_stage2/dae/s1_full_train/s2_decoder_train/best_model.pth'
-    model_weights_path = './weights/finetuned_unet2/best_model.pth' # new weights
+    # model_weights_path = './weights/finetuned_unet2/best_model.pth' # new weights
     # model_weights_path = './weights/multistage_unet/best_model.pth'
+    model_weights_path = './weights/msft2_202502/dae/s1_frozen_encoder/s2_full_train/best_model.pth'
     
     if os.environ.get('MSLC_INFERENCE_COUNTY_INDEX') is not None:
         county_index = int(os.environ.get('MSLC_INFERENCE_COUNTY_INDEX'))
@@ -98,13 +99,14 @@ def main():
     else:
         bounding_polygons = [shapely.geometry.Polygon(polygon.exterior) for polygon in county_geom.geoms]
     
-    out_path = f'/home/dhester/server/guser/dh/LC_Tests/MS_new_20250210/postprocessed_short_stride'
+    # out_path = f'/home/dhester/server/guser/dh/LC_Tests/MS_new_20250210/postprocessed_short_stride'
+    out_path = f'/home/dhester/server/guser/dh/LC_Tests/MSLC_Prelim_v2_202502/{county_fp_code:03}'
     os.makedirs(out_path, exist_ok=True)
     
     logger.log(f'Loaded county {county_name} with FIPS code {county_fp_code}')
     
     logger.log('Loading model...')
-    model = UNet(use_extended_decoder=True).to(get_torch_device())
+    model = UNet(use_extended_decoder=False).to(get_torch_device())
         
     model.load_state_dict(load_pth(model_weights_path, map_location=device))
     model.eval()
@@ -113,14 +115,14 @@ def main():
     processor = GPURasterProcessor(
         model=model,
         tile_size=256,
-        stride=64,
+        stride=128,
         gaussian_sigma=128,
-        batch_size=512,
+        batch_size=64,
         mean=load_pth('./weights/pretrain_mean.pth'),
         std=load_pth('./weights/pretrain_std.pth'),
         device=device,
-        seg_func=felzenszwalb,
-        seg_func_params= {'median_radius': 2, 'unsharp_radius': 0, 'unsharp_amount': 3.649424294678024, 'scale': 41.17665570830897, 'min_size': 5, 'sigma': 0}
+        # seg_func=felzenszwalb,
+        # seg_func_params= {'median_radius': 2, 'unsharp_radius': 0, 'unsharp_amount': 3.649424294678024, 'scale': 41.17665570830897, 'min_size': 5, 'sigma': 0}
     )
     
     logger.log('Loading raster data...')
