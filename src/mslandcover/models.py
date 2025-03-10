@@ -1036,7 +1036,7 @@ class ImprovedUnetUpBlock(nn.Module):
         decoder_channels: int,
         out_channels: int,
         bilinear_upsample: bool=False,
-        n_convs: int=2,
+        n_convs: int=4,
     ):
         super(ImprovedUnetUpBlock, self).__init__()
         self.encoder_channels = encoder_channels
@@ -1053,6 +1053,11 @@ class ImprovedUnetUpBlock(nn.Module):
             self.up = nn.ConvTranspose2d(decoder_channels, out_channels, kernel_size=2, stride=2)
         
         self.conv_blocks = nn.ModuleList([])
+        self.proj = nn.Sequential(
+            nn.Conv2d(encoder_channels, out_channels, kernel_size=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
         for i in range(n_convs):
             channels = encoder_channels + out_channels if i == 0 else out_channels
             self.conv_blocks.append(nn.Sequential(
@@ -1066,8 +1071,11 @@ class ImprovedUnetUpBlock(nn.Module):
         x = self.up(x)
         if x_enc is not None:
             x = torch.cat([x, x_enc], dim=1)
-        for conv_block in self.conv_blocks:
-            x = conv_block(x)
+        for i, conv_block in enumerate(self.conv_blocks):
+            if i == 0:
+                x = conv_block(x) + self.proj(x)
+            else:
+                x = conv_block(x) + x
         return x
 
 
