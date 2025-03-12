@@ -11,15 +11,18 @@ MAIL_USER="dh2306@msstate.edu"
 SCRIPT_NAME="finetune_unet.py"
 # FT_DATA="./data/cpb_tests/splits"
 # DAE_WEIGHTS_PATH="./weights/resnet152/dae.pth"
-SIMCLR_WEIGHTS_PATH="./weights/resnet152d/simclr.pth"
+
+SIMCLR_WEIGHTS_PATH="./weights/hires_simclr_tests/resnet152d/hires_simclr.pth"
+# SIMCLR_RANDINIT_WEIGHTS_PATH="./weights/simclr2a_tests/resnet152d_randinit/simclr.pth"
 
 # Ensure the log directory exists
 # mkdir -p "$PBS_LOG_DIR"
 
-pretrain_schemes=('simclr' 'randinit' 'imagenet' )
-ft_datas=("./data/cpb_tests/splits" "./data/splits")
+pretrain_schemes=('imagenet' )
+# ft_datas=("./data/splits" "./data/cpb_tests/splits")
+ft_datas=("./data/splits")
 
-freeze_encoders=("--freeze_encoder" "")
+freeze_encoders=("--freeze_encoder")
 
 # source $PYTHON_ENV
 for ft_data in "${ft_datas[@]}"; do
@@ -30,12 +33,14 @@ for ft_data in "${ft_datas[@]}"; do
                 continue
             fi
 
-            SUB_DIR="msft1_simclr_202502/${pretrain_scheme}"
+            SUB_DIR="msft1_hr_simclr_202502/${pretrain_scheme}"
 
             if [[ "$ft_data" == *"cpb_tests"* ]]; then
                 SUB_DIR="${SUB_DIR}/cpb"
+                BATCH_SIZE=16
             else
                 SUB_DIR="${SUB_DIR}/mslc"
+                BATCH_SIZE=4
             fi
 
             if [[ "$freeze_encoder" == "--freeze_encoder" ]]; then
@@ -66,7 +71,9 @@ for ft_data in "${ft_datas[@]}"; do
             if [[ "$pretrain_scheme" == "imagenet" ]]; then
                 WEIGHTS_PARAMETER="--encoder_weights imagenet"
             elif [[ "$pretrain_scheme" == "simclr" ]]; then
-                WEIGHTS_PARAMETER="--encoder_weights ${DAE_WEIGHTS_PATH}"
+                WEIGHTS_PARAMETER="--encoder_weights ${SIMCLR_WEIGHTS_PATH}"
+            elif [[ "$pretrain_scheme" == "simclr_randinit" ]]; then
+                WEIGHTS_PARAMETER="--encoder_weights ${SIMCLR_RANDINIT_WEIGHTS_PATH}"
             else
                 WEIGHTS_PARAMETER=""
             fi
@@ -82,6 +89,10 @@ for ft_data in "${ft_datas[@]}"; do
                 "--test_dir" "$TEST_DIR"
                 "--log_dir" "$LOG_DIR"
                 "--output_dir" "$OUT_DIR"
+                "--mini_batch_size" "$BATCH_SIZE"
+                "--full_batch_size" "$BATCH_SIZE"
+                "--load_data_from_disk"
+                "--lr" "0.0001" # default is 1e-5
                 # "--num_workers" "$NCPUS"
                 "$freeze_encoder"
             )

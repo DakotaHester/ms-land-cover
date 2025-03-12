@@ -39,7 +39,7 @@ def parse_arguments():
         '--pretrain_scheme',
         type=str,
         default='dae_si',
-        choices=['ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr', 'lab', 'dae_lab', 'simclr_lab', 'dae_simclr_lab', 'ae_lab', 'simclr_ae_lab', 'dae_si'],
+        choices=['ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr', 'lab', 'dae_lab', 'simclr_lab', 'dae_simclr_lab', 'ae_lab', 'simclr_ae_lab', 'dae_si', 'hires_simclr'],
         help='The pretraining scheme to use. One of [ae, dae, hsv, dae_hsv, simclr, ae_simclr, dae_simclr, hsv_simclr, dae_hsv_simclr, lab, dae_lab, simclr_lab, dae_simclr_lab, ae_lab, simclr_ae_lab, dae_rs],.',
     )
     
@@ -306,8 +306,15 @@ def main():
         torch.backends.cudnn.deterministic = True
         torch.cuda.manual_seed_all(args.seed)
     
-    transform = transforms.ModifiedSimCLRDataAugmentation(size=args.image_size) if is_contrastive \
-        else transforms.StandardDataAugmentations(size=args.image_size, use_color_transforms=False)
+    if is_contrastive:
+        if args.pretrain_scheme == 'hires_simclr':
+            transform = transforms.HiResDataAugmentation(size=args.image_size, s=0.5)
+        else:
+            transform = transforms.SimCLRDataAugmentation(size=args.image_size, s=1.0)
+    else:
+        transform = transforms.StandardDataAugmentations(size=args.image_size, use_color_transforms=False)
+    # transform = transforms.H(size=args.image_size, s=0.5) if is_contrastive \
+        # else transforms.StandardDataAugmentations(size=args.image_size, use_color_transforms=False)
     return_hsv = 'hsv' in args.pretrain_scheme
     return_lab = 'lab' in args.pretrain_scheme
     noisy_input = 'dae' in args.pretrain_scheme
