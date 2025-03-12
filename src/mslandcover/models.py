@@ -1796,12 +1796,14 @@ class AttentionUResNetD(nn.Module):
         pretrained: bool=True,
         activation: nn.Module=nn.Softmax(dim=1),
         deep_supervision: bool=False,
+        decoder_convs: int=4,
     ):
         super(AttentionUResNetD, self).__init__()
         self.num_classes = num_classes
         self.pretrained = pretrained
         self.activation = activation
         self.deep_supervision = deep_supervision
+        self.decoder_convs = decoder_convs
         
         # Initialize the encoder (ResNet backbone)
         self.encoder = resnet.resnet152d(pretrained=pretrained)
@@ -1826,11 +1828,11 @@ class AttentionUResNetD(nn.Module):
         
         # Initialize decoder blocks with attention
         self.decoder_blocks = nn.ModuleList([
-            AttentionUnetUpBlock(1024, 2048, 1024),
-            AttentionUnetUpBlock(512, 1024, 512),
-            AttentionUnetUpBlock(256, 512, 256),
-            AttentionUnetUpBlock(64, 256, 64),
-            AttentionUnetUpBlock(0, 64, 64),
+            AttentionUnetUpBlock(1024, 2048, 1024, n_convs=decoder_convs),
+            AttentionUnetUpBlock(512, 1024, 512, n_convs=decoder_convs),
+            AttentionUnetUpBlock(256, 512, 256, n_convs=decoder_convs),
+            AttentionUnetUpBlock(64, 256, 64, n_convs=decoder_convs),
+            AttentionUnetUpBlock(0, 64, 64, n_convs=decoder_convs),
         ])
         
         # Initialize the classifiers

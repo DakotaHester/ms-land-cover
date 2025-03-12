@@ -92,7 +92,7 @@ def normalize(tensor: torch.Tensor, mean: torch.Tensor, std: torch.Tensor) -> to
     
 
 
-def get_color_transforms(s: float=0.5) -> transforms.Compose:
+def get_color_transforms(s: float=0.5, kernel_size: int=25, scale_sigma_by_s: bool=False) -> transforms.Compose:
     """
     Create a composition of color space augmentations.
     
@@ -111,14 +111,24 @@ def get_color_transforms(s: float=0.5) -> transforms.Compose:
         Composition of color space augmentations.
     """
 
-
+    # kernel size should be 10% of image size, odd, and greater than 1
+    if kernel_size % 2 == 0:
+        kernel_size -= 1
+    if kernel_size < 3:
+        kernel_size = 3
+    
+    if scale_sigma_by_s:
+        sigma = (0.1*s, 2.0*s)
+    else:
+        sigma = (0.1, 2.0)
+    
     return transforms.Compose([
         transforms.RandomApply([
             transforms.ColorJitter(0.8*s, 0.8*s, 0.8*s, 0.2*s)
         ], p=0.8),
         transforms.RandomGrayscale(p=0.2),
         transforms.RandomApply([
-            transforms.GaussianBlur(kernel_size=25, sigma=(0.1, 2.0)) # kernel size should be 10% of image size
+            transforms.GaussianBlur(kernel_size=kernel_size, sigma=sigma) # kernel size should be 10% of image size
         ], p=0.5),
         Clamp(),
     ])
@@ -305,21 +315,46 @@ def add_noise(tensor: torch.Tensor, std: float=0.1, lam: float=0.1) -> torch.Ten
     # return add_gaussian_noise(tensor, std=std) + add_poisson_noise(tensor, lam=lam) - tensor
 
 
+class Random90DegreeRotation:
+    
+    def __init__(self):
+        pass
+    
+    def __call__(self, X: torch.Tensor) -> torch.Tensor:
+        """
+        Randomly rotate the input image tensor by 0, 90, 180, or 270 degrees.
+        
+        Parameters
+        ----------
+        X : torch.Tensor
+            Input image tensor.
+        
+        Returns
+        -------
+        torch.Tensor
+            Rotated image tensor.
+        """
+        
+        rot_angle = torch.randint(0, 4, (1,)).item()
+        return F.rotate(X, rot_angle * 90)
+
+
 
 class SimCLRDataAugmentation:
     """
     Data Transformer for creating a pair of views from an image.
     """
     
-    def __init__(self, size: int=96):
+    def __init__(self, size: int=192, s: float=1.0):
         
         self.size = size
-        self.resize_transform = ResizeTransform(size=size)
+        kernel_size = int(size*0.1)
+        # self.resize_transform = ResizeTransform(size=size)
         self.random_resize_crop = transforms.RandomResizedCrop(size=size)
         self.random_horizontal_flip = transforms.RandomHorizontalFlip()
-        self.color_transforms = get_color_transforms()
+        self.color_transforms = get_color_transforms(s=s, kernel_size=kernel_size)
         self.composed_transforms = transforms.Compose([
-            self.resize_transform,
+            # self.resize_transform,
             self.random_resize_crop,
             self.random_horizontal_flip,
             self.color_transforms,
@@ -365,14 +400,14 @@ class SimpleRandomCrop:
         return X
 
 
-class ModifiedSimCLRDataAugmentation:
+class HiResDataAugmentation:
     """
     Instead of random resize and cropping, simply clip a random region from the 
     image at the desired size - no resizing, stretching, or squishing.
-    Also, add VerticalFlip as a data augmentation.
+    Also, add VerticalFlip and random 90 degree rotation.
     """
     
-    def __init__(self, size: int=96):
+    def __init__(self, size: int=192, s: float=0.1):
         
         self.size = size
         # self.resize_transform = ResizeTransform(size=size)
@@ -380,11 +415,13 @@ class ModifiedSimCLRDataAugmentation:
         self.random_crop = SimpleRandomCrop(size=size)
         self.random_horizontal_flip = transforms.RandomHorizontalFlip()
         self.random_vertical_flip = transforms.RandomVerticalFlip()
-        self.color_transforms = get_color_transforms(s=1.0)
+        self.random_90_degree_rotation = Random90DegreeRotation()
+        self.color_transforms = get_color_transforms(s=s, kernel_size=int(size*0.1), scale_sigma_by_s=True)
         self.composed_transforms = transforms.Compose([
             self.random_crop,
             self.random_horizontal_flip,
             self.random_vertical_flip,
+            self.random_90_degree_rotation,
             self.color_transforms,
         ])
     
@@ -414,7 +451,7 @@ class StandardDataAugmentations:
     flips and color distortions.
     '''
     
-    def __init__(self, size: int=256, s: float=0.5, use_color_transforms: bool=True):
+    def __init__(self, size: int=256, s: float=1.0, use_color_transforms: bool=True):
         
         self.color_transforms = None
         if use_color_transforms:

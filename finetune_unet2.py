@@ -15,7 +15,7 @@ from src.mslandcover.utils import Logger, get_torch_device, ProfilerHistory, loa
 from src.mslandcover.config import HRNET_W18_CONFIG, HRNET_W48_CONFIG, LEGEND_CLASSES
 from src.mslandcover.data.datasets import FineTuneDataset
 from src.mslandcover.data.transforms import StandardDataAugmentations
-from src.mslandcover.models import UNet, HighResUNet, UResNetD
+from src.mslandcover.models import UNet, HighResUNet, UResNetD, AttentionUResNetD
 from src.mslandcover.loss import FocalLoss, FocalTverskyLoss, UnifiedFocalLoss
 from src.mslandcover import metrics
 
@@ -31,8 +31,8 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--model',
         type=str,
-        choices=['unet', 'hrunet', 'uresnetd'],
-        default='uresnetd',
+        choices=['unet', 'hrunet', 'uresnetd', 'att_unet'],
+        default='att_unet',
         help='The model to use for training',
     )
     
@@ -203,7 +203,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--focal_gamma',
         type=float,
-        default=2.0,
+        default=5.0,
         help='The gamma parameter for the focal loss',
     )
     
@@ -325,7 +325,15 @@ def main() -> None:
     # alpha = alpha / alpha.mean()
     # alpha = 1 / class_dist
     # alpha = alpha / alpha.sum()
-    alpha = torch.ones_like(class_dist)
+    # alpha = torch.ones_like(class_dist)
+    # class_counts = class_dist * (256 ** 2 * len(train_dataset)) 
+    # print(class_counts)
+    # beta = 1.0 - 1e-7
+    # alpha = (1 - beta) / (1 - (beta ** class_counts))
+    # alpha = 1 / torch.log(1 + class_dist)
+    alpha = 1 / torch.sqrt(class_dist)
+    # alpha = 1 / (class_dist ** n(1/2))
+    # alpha = class_dist ** -(1/3)
     logger.log(f'Class weights: {alpha}')
     # criterion = UnifiedFocalLoss(alpha=alpha, reduction='sum').to(device)
     criterion = FocalLoss(alpha=alpha, gamma=args.focal_gamma, reduction='sum').to(device)
@@ -389,19 +397,18 @@ def main() -> None:
             pretrained=args.encoder_weights == 'imagenet',
             activation=torch.nn.Softmax(dim=1),
             # deep_supervision=False if args.model_weights is None else True, # model pre-trainined using deep supervision\
-            deep_supervision=True,
+            deep_supervision=False,
         )
         if args.encoder_weights is not None and args.encoder_weights != 'imagenet':
             # make sure to only load encoder weights
             weights = load_pth(args.encoder_weights)
+            adj_weights = {}
             for k, v in weights.items():
                 if k.startswith('encoder'): # remove encoder prefix
                     new_k = k.replace('encoder.', '')
-                    weights[new_k] = v
-                    del weights[k]
-                else:
-                    del weights[k]
-            model.load_state_dict(weights)
+                    adj_weights[new_k] = v
+            del weights
+            model.encoder.load_state_dict(adj_weights)
                     
             
         # if args.model_weights is not None:
@@ -415,7 +422,39 @@ def main() -> None:
             model.freeze_encoder()
         if args.freeze_decoder:
             model.freeze_decoder()
+    
+    
+    elif args.model == 'att_unet':
+        model = AttentionUResNetD(
+            num_classes=num_classes if args.model_weights is None else 3,
+            pretrained=args.encoder_weights == 'imagenet',
+            activation=torch.nn.Softmax(dim=1),
+            decoder_convs=2,
+        )
+        if args.encoder_weights is not None and args.encoder_weights != 'imagenet':
+            # make sure to only load encoder weights
+            weights = load_pth(args.encoder_weights)
+            adj_weights = {}
+            for k, v in weights.items():
+                if k.startswith('encoder'):
+                    new_k = k.replace('encoder.', '')
+                    adj_weights[new_k] = v
+            del weights 
+            model.encoder.load_state_dict(adj_weights)
         
+        elif args.model_weights is not None:
+            logger.log(f'Loading model weights from {args.model_weights}')
+            model.load_state_dict(load_pth(args.model_weights))
+            model.disable_deep_supervision()
+            model.reinit_classifier(num_classes)
+        
+        
+        model = model.to(device)
+        
+        if args.freeze_encoder:
+            model.freeze_encoder()
+        if args.freeze_decoder:
+            model.freeze_decoder()
     
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -477,7 +516,7 @@ def main() -> None:
             criterion.load_state_dict(checkpoint['criterion'])
             optimizer.load_state_dict(checkpoint['optimizer'])
             scheduler.load_state_dict(checkpoint['scheduler'])
-            starting_epoch = checkpoint['epoch'] 
+            starting_epoch = checkpoint['epoch'] + 1
             best_epoch = checkpoint['best_epoch']
             best_val_loss = checkpoint['best_val_loss']
             history_dict = checkpoint['history_dict']
@@ -486,9 +525,9 @@ def main() -> None:
         else:
             logger.log(f'No checkpoint found at {checkpoint_path}')
     
-    logger.log(f'Starting training from epoch {starting_epoch+1}...')
+    logger.log(f'Starting training from epoch {starting_epoch}...')
     
-    for epoch in range(starting_epoch+1, args.num_epochs+1):
+    for epoch in range(starting_epoch, args.num_epochs+1):
         
         lr = optimizer.param_groups[0]['lr']
         history_dict['learning_rate'].append(lr)
@@ -501,7 +540,7 @@ def main() -> None:
                 phase_stats[metric_fn.__name__] = []
             
             if phase == 'train':
-                torch.set_grad_enabled(True)
+                torch.set_grad_enabled(epoch != 0)
                 optimizer.zero_grad(set_to_none=True)
                 model.train()
                 loader = train_loader
@@ -528,7 +567,7 @@ def main() -> None:
                         y_hat = model(X)
                         loss = criterion(y_hat, y)
                         
-                        if phase == 'train':
+                        if phase == 'train' and epoch != 0:
                             scaler.scale(loss).backward()
                     
                         phase_stats['loss'].append(loss.detach().cpu().item())
@@ -542,7 +581,7 @@ def main() -> None:
                             running_metrics[metric_fn.__name__] = sum(phase_stats[metric_fn.__name__]) / ((step * loader.batch_size) + len(X))
                     
                     if (step + 1) % args.grad_accumulation_steps == 0:
-                        if phase == 'train':
+                        if phase == 'train' and epoch != 0:
                             scaler.step(optimizer)
                             scaler.update()
                             optimizer.zero_grad(set_to_none=True)
@@ -592,7 +631,7 @@ def main() -> None:
         }
         torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
         
-        history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch)))
+        history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch + 1)))
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
         profiler.save(os.path.join(log_dir, 'profiler.csv'))
         
