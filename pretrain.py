@@ -19,18 +19,17 @@ from time import time
 import json
 import math
 from timm.models.resnet import resnet152d
+from timm.models.convnext import convnext_base
 
 from src.mslandcover.data.datasets import PreTrainDataset
 from src.mslandcover.data import transforms
-from src.mslandcover.models import HRNetSegmentationModel, ResNetAutoencoder, UNet, HighResUNet, UResNetD, AttentionUResNetD, ProjectionHead
+from src.mslandcover.models import HRNetSegmentationModel, ResNetAutoencoder, UNet, HighResUNet, UResNetD, AttentionUResNetD, ProjectionHead, SegformerForSimCLR, AttentionUConvNeXt
 from src.mslandcover.optim import LARS, PCGradAMP
 from src.mslandcover.loss import cached_mse_loss_call, cached_contrastive_loss_call, deep_supervision_loss
 from src.mslandcover.metrics import psnr, ssim
 from src.mslandcover.gradcaching import cached_model_call, init_grad_cache_closure_dicts, call_closures
 from src.mslandcover.utils import Logger, ProfilerHistory, get_torch_device, load_pth
 from src.mslandcover.config import HRNET_W48_CONFIG, HRNET_W18_CONFIG
-
-
 
 def parse_arguments():
     parser = ArgumentParser()
@@ -46,8 +45,8 @@ def parse_arguments():
     parser.add_argument(
         '--model',
         type=str,
-        default='att_unet',
-        choices=['unet', 'hrnet_w48', 'hrnet_w18', 'resnet152', 'hrunet', 'uresnetd', 'resnet152d', 'att_unet'],
+        default='att_unext',
+        choices=['unet', 'hrnet_w48', 'hrnet_w18', 'resnet152', 'hrunet', 'uresnetd', 'resnet152d', 'att_unet', 'segformer', 'convnext', 'att_unext'],
     )
     
     parser.add_argument(
@@ -116,7 +115,7 @@ def parse_arguments():
     parser.add_argument(
         '--init_lr',
         type=float,
-        default=1e-7, # NOTE: TYPICALLY SET TO 1e-6, setting to 1e-7 for uresnetd
+        default=1e-5, # NOTE: TYPICALLY SET TO 1e-6, setting to 1e-7 for uresnetd
         help='The initial learning rate to use for training.',
     )
     
@@ -135,14 +134,14 @@ def parse_arguments():
     parser.add_argument(
         '--full_batch_size', 
         type=int, 
-        default=8, # 4096 in original SimCLR implementation
+        default=256, # 4096 in original SimCLR implementation
         help='The batch size to use for pretraining.',
     )
     
     parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=8,
+        default=256,
         help='The mini-batch size to use for gradient caching.',
     )
     
@@ -193,7 +192,7 @@ def parse_arguments():
     parser.add_argument(
         '--num_workers',
         type=int,
-        default=16,
+        default=8,
         help='The number of workers to use for data loading.',
     )
     
@@ -308,7 +307,7 @@ def main():
     
     if is_contrastive:
         if args.pretrain_scheme == 'hires_simclr':
-            transform = transforms.HiResDataAugmentation(size=args.image_size, s=0.5)
+            transform = transforms.HiResDataAugmentation(size=args.image_size, s=1.0)
         else:
             transform = transforms.SimCLRDataAugmentation(size=args.image_size, s=1.0)
     else:
@@ -497,6 +496,42 @@ def main():
             ('encoder', encoder_model),
             ('projection_head', ProjectionHead(in_channels=2048))
         ]))
+    
+    elif args.model == 'segformer':
+        if args.pretrain_scheme != 'simclr':
+            raise ValueError('Segformer only supports SimCLR pretraining.')
+        model = SegformerForSimCLR()
+    
+    elif args.model == 'convnext':
+        encoder_model = convnext_base(pretrained=not args.rand_init)
+        encoder_model.head = nn.Identity()
+        model = nn.Sequential(OrderedDict([
+            ('encoder', encoder_model),
+            ('projection_head', ProjectionHead(1024))
+        ]))
+    
+    
+    elif args.model == 'att_unext':
+        if not is_reconstruction or is_multitask:
+            raise ValueError('Only single-task reconstruction is supported for Attention U-ConvNeXt.')
+        model = AttentionUConvNeXt(
+            num_classes=3,
+            pretrained=not args.rand_init,
+            activation=activation_fn,
+        )
+        if args.encoder_weights is not None:
+            encoder_weights = load_pth(args.encoder_weights)
+            # only load the encoder weights
+            for k in list(encoder_weights.keys()):
+                name_parts = k.split('.')
+                if name_parts[0] == 'encoder':
+                    encoder_weights['.'.join(name_parts[1:])] = encoder_weights.pop(k)
+                else:
+                    encoder_weights.pop(k)
+            model.encoder.load_state_dict(encoder_weights)
+            logger.log(f'Loaded encoder weights from {args.encoder_weights}.')
+        
+        
     else:
         raise ValueError(f'Invalid model: {args.model}')
     

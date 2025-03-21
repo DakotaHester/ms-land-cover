@@ -21,7 +21,7 @@ from skimage.segmentation import felzenszwalb
 
 
 from src.mslandcover.inference import GPURasterProcessor, compute_segment_means, process_batch
-from src.mslandcover.models import UNet
+from src.mslandcover.models import UNet, AttentionUResNetD, AttentionUConvNeXt
 from src.mslandcover.config import MSTM_PROJ4, HRNET_W18_CONFIG, LEGEND_COLORS_RGBA, LEGEND_CLASSES
 from src.mslandcover.utils import load_pth, get_torch_device, Logger
 
@@ -30,7 +30,7 @@ from src.mslandcover.utils import load_pth, get_torch_device, Logger
 
 
 def main():
-    SKIP_INFERENCE = True
+    SKIP_INFERENCE = False
     SKIP_CLIPPING = False
     SKIP_POSTPROCESSING = True
     
@@ -38,7 +38,10 @@ def main():
     # model_weights_path = './weights/multistage_finetuning_stage2/dae/s1_full_train/s2_decoder_train/best_model.pth'
     # model_weights_path = './weights/finetuned_unet2/best_model.pth' # new weights
     # model_weights_path = './weights/multistage_unet/best_model.pth'
-    model_weights_path = './weights/msft2_202502/dae/s1_frozen_encoder/s2_full_train/best_model.pth'
+    # model_weights_path = './weights/msft2_202502/dae/s1_frozen_encoder/s2_full_train/best_model.pth'
+    # model_weights_path = './weights/msft1_hr_simclr_202502/simclr/mslc/decoder_train/best_model.pth'
+    model_weights_path = './weights/msft1_convnext/simclr/mslc/full_train/best_model.pth'
+
     
     if os.environ.get('MSLC_INFERENCE_COUNTY_INDEX') is not None:
         county_index = int(os.environ.get('MSLC_INFERENCE_COUNTY_INDEX'))
@@ -106,7 +109,9 @@ def main():
     logger.log(f'Loaded county {county_name} with FIPS code {county_fp_code}')
     
     logger.log('Loading model...')
-    model = UNet(use_extended_decoder=False).to(get_torch_device())
+    # model = UNet(use_extended_decoder=False).to(get_torch_device())
+    # model = AttentionUResNetD(decoder_convs=2)
+    model = AttentionUConvNeXt()
         
     model.load_state_dict(load_pth(model_weights_path, map_location=device))
     model.eval()

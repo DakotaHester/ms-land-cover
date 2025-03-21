@@ -378,7 +378,7 @@ class GPURasterProcessor:
         device: torch.device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
         seg_func: Optional[Callable]=None,
         seg_func_params: Optional[Dict[str, Union[int, float]]]=None,
-        apply_random_transformations: bool=True,
+        apply_random_transformations: bool=False,
     ):
         self.tile_size = tile_size
         self.stride = stride
