@@ -18,7 +18,8 @@ import torch.nn.functional as F
 
 from torchvision.models import ConvNeXt_Tiny_Weights, convnext_tiny
 from torchvision.models import ResNet152_Weights, resnet152, ResNet50_Weights, resnet50, ResNet34_Weights, resnet34
-from timm.models import resnet
+from transformers import SegformerModel
+from timm.models import resnet, convnext
 from .utils import load_pth
 
 BN_MOMENTUM = 0.1
@@ -1706,6 +1707,8 @@ class AttentionUnetUpBlock(nn.Module):
         encoder_channels: int,
         decoder_channels: int,
         out_channels: int,
+        upsample: bool=True,
+        use_cbam: bool=False,
         bilinear_upsample: bool=False,
         n_convs: int=4,
     ):
@@ -1713,29 +1716,33 @@ class AttentionUnetUpBlock(nn.Module):
         self.encoder_channels = encoder_channels
         self.decoder_channels = decoder_channels
         self.out_channels = out_channels
+        self.upsample = upsample
+        self.use_cbam = use_cbam
         self.bilinear_upsample = bilinear_upsample
+        self.convs = n_convs
         
-        if bilinear_upsample:
-            self.up = nn.Sequential(
-                nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False),
-                # nn.Conv2d(decoder_channels, out_channels, kernel_size=1)
-                ConvBlock(decoder_channels, out_channels, kernel_size=1, stride=1, padding=0, batch_norm=True, activation='relu')
-            )
-        else:
-            self.up = nn.Sequential(
-                nn.ConvTranspose2d(decoder_channels, out_channels, kernel_size=2, stride=2),
-                nn.BatchNorm2d(out_channels),
-                nn.ReLU(inplace=True),
-                # CBAM(out_channels, reduction=16, kernel_size=7)
-            )
-        
-        # Add attention gate
-        if encoder_channels > 0:  # Only add if there's a skip connection
-            self.attention_gate = AttentionGate(
-                f_g=decoder_channels,        # Gating signal channels (from the decoder)
-                f_l=encoder_channels,        # Skip connection channels
-                f_int=encoder_channels // 4  # Intermediate representation channels
-            )
+        if upsample:
+            if bilinear_upsample:
+                self.up = nn.Sequential(
+                    nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False),
+                    # nn.Conv2d(decoder_channels, out_channels, kernel_size=1)
+                    ConvBlock(decoder_channels, out_channels, kernel_size=1, stride=1, padding=0, batch_norm=True, activation='relu')
+                )
+            else:
+                self.up = nn.Sequential(
+                    nn.ConvTranspose2d(decoder_channels, out_channels, kernel_size=2, stride=2),
+                    nn.BatchNorm2d(out_channels),
+                    nn.ReLU(inplace=True),
+                    # CBAM(out_channels, reduction=16, kernel_size=7)
+                )
+            
+            # Add attention gate
+            if encoder_channels > 0:  # Only add if there's a skip connection
+                self.attention_gate = AttentionGate(
+                    f_g=decoder_channels,        # Gating signal channels (from the decoder)
+                    f_l=encoder_channels,        # Skip connection channels
+                    f_int=encoder_channels // 4  # Intermediate representation channels
+                )
         
         # self.proj = nn.Conv2d(encoder_channels + out_channels, out_channels, kernel_size=1)
         self.proj = ConvBlock(encoder_channels + out_channels, out_channels, kernel_size=1, stride=1, padding=0, batch_norm=True, activation='relu')
@@ -1748,6 +1755,9 @@ class AttentionUnetUpBlock(nn.Module):
             #     nn.ReLU(inplace=True)
             # ))
             self.conv_blocks.append(ConvBlock(channels, out_channels, kernel_size=3, stride=1, padding=1, batch_norm=True, activation='relu'))
+        
+        if use_cbam:
+            self.cbam = CBAM(out_channels)
     
     def forward(self, x: torch.Tensor, x_enc: Optional[torch.Tensor]=None) -> torch.Tensor:
         """
@@ -1762,7 +1772,10 @@ class AttentionUnetUpBlock(nn.Module):
         """
                 
         # Upsample the input
-        x_up = self.up(x)
+        if self.upsample:
+            x_up = self.up(x)
+        else:
+            x_up = x
         
         # Apply attention mechanism if there's a skip connection
         if x_enc is not None:
@@ -1782,7 +1795,11 @@ class AttentionUnetUpBlock(nn.Module):
                 x = conv_block(x) + self.proj(x)
             else:
                 x = conv_block(x) + x
-            
+        
+        # Apply CBAM if enabled
+        if self.use_cbam:
+            x = self.cbam(x) + x
+        
         return x
 
 
@@ -1796,7 +1813,8 @@ class AttentionUResNetD(nn.Module):
         pretrained: bool=True,
         activation: nn.Module=nn.Softmax(dim=1),
         deep_supervision: bool=False,
-        decoder_convs: int=4,
+        decoder_convs: int=2,
+        bilinear_upsample: bool=True,
     ):
         super(AttentionUResNetD, self).__init__()
         self.num_classes = num_classes
@@ -1804,6 +1822,7 @@ class AttentionUResNetD(nn.Module):
         self.activation = activation
         self.deep_supervision = deep_supervision
         self.decoder_convs = decoder_convs
+        self.bilinear_upsample = bilinear_upsample
         
         # Initialize the encoder (ResNet backbone)
         self.encoder = resnet.resnet152d(pretrained=pretrained)
@@ -1828,11 +1847,11 @@ class AttentionUResNetD(nn.Module):
         
         # Initialize decoder blocks with attention
         self.decoder_blocks = nn.ModuleList([
-            AttentionUnetUpBlock(1024, 2048, 1024, n_convs=decoder_convs),
-            AttentionUnetUpBlock(512, 1024, 512, n_convs=decoder_convs),
-            AttentionUnetUpBlock(256, 512, 256, n_convs=decoder_convs),
-            AttentionUnetUpBlock(64, 256, 64, n_convs=decoder_convs),
-            AttentionUnetUpBlock(0, 64, 64, n_convs=decoder_convs),
+            AttentionUnetUpBlock(1024, 2048, 1024, n_convs=decoder_convs, bilinear_upsample=bilinear_upsample),
+            AttentionUnetUpBlock(512, 1024, 512, n_convs=decoder_convs, bilinear_upsample=bilinear_upsample),
+            AttentionUnetUpBlock(256, 512, 256, n_convs=decoder_convs, bilinear_upsample=bilinear_upsample),
+            AttentionUnetUpBlock(64, 256, 64, n_convs=decoder_convs, bilinear_upsample=bilinear_upsample),
+            AttentionUnetUpBlock(0, 64, 64, n_convs=decoder_convs, bilinear_upsample=bilinear_upsample),
         ])
         
         # Initialize the classifiers
@@ -1919,3 +1938,164 @@ class AttentionUResNetD(nn.Module):
         """Disable deep supervision."""
         self.deep_supervision = False
         self.classifiers = None
+
+
+
+class SegformerForSimCLR(nn.Module):
+    def __init__(self, model_name="nvidia/mit-b5", projection_dim=128):
+        super().__init__()
+        
+        # Load the pretrained SegFormer model
+        self.segformer = SegformerModel.from_pretrained(model_name)
+        self.hidden_size = self.segformer.config.hidden_sizes[-1]  # Get the final hidden size
+        
+        # Create projection head for SimCLR
+        self.projection_head = ProjectionHead(in_channels=self.hidden_size, embedding_dim=projection_dim)
+    
+    def forward(self, x):
+        # Intermediate representation corresponding to the final hidden state
+        z = self.segformer(x).last_hidden_state
+        
+        # Apply projection head
+        projected_features = self.projection_head(z)
+        
+        return projected_features
+    
+    
+class ASPP(nn.Module):
+    def __init__(self, in_channels, out_channels=256, atrous_rates=[6, 12, 18]):
+        super(ASPP, self).__init__()
+        
+        self.global_avg_pool = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(in_channels, out_channels, 1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+        
+        self.conv1x1 = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+        
+        self.atrous_convs = nn.ModuleList([
+            nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, 3, padding=rate, dilation=rate, bias=False),
+                nn.BatchNorm2d(out_channels),
+                nn.ReLU(inplace=True)
+            ) for rate in atrous_rates
+        ])
+        
+        self.conv1x1_out = nn.Sequential(
+            nn.Conv2d(len(atrous_rates) * out_channels + 2 * out_channels, out_channels, 1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+        
+    def forward(self, x):
+        size = x.shape[2:]
+        
+        global_features = self.global_avg_pool(x)
+        global_features = F.interpolate(global_features, size=size, mode='bilinear', align_corners=False)
+        
+        conv1x1_features = self.conv1x1(x)
+        atrous_features = [conv(x) for conv in self.atrous_convs]
+        
+        all_features = torch.cat([conv1x1_features, *atrous_features, global_features], dim=1)
+        return self.conv1x1_out(all_features)
+
+
+
+class AttentionUConvNeXt(nn.Module):
+    """
+    
+    """
+    def __init__(self,
+        num_classes: int=8,
+        pretrained: bool=True,
+        activation: nn.Module=nn.Softmax(dim=1),
+        decoder_convs: int=4,
+        bilinear_upsample: bool=True,
+    ):
+        super(AttentionUConvNeXt, self).__init__()
+        self.num_classes = num_classes
+        self.pretrained = pretrained
+        self.decoder_convs = decoder_convs
+        self.bilinear_upsample = bilinear_upsample
+        
+        self.encoder = convnext.convnext_base(pretrained=pretrained)
+        self.encoder.head = nn.Identity()  # Remove the classification head
+        
+        # Group encoder layers into blocks
+        self.encoder_blocks = nn.ModuleList([
+            self.encoder.stem,
+            self.encoder.stages[0],
+            self.encoder.stages[1],
+            self.encoder.stages[2],
+            self.encoder.stages[3],
+        ])
+        
+        # self.aspp = ASPP(1024, 1024)  # Apply ASPP after the last encoder block
+        
+        # Initialize decoder blocks with attention
+        self.decoder_blocks = nn.ModuleList([
+            AttentionUnetUpBlock(512, 1024, 512, n_convs=decoder_convs, bilinear_upsample=bilinear_upsample, use_cbam=True),
+            AttentionUnetUpBlock(256, 512, 256, n_convs=decoder_convs, bilinear_upsample=bilinear_upsample, use_cbam=True),
+            AttentionUnetUpBlock(128, 256, 128, n_convs=decoder_convs, bilinear_upsample=bilinear_upsample, use_cbam=True),
+        ])
+        
+        self.classifier = nn.Conv2d(128, num_classes, kernel_size=1)
+        self.activation = activation
+        
+    
+    def forward(self, x: torch.Tensor) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]]:
+        """
+        Forward pass of the Attention U-Net.
+        
+        Args:
+            x: Input image tensor
+            
+        Returns:
+            Model output (segmentation map)
+        """
+        in_shape = x.shape[2:]
+        
+        # Encoder path
+        x_enc_feature_maps = []
+        for block in self.encoder_blocks:
+            x = block(x)
+            x_enc_feature_maps.append(x)
+        
+        # x = self.aspp(x)
+        
+        # Decoder path with attention mechanisms
+        for i, block in enumerate(self.decoder_blocks):
+            # print(x.shape, x_enc_feature_maps[-(i + 2)].shape)
+            x = block(x, x_enc_feature_maps[-(i + 2)])
+                
+        y = self.classifier(x)
+        y = self.activation(y)
+        y = F.interpolate(y, size=in_shape, mode='bilinear')
+        return y
+    
+    def freeze_encoder(self) -> None:
+        """Freeze the encoder parameters."""
+        for encoder_block in self.encoder_blocks:
+            for param in encoder_block.parameters():
+                param.requires_grad = False
+    
+    def freeze_decoder(self) -> None:
+        """Freeze the decoder parameters."""
+        for decoder_block in self.decoder_blocks:
+            for param in decoder_block.parameters():
+                param.requires_grad = False
+        
+        for param in self.aspp.parameters():
+            param.requires_grad = False
+            
+    
+    def reinit_classifier(self, num_classes: int=8) -> None:
+        self.classifier = nn.Conv2d(64, num_classes, kernel_size=1)
+        self.num_classes = num_classes
+        return self

@@ -20,26 +20,31 @@ LOG_DIR="./logs/pbs"
 mkdir -p "$LOG_DIR"
 
 # stage 1 - encoder pretrain
-model="resnet152d"
+model="convnext"
 # pretrain_scheme="simclr"
 # randinit_args=("" "--rand_init")
 # randinit_args=("--rand_init")
 # for randinit_arg in "${randinit_args[@]}"
 pretrain_schems=( "hires_simclr" "simclr")
-pretrain_schems=("simclr")
+# pretrain_schems=("simclr")
 randinit_arg=""
 for pretrain_scheme in "${pretrain_schems[@]}"
 do
-    MINI_BATCH_SIZE=512
-    FULL_BATCH_SIZE=512
-    IMAGE_SIZE=192
-    LEARNING_RATE=0.001
+    MINI_BATCH_SIZE=256
+    FULL_BATCH_SIZE=256
+    if [[ "$pretrain_scheme" == "hires_simclr" ]]; then
+        IMAGE_SIZE=192
+    else
+        IMAGE_SIZE=256
+    fi
+    # IMAGE_SIZE=192
+    LEARNING_RATE=0.0001
     EARLY_STOPPING=3
-    MAX_EPOCHS=10
+    MAX_EPOCHS=100
 
-    WEIGHTS_DIR='./weights/hires_simclr_tests'
+    WEIGHTS_DIR='./weights/'
     JOB_NAME="${NAME}_${model}_${pretrain_scheme}"
-    PROG_LOG_DIR='./logs/hires_simclr_tests'
+    PROG_LOG_DIR='./logs/convnext_tests'
     mkdir -p "$PROG_LOG_DIR"
     mkdir -p "$PROG_LOG_DIR/$model"
 
@@ -47,19 +52,19 @@ do
 
 done
 
-HIRES_SIMCLR_WEIGHTS_PATH="./weights/hires_simclr_tests/resnet152d/hires_simclr.pth"
-SIMCLR_WEIGHTS_PATH="./weights/hires_simclr_tests/resnet152d/simclr.pth"
+HIRES_SIMCLR_WEIGHTS_PATH="./weights/convnext/hires_simclr.pth"
+SIMCLR_WEIGHTS_PATH="./weights/convnext/simclr.pth"
 # SIMCLR_RANDINIT_WEIGHTS_PATH="./weights/simclr2a_tests/resnet152d_randinit/simclr.pth"
 
 # Ensure the log directory exists
 # mkdir -p "$PBS_LOG_DIR"
 
-pretrain_schemes=('hires_simclr' 'simclr' 'imagenet' 'randinit')
+pretrain_schemes=('simclr' 'imagenet' 'randinit')
 # pretrain_schemes=('hires_simclr')
 # ft_datas=("./data/splits" "./data/cpb_tests/splits")
 ft_datas=("./data/splits")
 
-freeze_encoders=("--freeze_encoder")
+freeze_encoders=("" "--freeze_encoder")
 
 # source $PYTHON_ENV
 for ft_data in "${ft_datas[@]}"; do
@@ -70,7 +75,7 @@ for ft_data in "${ft_datas[@]}"; do
                 continue
             fi
 
-            SUB_DIR="msft1_hr_simclr_202502/${pretrain_scheme}"
+            SUB_DIR="msft1_convnext/${pretrain_scheme}"
 
             if [[ "$ft_data" == *"cpb_tests"* ]]; then
                 SUB_DIR="${SUB_DIR}/cpb"
@@ -122,7 +127,8 @@ for ft_data in "${ft_datas[@]}"; do
             TEST_DIR="${ft_data}/test/"
             
             arguments=(
-                "finetune_unet2.py"
+                "finetune.py"
+                "--model" "convnext"
                 "--train_dir" "$TRAIN_DIR"
                 "--val_dir" "$VAL_DIR"
                 "--test_dir" "$TEST_DIR"

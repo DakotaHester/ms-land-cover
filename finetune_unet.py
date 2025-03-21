@@ -203,7 +203,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--focal_gamma',
         type=float,
-        default=2.0,
+        default=5.0,
         help='The gamma parameter for the focal loss',
     )
     

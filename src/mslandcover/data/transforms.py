@@ -407,7 +407,7 @@ class HiResDataAugmentation:
     Also, add VerticalFlip and random 90 degree rotation.
     """
     
-    def __init__(self, size: int=192, s: float=0.1):
+    def __init__(self, size: int=192, s: float=1.0):
         
         self.size = size
         # self.resize_transform = ResizeTransform(size=size)
@@ -416,7 +416,9 @@ class HiResDataAugmentation:
         self.random_horizontal_flip = transforms.RandomHorizontalFlip()
         self.random_vertical_flip = transforms.RandomVerticalFlip()
         self.random_90_degree_rotation = Random90DegreeRotation()
+        self.elastic_transform = transforms.ElasticTransform(alpha=((size/256)*50.0)*s, sigma=((size/256)*5.0)*s)
         self.color_transforms = get_color_transforms(s=s, kernel_size=int(size*0.1), scale_sigma_by_s=True)
+        self.gaussian_noise = transforms.Lambda(lambda x: add_gaussian_noise(x, std=0.1*s))
         self.composed_transforms = transforms.Compose([
             self.random_crop,
             self.random_horizontal_flip,

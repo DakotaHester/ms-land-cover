@@ -6,7 +6,7 @@ from time import time
 import numpy as np
 import pandas as pd
 import torch
-from torch.optim import AdamW
+from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
 from sklearn.metrics import confusion_matrix, classification_report
@@ -15,14 +15,9 @@ from src.mslandcover.utils import Logger, get_torch_device, ProfilerHistory, loa
 from src.mslandcover.config import HRNET_W18_CONFIG, HRNET_W48_CONFIG, LEGEND_CLASSES
 from src.mslandcover.data.datasets import FineTuneDataset
 from src.mslandcover.data.transforms import StandardDataAugmentations
-from src.mslandcover.models import UNet, HighResUNet, UResNetD, AttentionUResNetD
+from src.mslandcover.models import HRNetSegmentationModel, ResNetAutoencoder
 from src.mslandcover.loss import FocalLoss, FocalTverskyLoss, UnifiedFocalLoss
 from src.mslandcover import metrics
-
-try:
-    from torch.amp import autocast, GradScaler
-except ImportError:
-    from torch.cuda.amp import autocast, GradScaler
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -31,83 +26,79 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--model',
         type=str,
-        choices=['unet', 'hrunet', 'uresnetd', 'att_unet'],
-        default='att_unet',
+        default='resnet152',
+        choices=['hrnet_w18', 'hrnet_w48', 'resnet152'],
         help='The model to use for training',
     )
     
     parser.add_argument(
-        '--encoder_weights',
+        '--weights',
         type=str,
-        default=None,
-        help='The path to the encoder weights to load for the full model. If `imagenet`, will load ImageNet weights.',
+        default='imagenet',
+        choices=['randinit', 'imagenet', 'ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr'],
+        help='The weights to use for the model',
     )
     
     parser.add_argument(
-        '--model_weights',
+        '--weights_dir',
         type=str,
-        default=None,
-        help='The path to the model weights to load for the full model.',
+        default='./weights/resnet_152_20250113',
+        help='The directory containing the weights',
     )
     
     parser.add_argument(
         '--train_dir',
         type=str,
-        default='./data/cpb_tests/splits/train',
+        default='./data/splits/train',
         help='The directory containing the training data',
     )
     
     parser.add_argument(
         '--val_dir',
         type=str,
-        default='./data/cpb_tests/splits/val',
+        default='./data/splits/val',
         help='The directory containing the validation data',
     )
     
     parser.add_argument(
         '--test_dir',
         type=str,
-        default='./data/cpb_tests/splits/test',
+        default='./data/splits/test',
         help='The directory containing the test data',
     )
     
     parser.add_argument(
-        '--freeze_encoder',
-        action='store_true',
-        help='Freeze the encoder weights',
-    )
-    
-    parser.add_argument(
-        '--freeze_decoder',
-        action='store_true',
-        help='Freeze the decoder weights',
+        '--n_layers_unfrozen',
+        type=int,
+        default=0,
+        help='The number of layers to unfreeze for training',
     )
     
     parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=8,
+        default=4,
         help='The mini-batch size to use for training (for gradient accumulation)',
     )
     
     parser.add_argument(
         '--full_batch_size',
         type=int,
-        default=8,
+        default=64,
         help='The effective batch size to use for training',
     )
     
     parser.add_argument(
         '--lr',
         type=float,
-        default=1e-5,
+        default=1e-4,
         help='The learning rate to use for training',
     )
     
     parser.add_argument(
         '--num_epochs',
         type=int,
-        default=1000,
+        default=100,
         help='The number of epochs to train the model',
     )
     
@@ -128,14 +119,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--log_dir',
         type=str,
-        default='./logs/finetune_unet',
+        default='./logs/finetune_resnet',
         help='The directory to save logs',
     )
     
     parser.add_argument(
         '--output_dir',
         type=str,
-        default='./weights/finetuned_unet',
+        default='./weights/finetuned_resnet',
         help='The directory to save weights',
     )
     
@@ -148,7 +139,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--num_workers',
         type=int,
-        default=8,
+        default=1,
         help='The number of workers to use for data loading',
     )
     
@@ -173,9 +164,15 @@ def parse_arguments() -> argparse.Namespace:
     )
     
     parser.add_argument(
+        '--train_full_encoder',
+        action='store_true',
+        help='Overrides n_layers_unfrozen and trains the full encoder',
+    )
+    
+    parser.add_argument(
         '--minimum_class_proportion',
         type=float,
-        default=0.0, # set to 0 to disable oversampling
+        default=0.05,
         help='Minimum proportion of a class in the dataset for it to be considered for oversampling',
     )
     
@@ -200,17 +197,27 @@ def parse_arguments() -> argparse.Namespace:
         help='The power to raise the class weights to',
     )
     
-    parser.add_argument(
-        '--focal_gamma',
-        type=float,
-        default=5.0,
-        help='The gamma parameter for the focal loss',
-    )
+    args = parser.parse_args()
     
-    args, unkown = parser.parse_known_args()
-    if len(unkown) > 0:
-        for arg in unkown:
-            print(f'Unknown argument: {arg}')
+    # check to see if script is being run as a job array on a cluster (using SLURM or PBS) and set the random seed accordingly
+    job_array_id = None
+    if os.getenv('SLURM_ARRAY_TASK_ID') is not None:
+        job_array_id = int(os.getenv('SLURM_ARRAY_TASK_ID'))
+    elif os.getenv('PBS_ARRAY_INDEX') is not None:
+        job_array_id = int(os.getenv('PBS_ARRAY_INDEX'))
+    elif os.getenv('TASK_ARRAY_ID') is not None:
+        job_array_id = int(os.getenv('TASK_ARRAY_ID'))
+    
+    if job_array_id is not None:
+        print(f'Running as a job array with ID {job_array_id}. Disregarding '\
+            '`weights` and `n_layers_unfrozen` arguments and substituting with '\
+            'predefined values based on the job array ID.')
+        possible_weights = ['randinit', 'imagenet', 'ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr']
+        possible_n_layers_unfrozen = range(15)
+        
+        args.weights = possible_weights[(job_array_id) % len(possible_weights)]
+        args.n_layers_unfrozen = possible_n_layers_unfrozen[(job_array_id) // len(possible_weights)]
+        print(f'Using weights: {args.weights} and n_layers_unfrozen: {args.n_layers_unfrozen}')
     
     if args.lr <= 0:
         parser.error('--lr must be greater than 0')
@@ -237,8 +244,16 @@ def main() -> None:
     torch.random.manual_seed(args.seed)
     np.random.seed(args.seed)
 
-    log_dir = os.path.join(args.log_dir)
-    out_dir = os.path.join(args.output_dir)
+    log_dir = os.path.join(args.log_dir, args.model, args.weights, str(args.n_layers_unfrozen))
+    out_dir = os.path.join(args.output_dir, args.model, args.weights, str(args.n_layers_unfrozen))
+
+    if args.train_full_encoder:
+        log_dir = log_dir + '_full_encoder'
+        out_dir = out_dir + '_full_encoder'
+    
+    if args.n_train_samples is not None:
+        log_dir = log_dir + f'_{args.n_train_samples}_samples'
+        out_dir = out_dir + f'_{args.n_train_samples}_samples'
     
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
@@ -256,8 +271,8 @@ def main() -> None:
         torch.backends.cudnn.deteministic = True
         torch.cuda.manual_seed_all(args.seed)
     
-    mean_path = os.path.join('weights', 'pretrain_mean.pth')
-    std_path = os.path.join('weights', 'pretrain_std.pth')
+    mean_path = os.path.join(args.weights_dir, 'pretrain_mean.pth')
+    std_path = os.path.join(args.weights_dir, 'pretrain_std.pth')
     
     mean = load_pth(mean_path) if os.path.exists(mean_path) else None
     std = load_pth(std_path) if os.path.exists(std_path) else None
@@ -274,8 +289,8 @@ def main() -> None:
         n_threads=args.num_workers,
     )
     val_dataset = FineTuneDataset(
-        data_paths=glob(os.path.join(args.val_dir, 'input', '*.tif'))[:args.n_train_samples],
-        target_paths=glob(os.path.join(args.val_dir, 'target', '*.tif'))[:args.n_train_samples],
+        data_paths=glob(os.path.join(args.val_dir, 'input', '*.tif')),
+        target_paths=glob(os.path.join(args.val_dir, 'target', '*.tif')),
         mean=mean,
         std=std,
         transform=None,
@@ -297,189 +312,115 @@ def main() -> None:
             minimum_oversample_ratios.append(args.minimum_oversample_ratio_factor * prob)
     logger.log(f'Class distribution: {class_dist}')
     
-    if len(oversample_classes) > 0:
-        train_dataset.oversample_classes(oversample_classes, oversample_factor=args.oversample_factor, minimum_ratio=minimum_oversample_ratios)
-        logger.log(f'Oversampled classes: {oversample_classes}')
-        logger.log(f'New class distribution: {train_dataset.get_class_distribution()}')
-        logger.log(f'New N_train: {len(train_dataset)}')
+    train_dataset.oversample_classes(oversample_classes, oversample_factor=args.oversample_factor, minimum_ratio=minimum_oversample_ratios)
+    logger.log(f'Oversampled classes: {oversample_classes}')
+    logger.log(f'New class distribution: {train_dataset.get_class_distribution()}')
+    logger.log(f'New N_train: {len(train_dataset)}')
     
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=args.mini_batch_size,
         shuffle=True,
         drop_last=True,
-        num_workers=args.num_workers if args.num_workers > 1 else 0,
-        pin_memory=True if args.num_workers > 1 else False,
-        # prefetch_factor=4 if args.num_workers > 1 else 0,
+        num_workers=args.num_workers,
+        pin_memory=True,
+        prefetch_factor=4,
     )
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
         batch_size=args.mini_batch_size,
         shuffle=False,
-        num_workers=args.num_workers if args.num_workers > 1 else 0,
-        pin_memory=True if args.num_workers > 1 else False,
-        # prefetch_factor=4 if args.num_workers > 1 else 0,
+        num_workers=args.num_workers,
+        pin_memory=True,
+        prefetch_factor=4,
     )
     
-    # alpha = (1 - class_dist) ** args.alpha_power
-    # alpha = alpha / alpha.mean()
-    # alpha = 1 / class_dist
-    # alpha = alpha / alpha.sum()
-    # alpha = torch.ones_like(class_dist)
-    # class_counts = class_dist * (256 ** 2 * len(train_dataset)) 
-    # print(class_counts)
-    # beta = 1.0 - 1e-7
-    # alpha = (1 - beta) / (1 - (beta ** class_counts))
-    # alpha = 1 / torch.log(1 + class_dist)
-    alpha = 1 / torch.sqrt(class_dist)
-    # alpha = 1 / (class_dist ** n(1/2))
-    # alpha = class_dist ** -(1/3)
+    alpha = (1 - class_dist) ** args.alpha_power
+    alpha = alpha / alpha.mean()
     logger.log(f'Class weights: {alpha}')
-    # criterion = UnifiedFocalLoss(alpha=alpha, reduction='sum').to(device)
-    criterion = FocalLoss(alpha=alpha, gamma=args.focal_gamma, reduction='sum').to(device)
+    criterion = UnifiedFocalLoss(alpha=alpha, reduction='sum').to(device)
     
-    num_classes = 7 if 'cpb' in args.train_dir else 8
+    if 'hrnet' in args.model:
+        model_config = HRNET_W48_CONFIG if args.model == 'hrnet_w48' else HRNET_W18_CONFIG
+        model = HRNetSegmentationModel(
+            config=model_config,
+            img_decoder_head=True,
+            use_simple_decoder=args.n_layers_unfrozen == 0,
+            use_se_decoder=args.n_layers_unfrozen > 0,
+            unet_like_decoder=True,
+            aux_simclr_head=False,
+            img_decoder_activation='softmax',
+            num_classes=num_classes,
+        ).to(device)
+        
+        if args.weights != 'randinit':
+            weights_state_dict = load_pth(os.path.join(args.weights_dir, f'{args.weights}.pth'), map_location=device)
+            model.load_encoder_weights(weights_state_dict)
+            logger.log(f'Loaded {args.weights} weights from {args.weights_dir}')
+    elif args.model == 'resnet152':
+        model = ResNetAutoencoder(
+            img_decoder_head=True,
+            use_simple_decoder=args.n_layers_unfrozen == 0,
+            use_se_decoder=args.n_layers_unfrozen > 0,
+            unet_like_decoder=True,
+            aux_simclr_head=False,
+            img_decoder_activation='softmax',
+            num_classes=num_classes,
+            pretrained=args.weights == 'imagenet',
+        ).to(device)
+        if args.weights not in ('randinit', 'imagenet'):
+            weights_state_dict = load_pth(os.path.join(args.weights_dir, f'{args.weights}.pth'), map_location=device)
+            model.load_encoder_weights(weights_state_dict)
+            logger.log(f'Loaded {args.weights} weights from {args.weights_dir}')
     
-    if args.model == 'unet':
-        # if full model weights are provided, load them and replace the old
-        if args.model_weights is not None:
-            # pretrained_model_classes = 7 if 'cpb' in args.model_weights else 8
-            pretrained_model_classes = 3 # TODO: automatically determine number of classes from model weights
-            model = UNet(num_classes=pretrained_model_classes).to(device)
-            model.load_state_dict(load_pth(args.model_weights))
-            model.classifier = torch.nn.Conv2d(64, num_classes, kernel_size=1)
-            model = model.to(device)
-        
-        # if encoder weights only are provided, load them and keep the random decoder
-        elif args.encoder_weights is not None and args.encoder_weights != 'imagenet':
-            model = UNet(num_classes=num_classes).to(device)
-            model.load_encoder_weights(load_pth(args.encoder_weights))
-        
-        else:
-            model = UNet(num_classes=num_classes, pretrained=args.encoder_weights == 'imagenet').to(device)
-            
-        if args.freeze_encoder:
-            # for param in model.encoder.parameters():
-            for encoder_block in model.encoder_blocks:
-                for param in encoder_block.parameters():
-                    param.requires_grad = False
+    trainable_stages = [
+        'decoder',
+        'encoder.stage4.2',
+        'encoder.stage4.1',
+        'encoder.stage4.0',
+        'encoder.transition3',
+        'encoder.stage3.3',
+        'encoder.stage3.2',
+        'encoder.stage3.1',
+        'encoder.stage3.0',
+        'encoder.transition2',
+        'encoder.stage2.0',
+        'encoder.transition1',
+        'encoder.layer1',
+        'encoder' # full encoder
+    ][:args.n_layers_unfrozen]
     
-        if args.freeze_decoder:
-            # for param in model.decoder.parameters():
-            for decoder_block in model.decoder_blocks:
-                for param in decoder_block.parameters():
-                    param.requires_grad = False 
+    if args.n_layers_unfrozen == 0:
+        trainable_stages = ['decoder'] # linear probe
     
-    elif args.model == 'hrunet':
-        # ignore load encoder weights for now
-        model = HighResUNet(
-            num_classes=num_classes if args.model_weights is None else 3,
-            pretrained=args.encoder_weights == 'imagenet',
-            activation=torch.nn.Softmax(dim=1),
-            deep_supervision=False if args.model_weights is None else True, # model pre-trainined using deep supervision
-        )
-        if args.model_weights is not None:
-            logger.log(f'Loading model weights from {args.model_weights}')
-            model.load_state_dict(load_pth(args.model_weights))
-            model.disable_deep_supervision()
-            model.reinit_classifier(num_classes)
-        model = model.to(device)
-        
-        if args.freeze_encoder:
-            model.freeze_encoder()
-        
-        if args.freeze_decoder:
-            model.freeze_decoder()
+    if args.train_full_encoder:
+        trainable_stages = ['decoder', 'encoder']
     
-    elif args.model == 'uresnetd':
-        model = UResNetD(
-            num_classes=num_classes if args.model_weights is None else 3,
-            pretrained=args.encoder_weights == 'imagenet',
-            activation=torch.nn.Softmax(dim=1),
-            # deep_supervision=False if args.model_weights is None else True, # model pre-trainined using deep supervision\
-            deep_supervision=False,
-        )
-        if args.encoder_weights is not None and args.encoder_weights != 'imagenet':
-            # make sure to only load encoder weights
-            weights = load_pth(args.encoder_weights)
-            adj_weights = {}
-            for k, v in weights.items():
-                if k.startswith('encoder'): # remove encoder prefix
-                    new_k = k.replace('encoder.', '')
-                    adj_weights[new_k] = v
-            del weights
-            model.encoder.load_state_dict(adj_weights)
-                    
-            
-        # if args.model_weights is not None:
-        #     logger.log(f'Loading model weights from {args.model_weights}')
-        #     model.load_state_dict(load_pth(args.model_weights))
-        #     model.disable_deep_supervision()
-        #     model.reinit_classifier(num_classes)
-        model = model.to(device)
-        
-        if args.freeze_encoder:
-            model.freeze_encoder()
-        if args.freeze_decoder:
-            model.freeze_decoder()
+    total_params = 0
+    for param in model.parameters():
+        total_params += param.numel()
+        param.requires_grad = False
     
-    
-    elif args.model == 'att_unet':
-        model = AttentionUResNetD(
-            num_classes=num_classes if args.model_weights is None else 3,
-            pretrained=args.encoder_weights == 'imagenet',
-            activation=torch.nn.Softmax(dim=1),
-            decoder_convs=2,
-        )
-        if args.encoder_weights is not None and args.encoder_weights != 'imagenet':
-            # make sure to only load encoder weights
-            weights = load_pth(args.encoder_weights)
-            adj_weights = {}
-            for k, v in weights.items():
-                if k.startswith('encoder'):
-                    new_k = k.replace('encoder.', '')
-                    adj_weights[new_k] = v
-            del weights 
-            model.encoder.load_state_dict(adj_weights)
-        
-        elif args.model_weights is not None:
-            logger.log(f'Loading model weights from {args.model_weights}')
-            model.load_state_dict(load_pth(args.model_weights))
-            model.disable_deep_supervision()
-            model.reinit_classifier(num_classes)
-        
-        
-        model = model.to(device)
-        
-        if args.freeze_encoder:
-            model.freeze_encoder()
-        if args.freeze_decoder:
-            model.freeze_decoder()
-    
-    total_params = sum(p.numel() for p in model.parameters())
-    trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    trainable_params = 0
+    for param in model.named_parameters():
+        for stage in trainable_stages:
+            if param[0].startswith(stage):
+                trainable_params += param[1].numel()
+                param[1].requires_grad = True
+                break
     
     logger.log(f'Total parameters: {total_params}')
     logger.log(f'Trainable parameters: {trainable_params}')
+    logger.log(f'Trainable stages: {trainable_stages}')
 
-    optimizer = AdamW(
+    optimizer = Adam(
         params=model.parameters(),
         lr=args.lr,
-        weight_decay=1e-2,
     )
-    
-    scaler = GradScaler()
-    # new pytorch version requires device_type argument, old one assumes CUDA and has no device_type argument
-    # NOTE: DISABLE AUTOCAST FOR NOW
-    try:
-        autocast_context_manager = autocast(device_type=device.type, enabled=False)
-    except TypeError: # multiple values for argument `enabled`
-        autocast_context_manager = autocast(enabled=False)
     
     scheduler = ReduceLROnPlateau(
         optimizer=optimizer,
         patience=args.reduce_lr_patience,
-        eps=0,
     )
     
     metric_fns = [
@@ -516,7 +457,7 @@ def main() -> None:
             criterion.load_state_dict(checkpoint['criterion'])
             optimizer.load_state_dict(checkpoint['optimizer'])
             scheduler.load_state_dict(checkpoint['scheduler'])
-            starting_epoch = checkpoint['epoch'] + 1
+            starting_epoch = checkpoint['epoch'] 
             best_epoch = checkpoint['best_epoch']
             best_val_loss = checkpoint['best_val_loss']
             history_dict = checkpoint['history_dict']
@@ -525,9 +466,9 @@ def main() -> None:
         else:
             logger.log(f'No checkpoint found at {checkpoint_path}')
     
-    logger.log(f'Starting training from epoch {starting_epoch}...')
+    logger.log(f'Starting training from epoch {starting_epoch+1}...')
     
-    for epoch in range(starting_epoch, args.num_epochs+1):
+    for epoch in range(starting_epoch+1, args.num_epochs+1):
         
         lr = optimizer.param_groups[0]['lr']
         history_dict['learning_rate'].append(lr)
@@ -540,8 +481,8 @@ def main() -> None:
                 phase_stats[metric_fn.__name__] = []
             
             if phase == 'train':
-                torch.set_grad_enabled(epoch != 0)
-                optimizer.zero_grad(set_to_none=True)
+                torch.set_grad_enabled(True)
+                optimizer.zero_grad()
                 model.train()
                 loader = train_loader
 
@@ -560,31 +501,28 @@ def main() -> None:
                 unit='batch'
             ) as pbar:
                 for step, (X, y) in enumerate(loader):
+                    X, y = X.to(device), y.to(device)
+            
+                    y_hat = model(X)
+                    loss = criterion(y_hat, y)
                     
-                    with autocast_context_manager:
-                        X, y = X.to(device), y.to(device)
-                
-                        y_hat = model(X)
-                        loss = criterion(y_hat, y)
-                        
-                        if phase == 'train' and epoch != 0:
-                            scaler.scale(loss).backward()
+                    if phase == 'train':
+                        loss.backward()
                     
-                        phase_stats['loss'].append(loss.detach().cpu().item())
-                        for metric_fn in metric_fns:
-                            phase_stats[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X)) # multiple by samples seen to get true average later
+                    phase_stats['loss'].append(loss.item())
+                    for metric_fn in metric_fns:
+                        phase_stats[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X)) # multiple by samples seen to get true average later
 
-                        running_metrics = {
-                            'loss': sum(phase_stats['loss']) / ((step * loader.batch_size) + len(X)),
-                        }
-                        for metric_fn in metric_fns:
-                            running_metrics[metric_fn.__name__] = sum(phase_stats[metric_fn.__name__]) / ((step * loader.batch_size) + len(X))
+                    running_metrics = {
+                        'loss': sum(phase_stats['loss']) / ((step * loader.batch_size) + len(X)),
+                    }
+                    for metric_fn in metric_fns:
+                        running_metrics[metric_fn.__name__] = sum(phase_stats[metric_fn.__name__]) / ((step * loader.batch_size) + len(X))
                     
                     if (step + 1) % args.grad_accumulation_steps == 0:
-                        if phase == 'train' and epoch != 0:
-                            scaler.step(optimizer)
-                            scaler.update()
-                            optimizer.zero_grad(set_to_none=True)
+                        if phase == 'train':
+                            optimizer.step()
+                            optimizer.zero_grad()
                         tqdm_postfix = {
                             'lr': f"{lr:.0e}",
                             'loss': f"{running_metrics['loss']:.3e}",
@@ -631,7 +569,7 @@ def main() -> None:
         }
         torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
         
-        history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch + 1)))
+        history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch)))
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
         profiler.save(os.path.join(log_dir, 'profiler.csv'))
         
@@ -673,13 +611,13 @@ def main() -> None:
     y_trues = []
     
     total_steps = math.ceil(len(test_loader) / args.grad_accumulation_steps)
-    with tqdm(total=total_steps, desc='Testing', unit='batch') as pbar:
+    with tqdm(total=len(test_loader), desc='Testing', unit='batch') as pbar:
         for step, (X, y) in enumerate(test_loader):
             X, y = X.to(device), y.to(device)
             y_hat = model(X)
             
             loss = criterion(y_hat, y)
-            phase_metrics['loss'].append(loss.detach().cpu().item())
+            phase_metrics['loss'].append(loss.item())
             test_metrics['loss'] = sum(phase_metrics['loss']) / ((step * test_loader.batch_size) + len(X))
             
             for metric_fn in metric_fns:
@@ -689,7 +627,7 @@ def main() -> None:
             y_preds.append(y_hat.argmax(axis=1).cpu().numpy().flatten())
             y_trues.append(y.cpu().numpy().flatten())
             
-            if (step + 1) % args.grad_accumulation_steps == 0 or step == len(test_loader) - 1:
+            if (step + 1) % args.grad_accumulation_steps == 0:
                 tqdm_postfix = {
                     'loss': f"{test_metrics['loss']:.3e}",
                     'f1': f"{test_metrics['f1_score']:.3f}",
@@ -708,23 +646,9 @@ def main() -> None:
     y_preds = np.concatenate(y_preds)
     y_trues = np.concatenate(y_trues)
     
-    
-    if 'cpb' in args.test_dir:
-        legend_classes = {
-            1: 'Water',
-            2: 'Tree canopy',
-            3: 'Shrubland',
-            4: 'Low vegetation',
-            5: 'Barren land',
-            6: 'Impervious structures',
-            7: 'Other impervious',
-        }
-    else:
-        legend_classes = LEGEND_CLASSES
-        
-    y_trues_class_names = [legend_classes[i+1] for i in y_trues]
-    y_preds_class_names = [legend_classes[i+1] for i in y_preds]
-    class_names_list = [legend_classes[i+1] for i in range(num_classes)]
+    y_trues_class_names = [LEGEND_CLASSES[i+1] for i in y_trues]
+    y_preds_class_names = [LEGEND_CLASSES[i+1] for i in y_preds]
+    class_names_list = [LEGEND_CLASSES[i+1] for i in range(8)]
 
     cm = confusion_matrix(y_trues_class_names, y_preds_class_names, labels=class_names_list)
     cm_df = pd.DataFrame(cm, index=class_names_list, columns=class_names_list)
