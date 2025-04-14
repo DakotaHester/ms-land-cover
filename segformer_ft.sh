@@ -28,29 +28,29 @@ model="convnext"
 pretrain_schems=( "hires_simclr" "simclr")
 # pretrain_schems=("simclr")
 randinit_arg=""
-for pretrain_scheme in "${pretrain_schems[@]}"
-do
-    MINI_BATCH_SIZE=256
-    FULL_BATCH_SIZE=256
-    if [[ "$pretrain_scheme" == "hires_simclr" ]]; then
-        IMAGE_SIZE=192
-    else
-        IMAGE_SIZE=256
-    fi
-    # IMAGE_SIZE=192
-    LEARNING_RATE=0.0001
-    EARLY_STOPPING=3
-    MAX_EPOCHS=100
+# for pretrain_scheme in "${pretrain_schems[@]}"
+# do
+#     MINI_BATCH_SIZE=256
+#     FULL_BATCH_SIZE=256
+#     if [[ "$pretrain_scheme" == "hires_simclr" ]]; then
+#         IMAGE_SIZE=192
+#     else
+#         IMAGE_SIZE=256
+#     fi
+#     # IMAGE_SIZE=192
+#     LEARNING_RATE=0.0001
+#     EARLY_STOPPING=3
+#     MAX_EPOCHS=100
 
-    WEIGHTS_DIR='./weights/'
-    JOB_NAME="${NAME}_${model}_${pretrain_scheme}"
-    PROG_LOG_DIR='./logs/convnext_tests'
-    mkdir -p "$PROG_LOG_DIR"
-    mkdir -p "$PROG_LOG_DIR/$model"
+#     WEIGHTS_DIR='./weights/'
+#     JOB_NAME="${NAME}_${model}_${pretrain_scheme}"
+#     PROG_LOG_DIR='./logs/convnext_tests'
+#     mkdir -p "$PROG_LOG_DIR"
+#     mkdir -p "$PROG_LOG_DIR/$model"
 
-    python $SCRIPT_NAME --pretrain_scheme $pretrain_scheme --model $model --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --weights_dir $WEIGHTS_DIR --log_dir $PROG_LOG_DIR --image_size $IMAGE_SIZE --init_lr $LEARNING_RATE --early_stopping_patience $EARLY_STOPPING --num_epochs $MAX_EPOCHS $randinit_arg
+#     python $SCRIPT_NAME --pretrain_scheme $pretrain_scheme --model $model --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --weights_dir $WEIGHTS_DIR --log_dir $PROG_LOG_DIR --image_size $IMAGE_SIZE --init_lr $LEARNING_RATE --early_stopping_patience $EARLY_STOPPING --num_epochs $MAX_EPOCHS $randinit_arg
 
-done
+# done
 
 HIRES_SIMCLR_WEIGHTS_PATH="./weights/convnext/hires_simclr.pth"
 SIMCLR_WEIGHTS_PATH="./weights/convnext/simclr.pth"
@@ -59,105 +59,166 @@ SIMCLR_WEIGHTS_PATH="./weights/convnext/simclr.pth"
 # Ensure the log directory exists
 # mkdir -p "$PBS_LOG_DIR"
 
-pretrain_schemes=('simclr' 'imagenet' 'randinit')
-# pretrain_schemes=('hires_simclr')
-# ft_datas=("./data/splits" "./data/cpb_tests/splits")
-ft_datas=("./data/splits")
-
-freeze_encoders=("" "--freeze_encoder")
-
-# source $PYTHON_ENV
-for ft_data in "${ft_datas[@]}"; do
-    for pretrain_scheme in "${pretrain_schemes[@]}"; do
-        for freeze_encoder in "${freeze_encoders[@]}"; do
-
-            if [[ "$pretrain_scheme" == "randinit" && "$freeze_encoder" == "--freeze_encoder" ]]; then
+pretrain_schemes_2=('dae_si' 'dae')
+freeze_encoders_2=("--frozen_encoder" "no_freeze")
+# freeze_encoders_2=("no_freeze")
+init_encoder_weights=("imagenet" "simclr" "hires_simclr" "randinit")
+# echo "pretrain_schemes_2: ${pretrain_schemes_2[@]}"
+for freeze_encoders in ${freeze_encoders_2[@]}
+do
+    for pretrain_scheme in ${pretrain_schemes_2[@]}
+    do
+        for init_encoder_weights in ${init_encoder_weights[@]}
+        do
+            
+            if [[ "$init_encoder_weights" == "randinit" && "$freeze_encoders" == "--frozen_encoder" ]]; then
                 continue
             fi
 
-            SUB_DIR="msft1_convnext/${pretrain_scheme}"
-
-            if [[ "$ft_data" == *"cpb_tests"* ]]; then
-                SUB_DIR="${SUB_DIR}/cpb"
-                BATCH_SIZE=16
-            else
-                SUB_DIR="${SUB_DIR}/mslc"
-                BATCH_SIZE=8
+            if [[ "$freeze_encoders" == "no_freeze" ]]; then
+                freeze_encoders=""
+            fi
+            
+            if [[ "$init_encoder_weights" == "simclr" ]]; then
+                weights_arg="--encoder_weights ${SIMCLR_WEIGHTS_PATH}"
+            elif [[ "$init_encoder_weights" == "hires_simclr" ]]; then
+                weights_arg="--encoder_weights ${HIRES_SIMCLR_WEIGHTS_PATH}"
+            elif [[ "$init_encoder_weights" == "randinit" ]]; then
+                weights_arg="--rand_init"
+            elif [[ "$init_encoder_weights" == "imagenet" ]]; then
+                weights_arg=""
             fi
 
-            if [[ "$freeze_encoder" == "--freeze_encoder" ]]; then
-                SUB_DIR="${SUB_DIR}/decoder_train"
-            else
-                SUB_DIR="${SUB_DIR}/full_train"
-            fi
-
-            LOG_DIR="./logs/${SUB_DIR}"
-            OUT_DIR="./weights/${SUB_DIR}"
-
-            # if classification_report.csv already exists in log_dir, skip
-            # if [[ -f "${LOG_DIR}/classification_report.csv" ]]; then
-                # continue
+            # if [[ "$SOME_CONDITION" == "true" ]]; then
+            #     # Add your logic here
             # fi
 
-            JOB_NAME="resunet_${pretrain_scheme}_ft_stage1${freeze_encoder}"
-            if [[ "$ft_data" == *"cpb_tests"* ]]; then
-                JOB_NAME="${JOB_NAME}_cpb"
-            else
-                JOB_NAME="${JOB_NAME}_mslc"
-            fi
-                                    
-            # Create a PBS script for the job
-            PBS_SCRIPT="./pbs_scripts/${JOB_NAME}.pbs"
-            mkdir -p "$(dirname "$PBS_SCRIPT")"
+            MINI_BATCH_SIZE=64
+            FULL_BATCH_SIZE=64
+            IMAGE_SIZE=256
+            LEARNING_RATE=0.00001
+            EARLY_STOPPING=3
+            MAX_EPOCHS=100
 
-            if [[ "$pretrain_scheme" == "imagenet" ]]; then
-                WEIGHTS_PARAMETER="--encoder_weights imagenet"
-            elif [[ "$pretrain_scheme" == "simclr" ]]; then
-                WEIGHTS_PARAMETER="--encoder_weights ${SIMCLR_WEIGHTS_PATH}"
-            elif [[ "$pretrain_scheme" == "simclr_randinit" ]]; then
-                WEIGHTS_PARAMETER="--encoder_weights ${SIMCLR_RANDINIT_WEIGHTS_PATH}"
-            elif [[ "$pretrain_scheme" == "hires_simclr" ]]; then
-                WEIGHTS_PARAMETER="--encoder_weights ${HIRES_SIMCLR_WEIGHTS_PATH}"
-            else
-                WEIGHTS_PARAMETER=""
-            fi
+            WEIGHTS_DIR="./weights/att_unext_pts2/${init_encoder_weights}"
 
-            TRAIN_DIR="${ft_data}/train/"
-            VAL_DIR="${ft_data}/val/"
-            TEST_DIR="${ft_data}/test/"
-            
-            arguments=(
-                "finetune.py"
-                "--model" "convnext"
-                "--train_dir" "$TRAIN_DIR"
-                "--val_dir" "$VAL_DIR"
-                "--test_dir" "$TEST_DIR"
-                "--log_dir" "$LOG_DIR"
-                "--output_dir" "$OUT_DIR"
-                "--mini_batch_size" "$BATCH_SIZE"
-                "--full_batch_size" "$BATCH_SIZE"
-                "--load_data_from_disk"
-                "--lr" "0.0001" # default is 1e-5
-                # "--num_workers" "$NCPUS"
-                "$freeze_encoder"
-            )
+            # create the weights directory if it doesn't exist
+            mkdir -p "$WEIGHTS_DIR"
+            # copy pretrain_mean and pretrain_std to the weights directory
+            cp ./weights/pretrain_mean.pth "$WEIGHTS_DIR"
+            cp ./weights/pretrain_std.pth "$WEIGHTS_DIR"
 
-            # Split WEIGHTS_PARAMETER into separate elements
-            IFS=' ' read -r -a weights_array <<< "$WEIGHTS_PARAMETER"
-            arguments+=("${weights_array[@]}")
+            JOB_NAME="${NAME}_${model}_${pretrain_scheme}_${freeze_encoders}_${init_encoder_weights}"
+            PROG_LOG_DIR="./logs/hires_simclr_tests/${init_encoder_weights}"
+            mkdir -p "$PROG_LOG_DIR"
+            mkdir -p "$PROG_LOG_DIR/$model"
 
-            # if running on GCER GPU server, run directly
-            if [[ "$HOSTNAME" == "gcer-a100" ]]; then
-                echo "python ${arguments[@]}"
-                python "${arguments[@]}"
-                continue
-            else
-                # add --num_workers to arguments
-                arguments+=("--num_workers" "$NCPUS")
-            fi
+            echo "python pretrain.py --model att_unext --pretrain_scheme $pretrain_scheme --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --weights_dir $WEIGHTS_DIR --log_dir $PROG_LOG_DIR --image_size $IMAGE_SIZE --init_lr $LEARNING_RATE --early_stopping_patience $EARLY_STOPPING --num_epochs $MAX_EPOCHS  ${weights_arg} ${freeze_encoders}"
+            python pretrain.py --model att_unext --pretrain_scheme $pretrain_scheme --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --weights_dir $WEIGHTS_DIR --log_dir $PROG_LOG_DIR --image_size $IMAGE_SIZE --init_lr $LEARNING_RATE --early_stopping_patience $EARLY_STOPPING --num_epochs $MAX_EPOCHS ${weights_arg} ${freeze_encoders}
+
         done
     done
 done
+
+# pretrain_schemes=('simclr' 'imagenet' 'randinit')
+# # pretrain_schemes=('hires_simclr')
+# # ft_datas=("./data/splits" "./data/cpb_tests/splits")
+# ft_datas=("./data/splits")
+
+# freeze_encoders=("" "--freeze_encoder")
+
+# # source $PYTHON_ENV
+# for ft_data in "${ft_datas[@]}"; do
+#     for pretrain_scheme in "${pretrain_schemes[@]}"; do
+#         for freeze_encoder in "${freeze_encoders[@]}"; do
+
+#             if [[ "$pretrain_scheme" == "randinit" && "$freeze_encoder" == "--freeze_encoder" ]]; then
+#                 continue
+#             fi
+
+#             SUB_DIR="msft1_convnext/${pretrain_scheme}"
+
+#             if [[ "$ft_data" == *"cpb_tests"* ]]; then
+#                 SUB_DIR="${SUB_DIR}/cpb"
+#                 BATCH_SIZE=16
+#             else
+#                 SUB_DIR="${SUB_DIR}/mslc"
+#                 BATCH_SIZE=8
+#             fi
+
+#             if [[ "$freeze_encoder" == "--freeze_encoder" ]]; then
+#                 SUB_DIR="${SUB_DIR}/decoder_train"
+#             else
+#                 SUB_DIR="${SUB_DIR}/full_train"
+#             fi
+
+#             LOG_DIR="./logs/${SUB_DIR}"
+#             OUT_DIR="./weights/${SUB_DIR}"
+
+#             # if classification_report.csv already exists in log_dir, skip
+#             # if [[ -f "${LOG_DIR}/classification_report.csv" ]]; then
+#                 # continue
+#             # fi
+
+#             JOB_NAME="resunet_${pretrain_scheme}_ft_stage1${freeze_encoder}"
+#             if [[ "$ft_data" == *"cpb_tests"* ]]; then
+#                 JOB_NAME="${JOB_NAME}_cpb"
+#             else
+#                 JOB_NAME="${JOB_NAME}_mslc"
+#             fi
+                                    
+#             # Create a PBS script for the job
+#             PBS_SCRIPT="./pbs_scripts/${JOB_NAME}.pbs"
+#             mkdir -p "$(dirname "$PBS_SCRIPT")"
+
+#             if [[ "$pretrain_scheme" == "imagenet" ]]; then
+#                 WEIGHTS_PARAMETER="--encoder_weights imagenet"
+#             elif [[ "$pretrain_scheme" == "simclr" ]]; then
+#                 WEIGHTS_PARAMETER="--encoder_weights ${SIMCLR_WEIGHTS_PATH}"
+#             elif [[ "$pretrain_scheme" == "simclr_randinit" ]]; then
+#                 WEIGHTS_PARAMETER="--encoder_weights ${SIMCLR_RANDINIT_WEIGHTS_PATH}"
+#             elif [[ "$pretrain_scheme" == "hires_simclr" ]]; then
+#                 WEIGHTS_PARAMETER="--encoder_weights ${HIRES_SIMCLR_WEIGHTS_PATH}"
+#             else
+#                 WEIGHTS_PARAMETER=""
+#             fi
+
+#             TRAIN_DIR="${ft_data}/train/"
+#             VAL_DIR="${ft_data}/val/"
+#             TEST_DIR="${ft_data}/test/"
+            
+#             arguments=(
+#                 "finetune.py"
+#                 "--model" "convnext"
+#                 "--train_dir" "$TRAIN_DIR"
+#                 "--val_dir" "$VAL_DIR"
+#                 "--test_dir" "$TEST_DIR"
+#                 "--log_dir" "$LOG_DIR"
+#                 "--output_dir" "$OUT_DIR"
+#                 "--mini_batch_size" "$BATCH_SIZE"
+#                 "--full_batch_size" "$BATCH_SIZE"
+#                 "--load_data_from_disk"
+#                 "--lr" "0.0001" # default is 1e-5
+#                 # "--num_workers" "$NCPUS"
+#                 "$freeze_encoder"
+#             )
+
+#             # Split WEIGHTS_PARAMETER into separate elements
+#             IFS=' ' read -r -a weights_array <<< "$WEIGHTS_PARAMETER"
+#             arguments+=("${weights_array[@]}")
+
+#             # if running on GCER GPU server, run directly
+#             if [[ "$HOSTNAME" == "gcer-a100" ]]; then
+#                 echo "python ${arguments[@]}"
+#                 python "${arguments[@]}"
+#                 continue
+#             else
+#                 # add --num_workers to arguments
+#                 arguments+=("--num_workers" "$NCPUS")
+#             fi
+#         done
+#     done
+# done
 
 # # stage 2 - decoder pretrain
 # model="att_unet"

@@ -497,6 +497,7 @@ def visualize_transforms(
     n_views: int, 
     return_hsv: bool,
     return_lab: bool,
+    return_si: bool,
     noisy_input: bool,
     dataset: torch.utils.data.Dataset, 
     data_paths: List[str], 
@@ -516,6 +517,39 @@ def visualize_transforms(
         out_path = os.path.join(out_dir, pretrain_schema, str(im_index))
         os.makedirs(out_path, exist_ok=True)
         cv.imwrite(os.path.join(out_path, f'{i}_original.png'), og_img)
+        
+        if return_si:
+            X, si = dataset[im_index]
+            X = X.permute(1, 2, 0)
+            X = ((X * std) + mean) * 255 # undo normalization
+            X = torch.clamp(X, min=0, max=255)
+            X = X.int().cpu().numpy().astype(np.uint8)
+            X = cv.cvtColor(X, cv.COLOR_RGB2BGR)
+            cv.imwrite(os.path.join(out_path, f'{i}_view_0_og.png'), X)
+            
+            si = si.permute(1, 2, 0).cpu().numpy()
+            si = si + 1
+            si = (si * (255 / 2)).astype(np.uint8)
+            si = cv.cvtColor(si, cv.COLOR_RGB2BGR)
+            cv.imwrite(os.path.join(out_path, f'{i}_view_0_si.png'), si)
+        
+        else:
+            for view in range(n_views):
+                X, si = dataset[im_index][view]
+                X = X.permute(1, 2, 0)
+                X = ((X * std) + mean) * 255
+                X = torch.clamp(X, min=0, max=255)
+                X = X.int().cpu().numpy().astype(np.uint8)
+                X = cv.cvtColor(X, cv.COLOR_RGB2BGR)
+                cv.imwrite(os.path.join(out_path, f'{i}_view_{view}.png'), X)
+
+                si = si.permute(1, 2, 0).cpu().numpy()
+                si = si + 1
+                si = (si * (255 / 2)).astype(np.uint8)
+                si = cv.cvtColor(si, cv.COLOR_RGB2BGR)
+                cv.imwrite(os.path.join(out_path, f'{i}_view_{view}_si.png'), si)
+            
+        
         if return_hsv or return_lab:
             if n_views == 1:
                 X, hsv = dataset[im_index]
@@ -549,6 +583,7 @@ def visualize_transforms(
         elif noisy_input:
             if n_views == 1:
                 noisy_X, X = dataset[im_index]
+                # print(X.shape)
                 X = X.permute(1, 2, 0)
                 X = ((X * std) + mean) * 255
                 X = X.int().cpu().numpy().astype(np.uint8)

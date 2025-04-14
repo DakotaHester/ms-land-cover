@@ -1590,6 +1590,8 @@ class ConvBlock(nn.Module):
         if activation is not None:
             if activation == 'relu':
                 self.act = nn.ReLU(inplace=True)
+            elif activation == 'gelu':
+                self.act = nn.GELU()
             elif activation == 'leaky_relu':
                 self.act = nn.LeakyReLU(inplace=True)
             elif activation == 'sigmoid':
@@ -1711,6 +1713,7 @@ class AttentionUnetUpBlock(nn.Module):
         use_cbam: bool=False,
         bilinear_upsample: bool=False,
         n_convs: int=4,
+        activation_func='relu',
     ):
         super(AttentionUnetUpBlock, self).__init__()
         self.encoder_channels = encoder_channels
@@ -1720,13 +1723,14 @@ class AttentionUnetUpBlock(nn.Module):
         self.use_cbam = use_cbam
         self.bilinear_upsample = bilinear_upsample
         self.convs = n_convs
+        self.activation_func = activation_func
         
         if upsample:
             if bilinear_upsample:
                 self.up = nn.Sequential(
                     nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False),
                     # nn.Conv2d(decoder_channels, out_channels, kernel_size=1)
-                    ConvBlock(decoder_channels, out_channels, kernel_size=1, stride=1, padding=0, batch_norm=True, activation='relu')
+                    ConvBlock(decoder_channels, out_channels, kernel_size=1, stride=1, padding=0, batch_norm=True, activation=activation_func)
                 )
             else:
                 self.up = nn.Sequential(
@@ -1745,7 +1749,7 @@ class AttentionUnetUpBlock(nn.Module):
                 )
         
         # self.proj = nn.Conv2d(encoder_channels + out_channels, out_channels, kernel_size=1)
-        self.proj = ConvBlock(encoder_channels + out_channels, out_channels, kernel_size=1, stride=1, padding=0, batch_norm=True, activation='relu')
+        self.proj = ConvBlock(encoder_channels + out_channels, out_channels, kernel_size=1, stride=1, padding=0, batch_norm=True, activation=activation_func)
         self.conv_blocks = nn.ModuleList([])
         for i in range(n_convs):
             channels = encoder_channels + out_channels if i == 0 else out_channels
@@ -1754,7 +1758,7 @@ class AttentionUnetUpBlock(nn.Module):
             #     nn.BatchNorm2d(out_channels),
             #     nn.ReLU(inplace=True)
             # ))
-            self.conv_blocks.append(ConvBlock(channels, out_channels, kernel_size=3, stride=1, padding=1, batch_norm=True, activation='relu'))
+            self.conv_blocks.append(ConvBlock(channels, out_channels, kernel_size=3, stride=1, padding=1, batch_norm=True, activation=activation_func))
         
         if use_cbam:
             self.cbam = CBAM(out_channels)
@@ -2015,7 +2019,7 @@ class AttentionUConvNeXt(nn.Module):
         num_classes: int=8,
         pretrained: bool=True,
         activation: nn.Module=nn.Softmax(dim=1),
-        decoder_convs: int=4,
+        decoder_convs: int=8,
         bilinear_upsample: bool=True,
     ):
         super(AttentionUConvNeXt, self).__init__()
@@ -2035,6 +2039,8 @@ class AttentionUConvNeXt(nn.Module):
             self.encoder.stages[2],
             self.encoder.stages[3],
         ])
+        
+        self.bottleneck_cbam = CBAM(1024)  # Apply CBAM after the last encoder block
         
         # self.aspp = ASPP(1024, 1024)  # Apply ASPP after the last encoder block
         
@@ -2067,7 +2073,7 @@ class AttentionUConvNeXt(nn.Module):
             x = block(x)
             x_enc_feature_maps.append(x)
         
-        # x = self.aspp(x)
+        x = self.bottleneck_cbam(x)
         
         # Decoder path with attention mechanisms
         for i, block in enumerate(self.decoder_blocks):

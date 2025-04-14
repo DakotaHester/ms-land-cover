@@ -31,6 +31,8 @@ class PreTrainDataset(Dataset):
         return_lab: bool=False,
         return_spectral_indices: bool=False,
         noisy_input: bool=False,
+        noise_std: float=2.0,
+        noise_pct: float=0.5,
         return_metadata: bool=False,
         device: torch.device=torch.device('cpu'),
         batch_size_for_stats: int=1024,
@@ -68,6 +70,8 @@ class PreTrainDataset(Dataset):
         self.return_lab = return_lab
         self.return_spectral_indices = return_spectral_indices
         self.noisy_input = noisy_input
+        self.noise_std = noise_std
+        self.noise_pct = noise_pct
         self.return_metadata = return_metadata
         self.device = device
         self.preload = preload
@@ -178,9 +182,11 @@ class PreTrainDataset(Dataset):
             norm_view = T.normalize(view, mean=self.mean, std=self.std)
             
             if self.noisy_input:
-                # std, lam = torch.rand(1).item() / (self.n_views), torch.rand(1).item() / (self.n_views)
-                noisy_view = T.add_gaussian_noise(norm_view, std=1)
-                # noisy_view = T.add_noise(norm_view, std=std, lam=lam)
+                noisy_view = T.add_gaussian_noise(norm_view, std=self.noise_std)
+
+                # randomly set some pixels to 0
+                mask = torch.rand_like(norm_view) < self.noise_pct
+                noisy_view[mask] = 0.0
                 
             if self.return_hsv:
                 hsv = T.rgb_to_hsv(view)
@@ -197,10 +203,10 @@ class PreTrainDataset(Dataset):
                     returns.append((norm_view.to(self.device), lab.to(self.device)))
             
             elif self.return_spectral_indices:
-                ndvi = T.ndvi(view)
-                ndwi = T.ndwi(view)
-                ngrdi = T.ngrdi(view)
-                si = torch.cat([ndvi, ndwi, ngrdi], dim=0)
+                ndvi = T.calculate_ndvi(view)
+                ndwi = T.calculate_ndwi(view)
+                ngrdi = T.calculate_ngrdi(view)
+                si = torch.stack([ndvi, ndwi, ngrdi], dim=0)
                 if self.noisy_input:
                     returns.append((noisy_view.to(self.device), si.to(self.device)))
                 else:

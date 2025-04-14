@@ -254,7 +254,7 @@ def main():
     
     args = parse_arguments()
     
-    if args.frozen_encoder and args.model not in  ['unet', 'uresnetd', 'att_unet']:
+    if args.frozen_encoder and args.model not in  ['unet', 'uresnetd', 'att_unet', 'att_unext']:
         print('WARNING! Frozen encoder is only supported for U-Net models. Continuing without freezing the encoder.')
         args.frozen_encoder = False
     
@@ -317,6 +317,7 @@ def main():
     return_hsv = 'hsv' in args.pretrain_scheme
     return_lab = 'lab' in args.pretrain_scheme
     noisy_input = 'dae' in args.pretrain_scheme
+    is_output_spectral_index = 'si' in args.pretrain_scheme
     n_views = 2 if is_contrastive else 1
     
     mean_path = os.path.join(args.weights_dir, 'pretrain_mean.pth')
@@ -334,7 +335,10 @@ def main():
         std=std,
         return_hsv=return_hsv,
         return_lab=return_lab,
+        return_spectral_indices=is_output_spectral_index,
         noisy_input=noisy_input,
+        noise_std=1.0,
+        noise_pct=0.5,
         preload=args.preload_data,
     )
     val_dataset = PreTrainDataset(
@@ -346,7 +350,10 @@ def main():
         transform=transforms.ResizeTransform(size=args.image_size),
         return_hsv=return_hsv,
         return_lab=return_lab,
+        return_spectral_indices=is_output_spectral_index,
         noisy_input=noisy_input,
+        noise_std=1.0,
+        noise_pct=0.5,
         preload=args.preload_data
     )
     
@@ -396,6 +403,7 @@ def main():
             n_views,
             return_hsv,
             return_lab,
+            is_output_spectral_index,
             noisy_input,
             train_dataset,
             glob(os.path.join(args.pretrain_data_dir, '*.tif')),
