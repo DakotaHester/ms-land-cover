@@ -1,13 +1,13 @@
 #!/bin/bash
 #
 ## PBS Params
-NAME="r2665-simclr-pretrain"
-QUEUE="biggpu"
-NCPUS="2"
-NGPUS="1"
-MEMORY="16GB"
-TIME="240:00:00"
-MAIL_USER="dh2306@msstate.edu"
+# NAME="r2665-simclr-pretrain"
+# QUEUE="biggpu"
+# NCPUS="2"
+# NGPUS="1"
+# MEMORY="16GB"
+# TIME="240:00:00"
+# MAIL_USER="dh2306@msstate.edu"
 
 PYTHON_ENV=".env/bin/activate"
 SCRIPT_NAME="pretrain.py"
@@ -25,30 +25,63 @@ model="resnet152d"
 # randinit_args=("" "--rand_init")
 # randinit_args=("--rand_init")
 # for randinit_arg in "${randinit_args[@]}"
-pretrain_schems=( "hires_simclr" "simclr")
-pretrain_schems=("simclr")
-randinit_arg=""
-for pretrain_scheme in "${pretrain_schems[@]}"
-do
-    MINI_BATCH_SIZE=512
-    FULL_BATCH_SIZE=512
-    IMAGE_SIZE=192
-    LEARNING_RATE=0.001
-    EARLY_STOPPING=3
-    MAX_EPOCHS=10
+# pretrain_schems=( "hires_simclr" "simclr")
+# pretrain_schems=("simclr")
+# randinit_arg=""
+# for pretrain_scheme in "${pretrain_schems[@]}"
+# do
+#     MINI_BATCH_SIZE=512
+#     FULL_BATCH_SIZE=512
+#     IMAGE_SIZE=192
+#     LEARNING_RATE=0.001
+#     EARLY_STOPPING=3
+#     MAX_EPOCHS=10
 
-    WEIGHTS_DIR='./weights/hires_simclr_tests'
-    JOB_NAME="${NAME}_${model}_${pretrain_scheme}"
-    PROG_LOG_DIR='./logs/hires_simclr_tests'
-    mkdir -p "$PROG_LOG_DIR"
-    mkdir -p "$PROG_LOG_DIR/$model"
+#     WEIGHTS_DIR='./weights/hires_simclr_tests'
+#     JOB_NAME="${NAME}_${model}_${pretrain_scheme}"
+#     PROG_LOG_DIR='./logs/hires_simclr_tests'
+#     mkdir -p "$PROG_LOG_DIR"
+#     mkdir -p "$PROG_LOG_DIR/$model"
 
-    python $SCRIPT_NAME --pretrain_scheme $pretrain_scheme --model $model --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --weights_dir $WEIGHTS_DIR --log_dir $PROG_LOG_DIR --image_size $IMAGE_SIZE --init_lr $LEARNING_RATE --early_stopping_patience $EARLY_STOPPING --num_epochs $MAX_EPOCHS $randinit_arg
+#     python $SCRIPT_NAME --pretrain_scheme $pretrain_scheme --model $model --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --weights_dir $WEIGHTS_DIR --log_dir $PROG_LOG_DIR --image_size $IMAGE_SIZE --init_lr $LEARNING_RATE --early_stopping_patience $EARLY_STOPPING --num_epochs $MAX_EPOCHS $randinit_arg
 
-done
+# done
 
 HIRES_SIMCLR_WEIGHTS_PATH="./weights/hires_simclr_tests/resnet152d/hires_simclr.pth"
 SIMCLR_WEIGHTS_PATH="./weights/hires_simclr_tests/resnet152d/simclr.pth"
+
+pretrain_schemes_2=('dae_s1', 'dae')
+freeze_encoders_2=("--frozen_encoder" "")
+init_encoder_weights=("imagenet" "simclr" "hires_simclr")
+for pretrain_schemes in pretrain_schemes_2
+do
+    for freeze_encoders in freeze_encoders_2
+    do
+        for init_encoder_weights in init_encoder_weights
+        do
+            if [[ "$init_encoder_weights" == "randinit" && "$freeze_encoders" == "--frozen_encoder" ]]; then
+                continue
+            fi
+
+            MINI_BATCH_SIZE=512
+            FULL_BATCH_SIZE=512
+            IMAGE_SIZE=192
+            LEARNING_RATE=0.001
+            EARLY_STOPPING=3
+            MAX_EPOCHS=10
+
+            WEIGHTS_DIR='./weights/hires_simclr_tests'
+            JOB_NAME="${NAME}_${model}_${pretrain_scheme}_${freeze_encoders}_${init_encoder_weights}"
+            PROG_LOG_DIR='./logs/hires_simclr_tests'
+            mkdir -p "$PROG_LOG_DIR"
+            mkdir -p "$PROG_LOG_DIR/$model"
+
+            python $SCRIPT_NAME --pretrain_scheme $pretrain_scheme --model $model --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --weights_dir $WEIGHTS_DIR --log_dir $PROG_LOG_DIR --image_size $IMAGE_SIZE --init_lr $LEARNING_RATE --early_stopping_patience $EARLY_STOPPING --num_epochs $MAX_EPOCHS --encoder_weights ${init_encoder_weights} ${freeze_encoders}
+
+        done
+    done
+done
+
 # SIMCLR_RANDINIT_WEIGHTS_PATH="./weights/simclr2a_tests/resnet152d_randinit/simclr.pth"
 
 # Ensure the log directory exists
