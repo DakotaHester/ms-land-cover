@@ -1,17 +1,20 @@
-\begin{table}[ht]
+\begin{table}[H]
     \centering
-    \begin{tabular}{@{}llp{8cm}@{}}
-    \toprule
-    Index & Class                     & Description                                                                                                     \\ \midrule
-    1     & Open Water                & Visible water bodies unobstructed by vegetation or structures. (e.g., rivers, ponds, lakes, creeks, reservoir). \\
-    2     & Impervious Structures     &                                                                                                                 \\
-    3     & Impervious Surfaces       &                                                                                                                 \\
-    4     & Barren Land               &                                                                                                                 \\
-    5     & Forest/Woody Vegetation   &                                                                                                                 \\
-    6     & Herbaceous/Low Vegetation &                                                                                                                 \\
-    7     & Cultivated Crops          &                                                                                                                 \\
-    8     & Unclassified              &                                                                                                                 \\ \bottomrule
-    \end{tabular}
-    \caption{Land cover legend for our Mississippi dataset.}
-    \label{tab:class_legend}
+    \caption{Land cover classification scheme for the Mississippi dataset.}\label{tab:class_legend}
+    \vspace{0.25cm}
+    \resizebox{\textwidth}{!}{\newspacing{\singlespacing}
+        \begin{tabular}{@{}llp{9cm}@{}}
+        \toprule
+        Index & Class                     & Description \\ \midrule
+        1     & Open Water                & Rivers, lakes, ponds, and other standing or moving water. Water bodies typically appear dark in CIR imagery due to near-infrared absorption; may appear bluish-green depending on depth and turbidity. \\ 
+        2     & Impervious Structures     & Elevated built features (e.g., buildings, sheds). Bright and reflective with sharp-edges and shadows. \\
+        3     & Impervious Surfaces       & Paved areas such as roads and parking lots. Typically bright but may appear dark depending on material. Linear patterns and lack of shadows distinguish from barren land and impervious structures. \\
+        4     & Barren Land               & Exposed soil, sand, or rock with minimal vegetation. Bright or neutral in CIR imagery, often interleaved with herbaceous areas. \\
+        5     & Forest/Woody Vegetation   & Tree-covered areas with dense canopy. Deep red in CIR imagery due to high near-infrared reflectance. Uneven texture with large shadows. \\
+        6     & Herbaceous/Low Vegetation & Short vegetation, including grasses and shrubs. Smoother texture than forest, lighter red in CIR imagery. Common in clearings and field edges. \\
+        7     & Cultivated Crops          & Actively farmed fields, often in distinct rows. Bright red or pink in CIR imagery at peak growth. Presence of rows or patterns distinguish from herbaceous areas. \\
+        8     & Unclassified              & Shadows or occlusions obscuring surface features. Deep black regions near trees and buildings. \\ \bottomrule
+        \end{tabular}
+    }
+    
 \end{table}

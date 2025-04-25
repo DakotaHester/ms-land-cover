@@ -1,5 +1,39 @@
-\section{Preliminary Results}
+\section{Preliminary Results and Discussion}\label{sec:results}
+
+To collect preliminary results, 250 tiles from the full Mississippi land cover dataset were used for fine-tuning training, validation, and testing in the last stage of the multi-stage pre-training approach.
+In total, 119 tiles were used for training, 61 tiles were used for validation, and 70 tiles were used for testing.
+These early results give insight into the efficacy of this approach: Table~\ref{tab:pretraining_compare} shows that introducing a denoising autoencoder pre-training stage prior to supervised pre-training has a substantial impact on a model's performance.
+This is evidence that the core idea of the proposed approach has merit, in that the denoising autoencoder pre-training stage enables the model to learn spatial features that are useful for land cover classification, even when the model undergoes subsequent supervised pre-training on a different region.
+Additionally, the choice of which layers to freeze during the fully supervised pre-training stage has a substantial impact on the model's performance.
+As shown in Table~\ref{tab:params}, the most effective strategy for freezing parameters is to train the full network during the fully-supervised pre-training stage, but freeze the encoder network during the final fine-tuning stage.
+Examining the results of the Chesapeake Bay Land Cover classification task (i.e., the second stage of the multi-stage pre-training approach) in Table~\ref{tab:s1_metrics} shows more meager results compared to the Mississippi Land Cover classification task, with the denoising autoencoder pre-training stage providing only a marginal improvement over ImageNet pre-training.
+This suggests that the denoising autoencoder pre-training stage is more effective when the model undergoes further pre-training in a supervised manner.
+Further, this opens the door to future work on using a stronger pre-training strategy for the first stage of the multi-stage pre-training approach, such as increasing the noise level in the denoising autoencoder or using a more complex pre-text task to further improve the model's performance.
+
+\input{tables/overall_metrics.tex}
+
+\input{tables/params.tex}
+
+\input{tables/s1_metrics.tex}
+
+The best model from the multi-stage pre-training approach was used to classify land cover in the state of Mississippi at 1 m resolution in order to understand the strengths and limitations of the proposed approach.
+A visual assessment of the land cover classification results for the Mississippi dataset is shown in Figure~\ref{fig:ms_hr_lc}.
+The confusion matrix for the land cover classification results is shown in Table~\ref{tab:confusion_matrix}, and the classification report is shown in Table~\ref{tab:classification_report}.
+These results show that, overall, the model is fairly accurate, even with the limited labeled data available for training.
+However, more data is needed to improve the model's performance on certain classes, such as cultivated crops, barren land, and open water.
+This suggests that, despite the promising results of the multi-stage pre-training approach, more labeled data is needed to fully leverage the feature learning capabilities of the model and improve its performance on classes that are underrepresented in the training data.
+% Preliminary results show that the multi-stage pre-training approach produces substantially improved land cover classification performance compared to models that only undergo supervised pre-training and fine-tuning.
+% As shown in Figure~\ref{fig}
+% As shown in Figure FIG, the model 
 
 \input{figures/hi_res_land_cover.tex}
 
 \input{tables/confusion_matrix.tex}
+
+\input{tables/classification_report.tex}
+
+In conclusion, this research demonstrates that a multi-stage pre-training approach significantly enhances land cover classification performance under label-scarce conditions.
+Early results show that the proposed approach is an effective strategy for producing high spatial resolution land cover maps with limited labeled data.
+Beyond the immediate applications of the high spatial resolution land cover map for the state of Mississippi, this research has broader implications for land cover classification due to the unique approach to pre-training that opens the door for the development of more label efficient deep learning models.
+The proposed approach has the potential to enable high spatial resolution land cover classification at scale while minimizing the need for human annotation to produce ground truth data, paving the way for high resolution analyses quickly and efficiently.
+This is particularly important for situations where high spatial resolution land cover data for a region is necessary but existing datasets are scarce, outdated, or non-existent.

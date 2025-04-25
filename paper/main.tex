@@ -10,6 +10,17 @@
 \usepackage{array} % Add this package
 \usepackage{diagbox}
 \usepackage{amsmath}
+\usepackage{float}
+\usepackage{setspace}
+\usepackage{lineno}
+\usepackage{multirow}
+\usepackage{amssymb}
+\usepackage[document]{ragged2e}
+
+% \RaggedRight
+
+% \doublespacing
+% \linenumbers
 
 % \note command for adding notes to the document
 \newcommand*{\note}[1]{\textbf{\textcolor{red}{#1}}}
@@ -17,6 +28,10 @@
 % \specialcell command for multi-line cells in tables
 \newcommand{\specialcell}[1]{% Multi-Line
   \shortstack[l]{#1}
+}
+
+\newcommand{\smallrule}{
+  \specialrule{.0025em}{0.001em}{0.001em} 
 }
 
 \title{Label-efficient learning for High-Resolution Land Cover Classification using Large-Scale Self-Supervised Pre-Training and Transfer Learning}
@@ -29,19 +44,15 @@
 
 \input{sections/abstract.tex}
 
+\tableofcontents
+
 \input{sections/introduction.tex}
 
-\input{sections/related_works.tex}
+\input{sections/study_area.tex}
 
-\input{sections/data.tex}
-
-\input{sections/Methodology.tex}
+\input{sections/methodology.tex}
 
 \input{sections/results.tex}
-
-\input{sections/discussion.tex}
-
-\input{sections/conclusion.tex}
 
 \bibliographystyle{plain}
 \bibliography{bibliography}

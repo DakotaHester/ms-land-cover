@@ -499,7 +499,7 @@ def deep_supervision_loss(
         Computed deep supervision loss.
     """
     loss = 0
-    for i, y in enumerate(y_list):
+    for y in y_list:
         y_true_resized = F.interpolate(y_true, size=y.shape[2:], mode='bilinear', align_corners=False)
         loss += criterion(y, y_true_resized) * weights[i]
     return loss

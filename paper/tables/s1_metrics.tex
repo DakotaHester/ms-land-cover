@@ -1,0 +1,18 @@
+% Please add the following required packages to your document preamble:
+% \usepackage{booktabs}
+% \usepackage{graphicx}
+\begin{table}[H]
+\centering
+\caption{Performance metrics for models trained on the Chesapeake Bay Land Cover dataset with different pre-training strategies.}
+\label{tab:s1_metrics}
+\vspace{0.25cm}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{@{}llll@{}}
+\toprule
+Pre-training strategy                     & Overall Accuracy (\%) & Macro F1 Score (\%) & Loss          \\ \midrule
+None                                      & 77.51                 & 52.59               & 11056         \\
+ImageNet                                  & 82.50                 & 67.16               & 7393          \\
+\textbf{ImageNet + Denoising Autoencoder} & \textbf{82.63}        & \textbf{67.43}      & \textbf{7439} \\ \bottomrule
+\end{tabular}%
+}
+\end{table}

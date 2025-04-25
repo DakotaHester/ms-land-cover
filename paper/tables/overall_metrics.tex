@@ -1,5 +1,19 @@
-\begin{table}
-    \begin{tabular}{cols}
-        
-    \end{tabular}
+
+
+% Please add the following required packages to your document preamble:
+% \usepackage{booktabs}
+% \usepackage{graphicx}
+\begin{table}[H]
+    \centering
+    \caption{Performance comparison of land cover classification models on Mississippi test data showing how different pre-training strategies (random initialization, ImageNet weights, and ImageNet weights followed by denoising autoencoder pre-training) affect accuracy metrics when all models undergo the same two-stage fine-tuning process: full encoder training on Chesapeake Bay data followed by decoder-only fine-tuning on Mississippi data with frozen encoders.}\label{tab:pretraining_compare}
+    \vspace{0.25cm}
+    \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}lllll@{}}
+    \toprule
+    Stage 1 Pre-Training Strategy             & Overall Accuracy (\%) & Overall F1 Score (\%) & Macro F1 Score (\%) & Loss           \\ \midrule
+    Random Initialization                     & 28.96                 & 30.47                 & 10.34               & 36044          \\
+    ImageNet                                  & 77.54                 & 77.58                 & 50.25               & 19638          \\
+    \textbf{ImageNet + Denoising Autoencoder} & \textbf{82.11}        & \textbf{82.62}        & \textbf{70.45}      & \textbf{11364} \\ \bottomrule
+    \end{tabular}%
+    }
 \end{table}
