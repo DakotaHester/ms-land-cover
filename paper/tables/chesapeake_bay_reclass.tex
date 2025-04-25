@@ -1,0 +1,20 @@
+\begin{table}[H]
+    \centering
+    \caption{Reclassification scheme for reducing Chesapeake Bay land cover classes to more closely align with our desired classification scheme.}\label{tab:chesapeake_reclassification}
+    \vspace{0.25cm}
+    \resizebox{\textwidth}{!}{
+    \baselineskip=1pt
+    \renewcommand{\arraystretch}{0.5}
+        \begin{tabular}{@{}llll@{}}
+            \toprule
+            Chesapeake Class Index & Chesapeake Class                        & Reduced Class Index & Reduced Class Label                      \\ \midrule
+            1  & Water                                      & 1  & Open Water                             \\ \smallrule
+            \makecell[l]{3 \\ 10 \\ 11 \\ 12} & \makecell[l]{Tree Canopy \\ Tree Canopy over Impervious Structures \\ Tree Canopy over Other Impervious \\ Tree Canopy over Roads} & 2  & Forest                                  \\ \smallrule
+            4  & Shrubland                                  & 3  & Herbaceous                              \\ \smallrule
+            \makecell[l]{2 \\ 5} & \makecell[l]{Emergent Wetlands \\ Low Vegetation} & 4  & Herbaceous                              \\ \smallrule
+            6  & Barren Land                               & 5  & Barren                                  \\ \smallrule
+            7  & Impervious Structures                    & 6  & Impervious Structures                   \\ \smallrule
+            \makecell[l]{8 \\ 9} & \makecell[l]{Other Impervious \\ Roads} & 7  & Impervious Surfaces                     \\ \bottomrule
+        \end{tabular}
+    }
+\end{table}

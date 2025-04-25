@@ -1,3 +1,5 @@
 autoencoders
 autoencoder
 backpropagation
+multispectral
+autocorrelation

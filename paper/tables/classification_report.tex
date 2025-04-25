@@ -1,0 +1,39 @@
+\begin{table}[H]
+    \centering
+    \caption{Per-class F1 scores and metrics for Mississippi land cover classification results.}\label{tab:classification_report}
+    \vspace{0.25cm}
+    % \resizebox{\textwidth}{!}{
+        \begin{tabular}{lrr}
+            \toprule
+            \textbf{Class} & \textbf{F1 Score (\%)} & \textbf{Support} \\
+            \midrule
+            Open Water & 79.97 & 8,807 \\
+            Impervious (raised structures) & 68.87 & 30,879 \\
+            Impervious (paved surfaces) & 74.71 & 155,193 \\
+            Barren Land & 53.35 & 285,658 \\
+            Tree Canopy/Woody Vegetation & 93.79 & 2,562,300 \\
+            Low Vegetation/Herbaceous & 74.54 & 1,160,850 \\
+            Cultivated Crops & 54.73 & 208,370 \\
+            Unclassified & 63.64 & 175,463 \\
+            \midrule
+            Total Support & & 4,587,520 \\
+            \midrule
+            % Macro Metrics & & \\
+            \multicolumn{3}{c}{\textbf{Macro Metrics}} \\
+            % Accuracy & & 82.12 \\
+            User's Accuracy (\%) & & 68.93 \\
+            Producer's Accuracy (\%) & & 74.30 \\
+            F1 Score (\%) & & 70.45 \\
+            \midrule
+            % Accuracy & 0.821 & 4,587,520 \\
+            \multicolumn{3}{c}{\textbf{Overall Metrics}} \\
+            Accuracy (\%) & & 82.12 \\
+            User's Accuracy (\%) & & 84.06 \\
+            Producer's Accuracy (\%) & & 82.12 \\
+            F1 Score (\%) & & 82.53 \\
+            Cohen's \(\kappa\) & & 0.711 \\
+            % Cohen's \(\kappa\) & & 0.711 \\
+            \bottomrule
+        \end{tabular}
+    % }
+\end{table}

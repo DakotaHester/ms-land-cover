@@ -1,0 +1,24 @@
+% Please add the following required packages to your document preamble:
+% \usepackage{booktabs}
+% \usepackage{multirow}
+% \usepackage{graphicx}
+\begin{table}[H]
+    \centering
+    \caption{Effects of training on different portions of the network during the fully supervised training stages.}
+    \label{tab:params}
+    \vspace{0.25cm}
+    % \resizebox{\textwidth}{!}{%
+    \begin{tabular}{@{}llllll@{}}
+    \toprule
+    \multicolumn{5}{c}{Weights Trained}                                                                                                                         & \multicolumn{1}{c}{\multirow{3}{*}{Loss}} \\
+    \multicolumn{2}{c}{Fully Supervised Pre-training}         & \multicolumn{3}{c}{Fine-tuning}                                                                 & \multicolumn{1}{c}{}                      \\
+    \multicolumn{1}{c}{Encoder} & \multicolumn{1}{c}{Decoder} & \multicolumn{1}{c}{Encoder} & \multicolumn{1}{c}{Decoder} & \multicolumn{1}{c}{Classifier Head} & \multicolumn{1}{c}{}                      \\ \midrule
+                                & \checkmark   &                             &                             & \checkmark           & 38126                                     \\
+                                & \checkmark   &                             & \checkmark   & \checkmark           & 19725                                     \\
+                                & \checkmark   & \checkmark   & \checkmark   & \checkmark           & 14511                                     \\
+    \checkmark   & \checkmark   &                             &                             & \checkmark           & 38949                                     \\
+    \textbf{\checkmark}   & \textbf{\checkmark}   &                             & \textbf{\checkmark}   & \textbf{\checkmark}           & \textbf{11364}                                     \\
+    \checkmark   & \checkmark   & \checkmark   & \checkmark   & \checkmark           & 11725                                     \\ \bottomrule
+    \end{tabular}%
+    % }
+\end{table}
