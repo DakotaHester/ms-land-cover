@@ -15,7 +15,7 @@ from src.mslandcover.utils import Logger, get_torch_device, ProfilerHistory, loa
 from src.mslandcover.config import HRNET_W18_CONFIG, HRNET_W48_CONFIG, LEGEND_CLASSES
 from src.mslandcover.data.datasets import FineTuneDataset
 from src.mslandcover.data.transforms import StandardDataAugmentations
-from src.mslandcover.models import UNet, HighResUNet, UResNetD, AttentionUResNetD, AttentionUConvNeXt 
+from src.mslandcover.models import UNet, HighResUNet, AttentionUResNetD, AttentionUConvNeXt 
 from src.mslandcover.loss import FocalLoss, FocalTverskyLoss, UnifiedFocalLoss
 from src.mslandcover import metrics
 
@@ -55,21 +55,21 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--train_dir',
         type=str,
-        default='./data/cpb_tests/splits/train',
+        default='./data/splits/train',
         help='The directory containing the training data',
     )
     
     parser.add_argument(
         '--val_dir',
         type=str,
-        default='./data/cpb_tests/splits/val',
+        default='./data/splits/val',
         help='The directory containing the validation data',
     )
     
     parser.add_argument(
         '--test_dir',
         type=str,
-        default='./data/cpb_tests/splits/test',
+        default='./data/splits/test',
         help='The directory containing the test data',
     )
     

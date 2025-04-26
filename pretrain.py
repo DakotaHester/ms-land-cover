@@ -23,11 +23,7 @@ from timm.models.convnext import convnext_base
 
 from src.mslandcover.data.datasets import PreTrainDataset
 from src.mslandcover.data import transforms
-<<<<<<< HEAD
 from src.mslandcover.models import HRNetSegmentationModel, ResNetAutoencoder, UNet, HighResUNet, UResNetD, AttentionUResNetD, ProjectionHead, SegformerForSimCLR, AttentionUConvNeXt
-=======
-from src.mslandcover.models import HRNetSegmentationModel, ResNetAutoencoder, UNet
->>>>>>> 17cfaad (Add new samples, update paper)
 from src.mslandcover.optim import LARS, PCGradAMP
 from src.mslandcover.loss import cached_mse_loss_call, cached_contrastive_loss_call
 from src.mslandcover.metrics import psnr, ssim
@@ -49,20 +45,8 @@ def parse_arguments():
     parser.add_argument(
         '--model',
         type=str,
-<<<<<<< HEAD
         default='att_unext',
         choices=['unet', 'hrnet_w48', 'hrnet_w18', 'resnet152', 'hrunet', 'uresnetd', 'resnet152d', 'att_unet', 'segformer', 'convnext', 'att_unext'],
-    )
-    
-    parser.add_argument(
-        '--deep_supervision',
-        default=False,
-        action='store_true',
-        help='Use deep supervision during training. Only supported for some models.',
-=======
-        default='resnet152',
-        choices=['unet', 'hrnet_w48', 'hrnet_w18', 'resnet152'],
->>>>>>> 17cfaad (Add new samples, update paper)
     )
     
     parser.add_argument(
@@ -267,7 +251,6 @@ def main():
         print('WARNING! Frozen encoder is only supported for U-Net models. Continuing without freezing the encoder.')
         args.frozen_encoder = False
     
-<<<<<<< HEAD
     if 'simclr' in args.pretrain_scheme:
         if args.model == 'hrunet':
             raise ValueError('HRUNet does not support contrastive learning. Please choose a different pretraining scheme.')
@@ -276,10 +259,6 @@ def main():
     else:
         if args.model == 'resnet152d':
             raise ValueError('ResNet152D ONLY supports SimCLR pretraining.')
-    
-    
-=======
->>>>>>> 17cfaad (Add new samples, update paper)
     torch.random.manual_seed(args.seed)
     np.random.seed(args.seed)
     
@@ -461,7 +440,7 @@ def main():
             pretrained=not args.rand_init,
             activation=activation_fn,
         )
-<<<<<<< HEAD
+        
     elif args.model == 'hrunet':
         if not is_reconstruction or is_multitask:
             raise ValueError('Only single-task reconstruction is supported for HRUNets.')
@@ -553,8 +532,6 @@ def main():
             logger.log(f'Loaded encoder weights from {args.encoder_weights}.')
         
         
-=======
->>>>>>> 17cfaad (Add new samples, update paper)
     else:
         raise ValueError(f'Invalid model: {args.model}')
     
@@ -736,13 +713,6 @@ def main():
                         
                         y_hat = model(X)
                         
-<<<<<<< HEAD
-                        if (args.model in ['hrunet', 'uresnetd', 'att_unet']) and model.deep_supervision:
-                            reconstruction_loss = deep_supervision_loss(y_hat, y, weights=deep_supervision_weights)
-                            y_hat = y_hat[0] # only use the first (full resolution) output
-                        
-=======
->>>>>>> 17cfaad (Add new samples, update paper)
                         # reconstruction_loss = F.mse_loss(y_hat, y, reduction='sum')
                         # NOTE: L1/MAE loss is used instead of MSE loss 
                         # https://research.nvidia.com/sites/default/files/pubs/2017-03_Loss-Functions-for/NN_ImgProc.pdf
