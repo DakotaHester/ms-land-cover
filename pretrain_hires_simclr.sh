@@ -62,7 +62,8 @@ SIMCLR_WEIGHTS_PATH="./weights/convnext/simclr.pth"
 pretrain_schemes_2=('dae_si' 'dae')
 freeze_encoders_2=("--frozen_encoder" "no_freeze")
 # freeze_encoders_2=("no_freeze")
-init_encoder_weights=("imagenet" "simclr" "hires_simclr" "randinit")
+# init_encoder_weights=("imagenet" "simclr" "hires_simclr" "randinit")
+init_encoder_weights=("imagenet")
 # echo "pretrain_schemes_2: ${pretrain_schemes_2[@]}"
 for freeze_encoders in ${freeze_encoders_2[@]}
 do
