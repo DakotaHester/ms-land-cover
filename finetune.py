@@ -116,14 +116,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--early_stopping_patience',
         type=int,
-        default=15,
+        default=25,
         help='The number of epochs to wait before early stopping',
     )
     
     parser.add_argument(
         '--reduce_lr_patience',
         type=int,
-        default=3,
+        default=5,
         help='The number of epochs to wait before reducing the learning rate',
     )
     
@@ -198,7 +198,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--alpha_power',
         type=float,
-        default=3.0,
+        default=2.0,
         help='The power to raise the class distribution to for the focal loss',
     )
     
@@ -334,11 +334,12 @@ def main() -> None:
     # alpha = (1 - beta) / (1 - (beta ** class_counts))
     # alpha = 1 / torch.log(1 + class_dist)
     # alpha = 1 / torch.sqrt(class_dist)
-    # alpha = 1 / (class_dist ** n(1/2))
+    # alpha = 1 / (class_dist ** (1/2))
     # alpha = class_dist ** -(1/args.alpha_power)
     logger.log(f'Class weights: {alpha}')
     # criterion = UnifiedFocalLoss(alpha=alpha, reduction='sum').to(device)
     criterion = FocalLoss(alpha=alpha, gamma=args.focal_gamma, reduction='sum').to(device)
+    # criterion = torch.nn.CrossEntropyLoss(weight=alpha, reduction='sum').to(device)
     
     num_classes = 7 if 'cpb' in args.train_dir else 8
     
@@ -525,7 +526,7 @@ def main() -> None:
         elif args.model_weights is not None:
             logger.log(f'Loading model weights from {args.model_weights}')
             model.load_state_dict(load_pth(args.model_weights))
-            model.disable_deep_supervision()
+            # model.disable_deep_supervision()
             model.reinit_classifier(num_classes)
             
         model = model.to(device)

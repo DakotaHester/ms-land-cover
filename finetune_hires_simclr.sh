@@ -6,15 +6,13 @@ MODEL="convnext"
 MINI_BATCH_SIZE=8
 FULL_BATCH_SIZE=8
 LR=0.00001
-NUM_EPOCHS=1
-FOCAL_GAMMAS=5.0
+NUM_EPOCHS=1000
+FOCAL_GAMMA=2.0
 
-pretrain_schemes=('dae_si' 'dae' 'none')
+# pretrain_schemes=('dae_si' 'dae' 'none')
+pretrain_schemes=('dae' 'dae_si' 'none')
 freeze_encoders=("frozen_encoder" "no_freeze")
-# freeze_encoders_2=("no_freeze")
-all_init_encoder_weights=("imagenet" "simclr" "hires_simclr" "randinit")
-# init_encoder_weights=("imagenet")
-# echo "pretrain_schemes_2: ${pretrain_schemes_2[@]}"
+all_init_encoder_weights=("hires_simclr" "simclr" "randinit" "imagenet")
 finetune_weights_trained=("full_model" "decoder_only" "linear_probe")
 for freeze_encoders in ${freeze_encoders[@]}
 do
@@ -39,7 +37,7 @@ do
                 JOB_NAME="${NAME}_${model}_${pretrain_scheme}_${freeze_encoders}_${init_encoder_weights}_${finetune_training}"
                 OUT_DIR="${model}/${pretrain_scheme}/${freeze_encoders}/${init_encoder_weights}/${finetune_training}"
 
-                if [[ $"{pretrain_scheme}" != "none" ]]; then
+                if [[ ${pretrain_scheme} != "none" ]]; then
 
                     WEIGHTS_ARG="--model_weights ./weights/att_unext_pts2/${init_encoder_weights}/att_unext"
 
@@ -70,11 +68,25 @@ do
                     fi
                 fi
 
-                LOG_DIR="./logs/hires_simclr_tests_finetune/${init_encoder_weights}/${finetune_training}/${freeze_encoders}/${pretrain_scheme}"
+                # OUTPUT_DIR='./weights/hires_simclr_tests_finetune/'${init_encoder_weights}'/'${finetune_training}'/'${freeze_encoders}'/'${pretrain_scheme}
+                OUTPUT_DIR="./weights/hires_simclr_tests_finetune2/${init_encoder_weights}/${finetune_training}/${freeze_encoders}/${pretrain_scheme}"
+                LOG_DIR="./logs/hires_simclr_tests_finetune2/${init_encoder_weights}/${finetune_training}/${freeze_encoders}/${pretrain_scheme}"
+
+                # if directories do not exist, then create them
+                mkdir -p "$OUTPUT_DIR"
+                mkdir -p "$LOG_DIR"
+
+                # if LOG_DIR/classification_report.csv exists, then skip this run
+                # if [[ -f "$LOG_DIR/classification_report.csv" ]]; then
+                    # echo "Skipping run for $JOB_NAME as classification_report.csv already exists."
+                    # continue
+                # fi
+
+
                 mkdir -p "$LOG_DIR"
                 mkdir -p "$LOG_DIR/$model"
-                echo "python finetune.py --model $MODEL --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --log_dir $LOG_DIR --image_size 256 --init_lr $LR --num_epochs $NUM_EPOCHS --focal_gammas $FOCAL_GAMMAS ${WEIGHTS_ARG} ${weights_trained_arg}"
-                python finetune.py --model $MODEL --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --log_dir $LOG_DIR --image_size 256 --init_lr $LR --num_epochs $NUM_EPOCHS --focal_gammas $FOCAL_GAMMAS ${WEIGHTS_ARG} ${weights_trained_arg}
+                echo "python finetune.py --model $MODEL --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --focal_gamma $FOCAL_GAMMA --log_dir $LOG_DIR --output_dir $OUTPUT_DIR --lr $LR --num_epochs $NUM_EPOCHS ${WEIGHTS_ARG} ${weights_trained_arg}"
+                python finetune.py --model $MODEL --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --focal_gamma $FOCAL_GAMMA --log_dir $LOG_DIR --output_dir $OUTPUT_DIR --lr $LR --num_epochs $NUM_EPOCHS ${WEIGHTS_ARG} ${weights_trained_arg}
 
             # if [[ "$freeze_encoders" == "no_freeze" ]]; then
             #     freeze_encoders=""

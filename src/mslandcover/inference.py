@@ -23,6 +23,8 @@ from src.mslandcover.config import LEGEND_CLASSES
 from src.mslandcover.data.transforms import normalize
 from multiprocessing import Pool, shared_memory, cpu_count
 from scipy.special import softmax
+from scipy.ndimage import convolve
+from joblib import Parallel, delayed
 from skimage.segmentation import quickshift, felzenszwalb
 from skimage.filters import unsharp_mask, median
 from skimage.morphology import disk
@@ -825,3 +827,14 @@ def segment_and_process(
 ):
     segmented_image = segment_image(img.copy().transpose(1, 2, 0), seg_func, params.copy())
     return postprocess_probs(segmented_image, probs)
+
+
+
+def fast_mode_filter(data: np.ndarray, classes: list[int]=list(range(9)), size: int=7) -> np.ndarray:
+    kernel = np.ones((size, size), dtype=np.uint8)
+    
+    def process_class(c):
+        return convolve((data == c).astype(np.uint8), kernel, mode='reflect')
+    
+    counts = np.stack(Parallel(n_jobs=-1)(delayed(process_class)(c) for c in classes), axis=0)
+    return np.array(classes)[np.argmax(counts, axis=0)]

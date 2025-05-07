@@ -33,7 +33,7 @@ from src.mslandcover.utils import load_pth, get_torch_device, Logger
 def main():
     SKIP_INFERENCE = True
     SKIP_CLIPPING = True
-    SKIP_POSTPROCESSING = False
+    SKIP_POSTPROCESSING = True
     
         
     # model_weights_path = './weights/multistage_finetuning_stage2/dae/s1_full_train/s2_decoder_train/best_model.pth'
@@ -42,14 +42,18 @@ def main():
     # model_weights_path = './weights/msft2_202502/dae/s1_frozen_encoder/s2_full_train/best_model.pth'
     # model_weights_path = './weights/msft1_hr_simclr_202502/simclr/mslc/decoder_train/best_model.pth'
     # model_weights_path = './weights/msft1_convnext/simclr/mslc/full_train/best_model.pth'
-    model_weights_path = './weights/hires_simclr_tests_finetune/hires_simclr/decoder_only/frozen_encoder/dae/best_model.pth'
+    # model_weights_path = './weights/hires_simclr_tests_finetune/hires_simclr/decoder_only/frozen_encoder/dae/best_model.pth'
+    # model_weights_path = './weights/hires_simclr_tests_finetune2/hires_simclr/full_model/frozen_encoder/dae/best_model.pth'
+    # model_weights_path = './weights/hires_simclr_tests_finetune2/hires_simclr/decoder_only/frozen_encoder/dae/best_model.pth'
+    model_weights_path = './weights/hires_simclr_tests_finetune2/hires_simclr/decoder_only/frozen_encoder/dae_si/best_model.pth'
+    
     if os.environ.get('MSLC_INFERENCE_COUNTY_INDEX') is not None:
         county_index = int(os.environ.get('MSLC_INFERENCE_COUNTY_INDEX'))
     else:
         # county_index = 74 # warren county
         county_index = 52 # oktibbeha county
     
-    log_dir = f'./data/inference_results/logs/{county_index}'
+    log_dir = f'./data/inference_results/temp/logs/{county_index}'
     
     os.makedirs(log_dir, exist_ok=True)
     logger = Logger(os.path.join(log_dir, 'inference.log'))
@@ -77,12 +81,6 @@ def main():
     county_name = county_series['NAME']
     county_fp_code = county_series['COUNTYFP']
     county_state_code = county_series['STATE_CODE']
-    
-    filename_safe_county_name = "".join(char for char in county_name if char.isalnum())
-    final_out_path = f'/home/dhester/server/guser/dh/regional_lc/{county_state_code}/{county_fp_code:03}_{filename_safe_county_name}.tif'
-    if os.path.exists(final_out_path):
-        logger.log(f'Final output path {final_out_path} already exists. Skipping inference...')
-        return
     
     
     ## For NYC inference test    
@@ -122,7 +120,7 @@ def main():
     
     # out_path = f'/home/dhester/server/guser/dh/LC_Tests/MS_new_20250210/postprocessed_short_stride'
     # out_path = f'/home/dhester/server/guser/dh/LC_Tests/MSLC_Prelim_v2_202502/{county_fp_code:03}'
-    out_path = f'/home/dhester/server/guser/dh/LC_tests_v3/{county_state_code}/{county_fp_code:03}'
+    out_path = f'/home/dhester/server/guser/dh/LC_tests_v5/{county_state_code}/{county_fp_code:03}'
     os.makedirs(out_path, exist_ok=True)
     
     logger.log(f'Loaded county {county_name}, {county_state_code} with FIPS code {county_fp_code}')
@@ -314,11 +312,11 @@ def main():
                 
         logger.log(f'Saved clipped land cover confidence to {os.path.join(out_path, "lc_confidence_clipped.tif")}')
     
-    # save cliped land cover classes to a new file with 
-    filename_safe_county_name = "".join(char for char in county_name if char.isalnum())
-    final_out_path = f'/home/dhester/server/guser/dh/regional_lc/{county_state_code}/{county_fp_code:03}_{filename_safe_county_name}.tif'
-    os.makedirs(os.path.dirname(final_out_path), exist_ok=True)
-    copyfile(os.path.join(out_path, 'lc_classes_clipped.tif'), final_out_path)
+    # # save cliped land cover classes to a new file with 
+    # filename_safe_county_name = "".join(char for char in county_name if char.isalnum())
+    # final_out_path = f'/home/dhester/server/guser/dh/regional_lc/{county_state_code}/{county_fp_code:03}_{filename_safe_county_name}.tif'
+    # os.makedirs(os.path.dirname(final_out_path), exist_ok=True)
+    # copyfile(os.path.join(out_path, 'lc_classes_clipped.tif'), final_out_path)
     
     # if SKIP_POSTPROCESSING and os.path.exists(os.path.join(out_path, 'features.gpkg')):
         # logger.log('Features already computed. Skipping post-processing...')
@@ -365,13 +363,13 @@ def main():
     logger.log(f'Saved filtered land cover classes to {os.path.join(out_path, "lc_classes_filtered_clipped.tif")}')
     
     
-    logger.log('Copying filtered land cover classes to final output path...')
-    # save cliped land cover classes to a new file with 
-    filename_safe_county_name = "".join(char for char in county_name if char.isalnum())
-    final_out_path = f'/home/dhester/server/guser/dh/regional_lc/{county_state_code}/{county_fp_code:03}_{filename_safe_county_name}.tif'
-    os.makedirs(os.path.dirname(final_out_path), exist_ok=True)
-    copyfile(os.path.join(out_path, 'lc_classes_filtered_clipped.tif'), final_out_path)
-    logger.log(f'Copied filtered land cover classes to {final_out_path}')
+    # logger.log('Copying filtered land cover classes to final output path...')
+    # # save cliped land cover classes to a new file with 
+    # filename_safe_county_name = "".join(char for char in county_name if char.isalnum())
+    # final_out_path = f'/home/dhester/server/guser/dh/regional_lc/{county_state_code}/{county_fp_code:03}_{filename_safe_county_name}.tif'
+    # os.makedirs(os.path.dirname(final_out_path), exist_ok=True)
+    # copyfile(os.path.join(out_path, 'lc_classes_filtered_clipped.tif'), final_out_path)
+    # logger.log(f'Copied filtered land cover classes to {final_out_path}')
     
     # features_dict = {
     #     'geometry': [],

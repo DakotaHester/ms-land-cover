@@ -18,6 +18,7 @@ import torch.nn.functional as F
 
 from torchvision.models import ConvNeXt_Tiny_Weights, convnext_tiny
 from torchvision.models import ResNet152_Weights, resnet152
+from timm.models import convnext
 from .utils import load_pth
 
 BN_MOMENTUM = 0.1
@@ -1943,11 +1944,11 @@ class AttentionUConvNeXt(nn.Module):
             for param in decoder_block.parameters():
                 param.requires_grad = False
         
-        for param in self.aspp.parameters():
+        for param in self.bottleneck_cbam.parameters():
             param.requires_grad = False
             
     
     def reinit_classifier(self, num_classes: int=8) -> None:
-        self.classifier = nn.Conv2d(64, num_classes, kernel_size=1)
+        self.classifier = nn.Conv2d(128, num_classes, kernel_size=1)
         self.num_classes = num_classes
         return self
