@@ -1,23 +1,36 @@
 import argparse
 from glob import glob
 import math
+import math
 import os
 from time import time
 import numpy as np
 import pandas as pd
 import torch
 from torch.optim import AdamW
+from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
 from sklearn.metrics import confusion_matrix, classification_report
+from sklearn.metrics import confusion_matrix, classification_report
 
 from src.mslandcover.utils import Logger, get_torch_device, ProfilerHistory, load_pth
+from src.mslandcover.config import HRNET_W18_CONFIG, HRNET_W48_CONFIG, LEGEND_CLASSES
 from src.mslandcover.config import HRNET_W18_CONFIG, HRNET_W48_CONFIG, LEGEND_CLASSES
 from src.mslandcover.data.datasets import FineTuneDataset
 from src.mslandcover.data.transforms import StandardDataAugmentations
 from src.mslandcover.models import UNet, HighResUNet, AttentionUResNetD, AttentionUConvNeXt 
 from src.mslandcover.loss import FocalLoss, FocalTverskyLoss, UnifiedFocalLoss
+from src.mslandcover.models import UNet, HighResUNet, AttentionUResNetD, AttentionUConvNeXt 
+from src.mslandcover.loss import FocalLoss, FocalTverskyLoss, UnifiedFocalLoss
 from src.mslandcover import metrics
+
+from transformers import SegformerForSemanticSegmentation, SegformerConfig
+
+try:
+    from torch.amp import autocast, GradScaler
+except ImportError:
+    from torch.cuda.amp import autocast, GradScaler
 
 from transformers import SegformerForSemanticSegmentation, SegformerConfig
 
@@ -35,6 +48,8 @@ def parse_arguments() -> argparse.Namespace:
         type=str,
         choices=['unet', 'hrunet', 'uresnetd', 'att_unet', 'segformer', 'convnext'],
         default='att_unet',
+        choices=['unet', 'hrunet', 'uresnetd', 'att_unet', 'segformer', 'convnext'],
+        default='att_unet',
         help='The model to use for training',
     )
     
@@ -47,7 +62,17 @@ def parse_arguments() -> argparse.Namespace:
     
     parser.add_argument(
         '--model_weights',
+        '--encoder_weights',
         type=str,
+        default=None,
+        help='The path to the encoder weights to load for the full model. If `imagenet`, will load ImageNet weights.',
+    )
+    
+    parser.add_argument(
+        '--model_weights',
+        type=str,
+        default=None,
+        help='The path to the model weights to load for the full model.',
         default=None,
         help='The path to the model weights to load for the full model.',
     )
@@ -87,14 +112,32 @@ def parse_arguments() -> argparse.Namespace:
     
     parser.add_argument(
         '--mini_batch_size',
+        '--freeze_encoder',
+        action='store_true',
+        help='Freeze the encoder weights',
+    )
+    
+    parser.add_argument(
+        '--freeze_decoder',
+        action='store_true',
+        help='Freeze the decoder weights',
+    )
+    
+    parser.add_argument(
+        '--mini_batch_size',
         type=int,
+        default=8,
+        help='The mini-batch size to use for training (for gradient accumulation)',
         default=8,
         help='The mini-batch size to use for training (for gradient accumulation)',
     )
     
     parser.add_argument(
         '--full_batch_size',
+        '--full_batch_size',
         type=int,
+        default=8,
+        help='The effective batch size to use for training',
         default=8,
         help='The effective batch size to use for training',
     )
@@ -103,12 +146,14 @@ def parse_arguments() -> argparse.Namespace:
         '--lr',
         type=float,
         default=1e-5,
+        default=1e-5,
         help='The learning rate to use for training',
     )
     
     parser.add_argument(
         '--num_epochs',
         type=int,
+        default=1000,
         default=1000,
         help='The number of epochs to train the model',
     )
@@ -123,7 +168,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--reduce_lr_patience',
         type=int,
-        default=5,
+        default=3,
         help='The number of epochs to wait before reducing the learning rate',
     )
     
@@ -131,12 +176,14 @@ def parse_arguments() -> argparse.Namespace:
         '--log_dir',
         type=str,
         default='./logs/finetune_unet',
+        default='./logs/finetune_unet',
         help='The directory to save logs',
     )
     
     parser.add_argument(
         '--output_dir',
         type=str,
+        default='./weights/finetuned_unet',
         default='./weights/finetuned_unet',
         help='The directory to save weights',
     )
@@ -159,6 +206,13 @@ def parse_arguments() -> argparse.Namespace:
         type=int,
         default=1701,
         help='The random seed to use for training',
+    )
+    
+    parser.add_argument(
+        '--n_train_samples',
+        type=int,
+        default=None,
+        help="If set, will use the first n samples from the training dataset",
     )
     
     parser.add_argument(
@@ -218,12 +272,17 @@ def parse_arguments() -> argparse.Namespace:
         parser.error('--lr must be greater than 0')
         
     if args.num_epochs < 1:
+    if args.num_epochs < 1:
         parser.error('--n-epochs must be greater than or equal to 1')
         
     if args.early_stopping_patience < 1:
         parser.error('--early_stopping_patience must be greater than or equal to 1')
+        parser.error('--early_stopping_patience must be greater than or equal to 1')
         
     if args.reduce_lr_patience < 1:
+        parser.error('--lr_reduce_patience must be greater than or equal to 1')
+    
+    args.grad_accumulation_steps = args.full_batch_size // args.mini_batch_size
         parser.error('--lr_reduce_patience must be greater than or equal to 1')
     
     args.grad_accumulation_steps = args.full_batch_size // args.mini_batch_size
@@ -241,6 +300,9 @@ def main() -> None:
 
     log_dir = os.path.join(args.log_dir)
     out_dir = os.path.join(args.output_dir)
+
+    log_dir = os.path.join(args.log_dir)
+    out_dir = os.path.join(args.output_dir)
     
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
@@ -253,11 +315,14 @@ def main() -> None:
     
     device = get_torch_device()
     logger.log(f'Using device: {device}')
+    logger.log(f'Using device: {device}')
     if device.type == 'cuda':
         torch.backends.cudnn.benchmark = True
         torch.backends.cudnn.deteministic = True
         torch.cuda.manual_seed_all(args.seed)
     
+    mean_path = os.path.join('weights', 'pretrain_mean.pth')
+    std_path = os.path.join('weights', 'pretrain_std.pth')
     mean_path = os.path.join('weights', 'pretrain_mean.pth')
     std_path = os.path.join('weights', 'pretrain_std.pth')
     
@@ -266,7 +331,11 @@ def main() -> None:
     
     # n_train_samples = -0 if args.n_train_samples is None else args.n_train_samples
     
+    # n_train_samples = -0 if args.n_train_samples is None else args.n_train_samples
+    
     train_dataset = FineTuneDataset(
+        data_paths=glob(os.path.join(args.train_dir, 'input', '*.tif'))[:args.n_train_samples],
+        target_paths=glob(os.path.join(args.train_dir, 'target', '*.tif'))[:args.n_train_samples],
         data_paths=glob(os.path.join(args.train_dir, 'input', '*.tif'))[:args.n_train_samples],
         target_paths=glob(os.path.join(args.train_dir, 'target', '*.tif'))[:args.n_train_samples],
         mean=mean,
@@ -274,14 +343,18 @@ def main() -> None:
         transform=StandardDataAugmentations(),
         preload=not args.load_data_from_disk,
         n_threads=args.num_workers,
+        n_threads=args.num_workers,
     )
     val_dataset = FineTuneDataset(
+        data_paths=glob(os.path.join(args.val_dir, 'input', '*.tif'))[:args.n_train_samples],
+        target_paths=glob(os.path.join(args.val_dir, 'target', '*.tif'))[:args.n_train_samples],
         data_paths=glob(os.path.join(args.val_dir, 'input', '*.tif'))[:args.n_train_samples],
         target_paths=glob(os.path.join(args.val_dir, 'target', '*.tif'))[:args.n_train_samples],
         mean=mean,
         std=std,
         transform=None,
         preload=not args.load_data_from_disk,
+        n_threads=args.num_workers,
         n_threads=args.num_workers,
     )
     
@@ -305,17 +378,39 @@ def main() -> None:
         logger.log(f'New class distribution: {train_dataset.get_class_distribution()}')
         logger.log(f'New N_train: {len(train_dataset)}')
     
+    class_dist = train_dataset.get_class_distribution()
+    num_classes = len(class_dist)
+    
+    oversample_classes = []
+    minimum_oversample_ratios = []
+    for i, prob in enumerate(class_dist):
+        if prob < args.minimum_class_proportion:
+            oversample_classes.append(i)
+            minimum_oversample_ratios.append(args.minimum_oversample_ratio_factor * prob)
+    logger.log(f'Class distribution: {class_dist}')
+    
+    if len(oversample_classes) > 0:
+        train_dataset.oversample_classes(oversample_classes, oversample_factor=args.oversample_factor, minimum_ratio=minimum_oversample_ratios)
+        logger.log(f'Oversampled classes: {oversample_classes}')
+        logger.log(f'New class distribution: {train_dataset.get_class_distribution()}')
+        logger.log(f'New N_train: {len(train_dataset)}')
+    
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
+        batch_size=args.mini_batch_size,
         batch_size=args.mini_batch_size,
         shuffle=True,
         drop_last=True,
         num_workers=args.num_workers if args.num_workers > 1 else 0,
         pin_memory=True if args.num_workers > 1 else False,
         # prefetch_factor=4 if args.num_workers > 1 else 0,
+        num_workers=args.num_workers if args.num_workers > 1 else 0,
+        pin_memory=True if args.num_workers > 1 else False,
+        # prefetch_factor=4 if args.num_workers > 1 else 0,
     )
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
+        batch_size=args.mini_batch_size,
         batch_size=args.mini_batch_size,
         shuffle=False,
         num_workers=args.num_workers if args.num_workers > 1 else 0,
@@ -543,8 +638,20 @@ def main() -> None:
     logger.log(f'Trainable parameters: {trainable_params}')
 
     optimizer = AdamW(
+
+    optimizer = AdamW(
         params=model.parameters(),
         lr=args.lr,
+        weight_decay=1e-2,
+    )
+    
+    scaler = GradScaler()
+    # new pytorch version requires device_type argument, old one assumes CUDA and has no device_type argument
+    # NOTE: DISABLE AUTOCAST FOR NOW
+    try:
+        autocast_context_manager = autocast(device_type=device.type, enabled=False)
+    except TypeError: # multiple values for argument `enabled`
+        autocast_context_manager = autocast(enabled=False)
         weight_decay=1e-2,
     )
     
@@ -559,6 +666,7 @@ def main() -> None:
     scheduler = ReduceLROnPlateau(
         optimizer=optimizer,
         patience=args.reduce_lr_patience,
+        eps=0,
         eps=0,
     )
     
@@ -594,6 +702,7 @@ def main() -> None:
             checkpoint = load_pth(checkpoint_path)
             model.load_state_dict(checkpoint['model'])
             criterion.load_state_dict(checkpoint['criterion'])
+            criterion.load_state_dict(checkpoint['criterion'])
             optimizer.load_state_dict(checkpoint['optimizer'])
             scheduler.load_state_dict(checkpoint['scheduler'])
             starting_epoch = checkpoint['epoch'] + 1
@@ -602,11 +711,13 @@ def main() -> None:
             history_dict = checkpoint['history_dict']
             profiler.profiler_history_dict = checkpoint['profiler_dict']
             logger.log(f'Loaded checkpoint from {checkpoint_path} at epoch {starting_epoch}')
+            logger.log(f'Loaded checkpoint from {checkpoint_path} at epoch {starting_epoch}')
         else:
             logger.log(f'No checkpoint found at {checkpoint_path}')
     
     logger.log(f'Starting training from epoch {starting_epoch}...')
     
+    for epoch in range(starting_epoch, args.num_epochs+1):
     for epoch in range(starting_epoch, args.num_epochs+1):
         
         lr = optimizer.param_groups[0]['lr']
@@ -622,6 +733,8 @@ def main() -> None:
             if phase == 'train':
                 torch.set_grad_enabled(epoch != 0)
                 optimizer.zero_grad(set_to_none=True)
+                torch.set_grad_enabled(epoch != 0)
+                optimizer.zero_grad(set_to_none=True)
                 model.train()
                 loader = train_loader
 
@@ -633,11 +746,42 @@ def main() -> None:
             total_steps = len(loader) / args.grad_accumulation_steps
             total_steps = math.ceil(total_steps) if phase == 'val' else math.floor(total_steps) # ceil val steps to ensure all samples are evaluated 
             
+            total_steps = len(loader) / args.grad_accumulation_steps
+            total_steps = math.ceil(total_steps) if phase == 'val' else math.floor(total_steps) # ceil val steps to ensure all samples are evaluated 
+            
             with tqdm(
                 total=total_steps,
                 desc=f'Epoch {epoch}/{args.num_epochs} {phase.capitalize()}', 
                 postfix={'lr': f'{lr:.0e}'}, 
+                total=total_steps,
+                desc=f'Epoch {epoch}/{args.num_epochs} {phase.capitalize()}', 
+                postfix={'lr': f'{lr:.0e}'}, 
                 unit='batch'
+            ) as pbar:
+                for step, (X, y) in enumerate(loader):
+                    
+                    with autocast_context_manager:
+                        X, y = X.to(device), y.to(device)
+                
+                        y_hat = model(X)
+                        if hasattr(y_hat, 'logits'):
+                            y_hat = y_hat.logits
+                            y_hat = torch.nn.functional.interpolate(y_hat, size=y.shape[-2:], mode='bilinear', align_corners=False)
+
+                        loss = criterion(y_hat, y)
+                        
+                        if phase == 'train' and epoch != 0:
+                            scaler.scale(loss).backward()
+                    
+                        phase_stats['loss'].append(loss.detach().cpu().item())
+                        for metric_fn in metric_fns:
+                            phase_stats[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X)) # multiple by samples seen to get true average later
+
+                        running_metrics = {
+                            'loss': sum(phase_stats['loss']) / ((step * loader.batch_size) + len(X)),
+                        }
+                        for metric_fn in metric_fns:
+                            running_metrics[metric_fn.__name__] = sum(phase_stats[metric_fn.__name__]) / ((step * loader.batch_size) + len(X))
             ) as pbar:
                 for step, (X, y) in enumerate(loader):
                     
@@ -683,7 +827,27 @@ def main() -> None:
                                 profiler.update(epoch, phase, step, time() - phase_start_time)
                                 break
                     
+                    if (step + 1) % args.grad_accumulation_steps == 0:
+                        if phase == 'train' and epoch != 0:
+                            scaler.step(optimizer)
+                            scaler.update()
+                            optimizer.zero_grad(set_to_none=True)
+                        tqdm_postfix = {
+                            'lr': f"{lr:.0e}",
+                            'loss': f"{running_metrics['loss']:.3e}",
+                            'f1': f"{running_metrics['f1_score']:.3f}",
+                            'macro_f1': f"{running_metrics['macro_f1_score']:.3f}",
+                        }
+                        pbar.set_postfix(tqdm_postfix)
+                        pbar.update(1)
+                        
+                        if phase == 'train':
+                            if len(loader) - step < args.grad_accumulation_steps:
+                                profiler.update(epoch, phase, step, time() - phase_start_time)
+                                break
+                    
                     profiler.update(epoch, phase, step, time() - phase_start_time)
+                        
                         
                 
             history_dict[f'{phase}_loss'].append(running_metrics['loss'])
@@ -707,6 +871,7 @@ def main() -> None:
             'optimizer': optimizer.state_dict(),
             'scheduler': scheduler.state_dict(),
             'criterion': criterion.state_dict(),
+            'criterion': criterion.state_dict(),
             'epoch': epoch,
             'best_epoch': best_epoch,
             'best_val_loss': best_val_loss,
@@ -716,6 +881,7 @@ def main() -> None:
         torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
         
         history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch + 1)))
+        history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch + 1)))
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
         profiler.save(os.path.join(log_dir, 'profiler.csv'))
         
@@ -723,6 +889,7 @@ def main() -> None:
             logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
             break
     
+    logger.log(f'Finished training after {epoch} epochs.')
     logger.log(f'Finished training after {epoch} epochs.')
     
     test_dataset = FineTuneDataset(
@@ -733,13 +900,20 @@ def main() -> None:
         transform=None,
         preload=not args.load_data_from_disk,
         n_threads=args.num_workers,
+        n_threads=args.num_workers,
     )
+    logger.log(f'Test dataset: {len(test_dataset)} samples')
+
     logger.log(f'Test dataset: {len(test_dataset)} samples')
 
     test_loader = torch.utils.data.DataLoader(
         test_dataset,
         batch_size=args.mini_batch_size,
+        batch_size=args.mini_batch_size,
         shuffle=False,
+        # num_workers=args.num_workers,
+        # pin_memory=True,
+        # prefetch_factor=4,
         # num_workers=args.num_workers,
         # pin_memory=True,
         # prefetch_factor=4,
@@ -759,8 +933,20 @@ def main() -> None:
     total_steps = math.ceil(len(test_loader) / args.grad_accumulation_steps)
     with tqdm(total=total_steps, desc='Testing', unit='batch') as pbar:
         for step, (X, y) in enumerate(test_loader):
+    model.eval()
+    torch.set_grad_enabled(False)
+    y_preds = []
+    y_trues = []
+    
+    total_steps = math.ceil(len(test_loader) / args.grad_accumulation_steps)
+    with tqdm(total=total_steps, desc='Testing', unit='batch') as pbar:
+        for step, (X, y) in enumerate(test_loader):
             X, y = X.to(device), y.to(device)
             y_hat = model(X)
+            if hasattr(y_hat, 'logits'):
+                y_hat = y_hat.logits
+                y_hat = torch.nn.functional.interpolate(y_hat, size=y.shape[-2:], mode='bilinear', align_corners=False)
+
             if hasattr(y_hat, 'logits'):
                 y_hat = y_hat.logits
                 y_hat = torch.nn.functional.interpolate(y_hat, size=y.shape[-2:], mode='bilinear', align_corners=False)
@@ -769,8 +955,24 @@ def main() -> None:
             loss = criterion(y_hat, y)
             phase_metrics['loss'].append(loss.detach().cpu().item())
             test_metrics['loss'] = sum(phase_metrics['loss']) / ((step * test_loader.batch_size) + len(X))
+            phase_metrics['loss'].append(loss.detach().cpu().item())
+            test_metrics['loss'] = sum(phase_metrics['loss']) / ((step * test_loader.batch_size) + len(X))
             
             for metric_fn in metric_fns:
+                phase_metrics[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X))
+                test_metrics[metric_fn.__name__] = sum(phase_metrics[metric_fn.__name__]) / ((step * test_loader.batch_size) + len(X))
+                
+            y_preds.append(y_hat.argmax(axis=1).cpu().numpy().flatten())
+            y_trues.append(y.cpu().numpy().flatten())
+            
+            if (step + 1) % args.grad_accumulation_steps == 0 or step == len(test_loader) - 1:
+                tqdm_postfix = {
+                    'loss': f"{test_metrics['loss']:.3e}",
+                    'f1': f"{test_metrics['f1_score']:.3f}",
+                    'macro_f1': f"{test_metrics['macro_f1_score']:.3f}",
+                }
+                pbar.set_postfix(tqdm_postfix)
+                pbar.update(1)
                 phase_metrics[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X))
                 test_metrics[metric_fn.__name__] = sum(phase_metrics[metric_fn.__name__]) / ((step * test_loader.batch_size) + len(X))
                 
@@ -824,7 +1026,41 @@ def main() -> None:
     cr_df.to_csv(os.path.join(log_dir, 'classification_report.csv'), index=True)
 
 
+    
+    y_preds = np.concatenate(y_preds)
+    y_trues = np.concatenate(y_trues)
+    
+    
+    if 'cpb' in args.test_dir:
+        legend_classes = {
+            1: 'Water',
+            2: 'Tree canopy',
+            3: 'Shrubland',
+            4: 'Low vegetation',
+            5: 'Barren land',
+            6: 'Impervious structures',
+            7: 'Other impervious',
+        }
+    else:
+        legend_classes = LEGEND_CLASSES
+        
+    y_trues_class_names = [legend_classes[i+1] for i in y_trues]
+    y_preds_class_names = [legend_classes[i+1] for i in y_preds]
+    class_names_list = [legend_classes[i+1] for i in range(num_classes)]
+
+    cm = confusion_matrix(y_trues_class_names, y_preds_class_names, labels=class_names_list)
+    cm_df = pd.DataFrame(cm, index=class_names_list, columns=class_names_list)
+    cm_df.to_csv(os.path.join(log_dir, 'confusion_matrix.csv'), index=True)
+    
+    cr = classification_report(y_trues, y_preds, target_names=class_names_list, output_dict=True, zero_division=0)
+    
+    cr_df = pd.DataFrame(cr).transpose()
+    cr_df.to_csv(os.path.join(log_dir, 'classification_report.csv'), index=True)
+
+
 
 if __name__ == '__main__':
 
+
     main()
+
