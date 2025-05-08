@@ -18,16 +18,10 @@ from concurrent.futures import ThreadPoolExecutor
 from skimage.segmentation import quickshift, felzenszwalb
 from tqdm import tqdm
 from skimage.segmentation import felzenszwalb
-<<<<<<< HEAD
 from shutil import copyfile
 
 
 from src.mslandcover.inference import GPURasterProcessor, compute_segment_means, process_batch, fast_mode_filter
-=======
-
-
-from src.mslandcover.inference import GPURasterProcessor, compute_segment_means, process_batch
->>>>>>> 92c38dada988a07d5b0ea62e610a1f6cbc95eac6
 from src.mslandcover.models import UNet, AttentionUResNetD, AttentionUConvNeXt
 from src.mslandcover.config import MSTM_PROJ4, HRNET_W18_CONFIG, LEGEND_COLORS_RGBA, LEGEND_CLASSES
 from src.mslandcover.utils import load_pth, get_torch_device, Logger
@@ -37,15 +31,9 @@ from src.mslandcover.utils import load_pth, get_torch_device, Logger
 
 
 def main():
-<<<<<<< HEAD
     SKIP_INFERENCE = True
     SKIP_CLIPPING = True
     SKIP_POSTPROCESSING = False
-=======
-    SKIP_INFERENCE = False
-    SKIP_CLIPPING = False
-    SKIP_POSTPROCESSING = True
->>>>>>> 92c38dada988a07d5b0ea62e610a1f6cbc95eac6
     
         
     # model_weights_path = './weights/multistage_finetuning_stage2/dae/s1_full_train/s2_decoder_train/best_model.pth'
@@ -53,14 +41,8 @@ def main():
     # model_weights_path = './weights/multistage_unet/best_model.pth'
     # model_weights_path = './weights/msft2_202502/dae/s1_frozen_encoder/s2_full_train/best_model.pth'
     # model_weights_path = './weights/msft1_hr_simclr_202502/simclr/mslc/decoder_train/best_model.pth'
-<<<<<<< HEAD
     # model_weights_path = './weights/msft1_convnext/simclr/mslc/full_train/best_model.pth'
     model_weights_path = './weights/hires_simclr_tests_finetune/hires_simclr/decoder_only/frozen_encoder/dae/best_model.pth'
-=======
-    model_weights_path = './weights/msft1_convnext/simclr/mslc/full_train/best_model.pth'
-
-    
->>>>>>> 92c38dada988a07d5b0ea62e610a1f6cbc95eac6
     if os.environ.get('MSLC_INFERENCE_COUNTY_INDEX') is not None:
         county_index = int(os.environ.get('MSLC_INFERENCE_COUNTY_INDEX'))
     else:
@@ -77,7 +59,6 @@ def main():
     logger.log(f'Using device: {device}')
     
     logger.log('Loading county boundaries...')
-<<<<<<< HEAD
     # ms_counties_gdf = gpd.read_file('./data/shapefiles/ms_counties.gpkg')
     ms_counties_gdf = gpd.read_file('./data/shapefiles/se_counties_naip_raster_paths.geojson')
 
@@ -91,15 +72,10 @@ def main():
     if crs != ms_counties_gdf.crs:
         ms_counties_gdf = ms_counties_gdf.to_crs(crs)
         county_series = ms_counties_gdf.iloc[county_index]
-=======
-    ms_counties_gdf = gpd.read_file('./data/shapefiles/ms_counties.gpkg')
-    county_series = ms_counties_gdf.iloc[county_index]
->>>>>>> 92c38dada988a07d5b0ea62e610a1f6cbc95eac6
     
     county_geom = county_series['geometry']
     county_name = county_series['NAME']
     county_fp_code = county_series['COUNTYFP']
-<<<<<<< HEAD
     county_state_code = county_series['STATE_CODE']
     
     filename_safe_county_name = "".join(char for char in county_name if char.isalnum())
@@ -108,9 +84,6 @@ def main():
         logger.log(f'Final output path {final_out_path} already exists. Skipping inference...')
         return
     
-=======
-    raster_path = county_series['raster_path']
->>>>>>> 92c38dada988a07d5b0ea62e610a1f6cbc95eac6
     
     ## For NYC inference test    
     # us_counties = gpd.read_file('/home/dhester/server/dbcenter/dbgis/admin_usa/counties/cb_2016_us_county_5m.shp')
@@ -148,18 +121,11 @@ def main():
         bounding_polygons = [shapely.geometry.Polygon(polygon.exterior) for polygon in county_geom.geoms]
     
     # out_path = f'/home/dhester/server/guser/dh/LC_Tests/MS_new_20250210/postprocessed_short_stride'
-<<<<<<< HEAD
     # out_path = f'/home/dhester/server/guser/dh/LC_Tests/MSLC_Prelim_v2_202502/{county_fp_code:03}'
     out_path = f'/home/dhester/server/guser/dh/LC_tests_v3/{county_state_code}/{county_fp_code:03}'
     os.makedirs(out_path, exist_ok=True)
     
     logger.log(f'Loaded county {county_name}, {county_state_code} with FIPS code {county_fp_code}')
-=======
-    out_path = f'/home/dhester/server/guser/dh/LC_Tests/MSLC_Prelim_v2_202502/{county_fp_code:03}'
-    os.makedirs(out_path, exist_ok=True)
-    
-    logger.log(f'Loaded county {county_name} with FIPS code {county_fp_code}')
->>>>>>> 92c38dada988a07d5b0ea62e610a1f6cbc95eac6
     
     logger.log('Loading model...')
     # model = UNet(use_extended_decoder=False).to(get_torch_device())
@@ -174,20 +140,12 @@ def main():
         model=model,
         tile_size=256,
         stride=128,
-<<<<<<< HEAD
         gaussian_sigma=192,
         batch_size=32,
         mean=load_pth('./weights/pretrain_mean.pth'),
         std=load_pth('./weights/pretrain_std.pth'),
         device=device,
         apply_random_transformations=False,
-=======
-        gaussian_sigma=128,
-        batch_size=64,
-        mean=load_pth('./weights/pretrain_mean.pth'),
-        std=load_pth('./weights/pretrain_std.pth'),
-        device=device,
->>>>>>> 92c38dada988a07d5b0ea62e610a1f6cbc95eac6
         # seg_func=felzenszwalb,
         # seg_func_params= {'median_radius': 2, 'unsharp_radius': 0, 'unsharp_amount': 3.649424294678024, 'scale': 41.17665570830897, 'min_size': 5, 'sigma': 0}
     )
@@ -199,11 +157,7 @@ def main():
     # raster_path = './data/NAIP_MS/ortho_1-1_hc_s_ms149_2023_1/ortho_1-1_hc_s_ms149_2023_1_1m.tif'
     # raster_path = r"Z:\guser\dh\NAIP_MS_2023\ortho_1-1_hc_s_ms105_2023_1\ortho_1-1_hc_s_ms105_2023_1_1m.tif"
     
-<<<<<<< HEAD
     # raster_path = f'/home/dhester/server/guser/dh/NAIP_MS_2023/ortho_1-1_hc_s_ms{int(county_fp_code):03}_2023_1/ortho_1-1_hc_s_ms{int(county_fp_code):03}_2023_1_1m.tif'
-=======
-    raster_path = f'/home/dhester/server/guser/dh/NAIP_MS_2023/ortho_1-1_hc_s_ms{int(county_fp_code):03}_2023_1/ortho_1-1_hc_s_ms{int(county_fp_code):03}_2023_1_1m.tif'
->>>>>>> 92c38dada988a07d5b0ea62e610a1f6cbc95eac6
     with rio.open(raster_path) as src:
         profile = src.profile.copy()
         # raster_data = src.read()
@@ -360,14 +314,11 @@ def main():
                 
         logger.log(f'Saved clipped land cover confidence to {os.path.join(out_path, "lc_confidence_clipped.tif")}')
     
-<<<<<<< HEAD
     # save cliped land cover classes to a new file with 
     filename_safe_county_name = "".join(char for char in county_name if char.isalnum())
     final_out_path = f'/home/dhester/server/guser/dh/regional_lc/{county_state_code}/{county_fp_code:03}_{filename_safe_county_name}.tif'
     os.makedirs(os.path.dirname(final_out_path), exist_ok=True)
     copyfile(os.path.join(out_path, 'lc_classes_clipped.tif'), final_out_path)
-=======
->>>>>>> 92c38dada988a07d5b0ea62e610a1f6cbc95eac6
     
     # if SKIP_POSTPROCESSING and os.path.exists(os.path.join(out_path, 'features.gpkg')):
         # logger.log('Features already computed. Skipping post-processing...')
@@ -376,7 +327,6 @@ def main():
         logger.log(f'SKIP_POSTPROCESSING set to True, ending now..')
         return
     
-<<<<<<< HEAD
     with rio.open(os.path.join(out_path, 'lc_classes.tif')) as src:
         lc_classes = src.read(1)
         lc_classes_profile = src.profile.copy()
@@ -423,88 +373,6 @@ def main():
     copyfile(os.path.join(out_path, 'lc_classes_filtered_clipped.tif'), final_out_path)
     logger.log(f'Copied filtered land cover classes to {final_out_path}')
     
-=======
-    features_dict = {
-        'geometry': [],
-        'predicted_class': [],
-        'confidence': [],
-    }
-    for i in range(1, len(LEGEND_CLASSES)):
-        features_dict[LEGEND_CLASSES[i]] = []
-    
-    # prepare for multiprocessing - global vars are a bad practice I know, but its easier to do this than to work with shared memory
-    bounding_mask = geometry_mask(bounding_polygons, out_shape=raster_data.shape[1:], transform=profile['transform'], all_touched=True, invert=True)
-    
-    raster_transform = profile['transform']
-    
-    # chunk the arrays into 10k x 10k pixel chunks for processing
-    chunk_size = 1024
-    # print(raster_data.shape, lc_probs.shape)
-    # with tqdm(total=(lc_probs.shape[2] // chunk_size) * (lc_probs.shape[1] // chunk_size), desc='Post-processing land cover', unit='chunks') as pbar:
-        
-    with Pool(cpu_count()) as pool:
-        active_tasks = []
-        max_concurrent_tasks = cpu_count()
-        features_list = []
-        
-        with tqdm(total=(lc_probs.shape[2] // chunk_size) * (lc_probs.shape[1] // chunk_size), desc='Post-processing land cover', unit='chunks') as pbar:
-            for j in range(0, lc_probs.shape[2], chunk_size):
-                for i in range(0, lc_probs.shape[1], chunk_size):
-                    while len(active_tasks) >= max_concurrent_tasks:
-                        done_tasks = []
-                        for task in active_tasks:
-                            if task.ready():
-                                features_list.extend(task.get())
-                                done_tasks.append(task)
-                                pbar.update(1)
-                        
-                        active_tasks = [task for task in active_tasks if not task in done_tasks]
-                        if len(active_tasks) >= max_concurrent_tasks:
-                            sleep(0.1)
-                            
-                    chunk_args = (
-                        raster_data[:, i:i+chunk_size, j:j+chunk_size],
-                        lc_probs[:, i:i+chunk_size, j:j+chunk_size],
-                        bounding_mask[i:i+chunk_size, j:j+chunk_size],
-                        rio.Affine.translation(j, -i) * raster_transform,
-                    )
-                    active_tasks.append(pool.apply_async(postprocess_batch, chunk_args))
-            
-            for task in active_tasks:
-                features_list.extend(task.get())
-                pbar.update(1)
-
-    for feature in features_list:
-        for key in features_dict.keys():
-            features_dict[key].append(feature[key])
-            
-        # for i in range(0, lc_probs.shape[2], chunk_size):
-        #     for j in range(0, lc_probs.shape[1], chunk_size):
-                
-                
-            # features_gdf_chunk = gpd.GeoDataFrame(features_dict_chunk, crs=profile['crs'], geometry='geometry')
-            # features_gdfs.append(features_gdf_chunk)
-            # features_gdf = pd.concat(features_gdfs)
-            # features_gdf.to_file(os.path.join(out_path, 'features_running.gpkg'), driver='GPKG')
-                
-            
-            
-            
-    # # now, object-based segmentation using quickshift
-    # logger.log('Segmenting image...')
-    # # segments = quickshift(raster_data.transpose(1, 2, 0), kernel_size=3, max_dist=6, ratio=0.5).astype(np.uint16)
-    # segments = parallel_quickshift(raster_data).astype(np.int32)
-    
-    # # use zonal statistics to get mean probabilities for each segment
-    # logger.log('Extracting zonal land cover probability means...')
-    # class_means = compute_segment_means(lc_probs, segments) # Dict[int, np.ndarray]
-    
-    # logger.log('Generating polygons from segments...')
-    # bounding_mask = geometry_mask(bounding_polygons, out_shape=segments.shape, transform=profile['transform'], all_touched=True, invert=True)
-    # geoms = [(geom, int(id)) for geom, id in shapes(segments.astype(np.float64), mask=bounding_mask, connectivity=4, transform=profile['transform'])]
-    
-    # logger.log('Compiling to feature class')
->>>>>>> 92c38dada988a07d5b0ea62e610a1f6cbc95eac6
     # features_dict = {
     #     'geometry': [],
     #     'predicted_class': [],
@@ -513,7 +381,6 @@ def main():
     # for i in range(1, len(LEGEND_CLASSES)):
     #     features_dict[LEGEND_CLASSES[i]] = []
     
-<<<<<<< HEAD
     # # prepare for multiprocessing - global vars are a bad practice I know, but its easier to do this than to work with shared memory
     # bounding_mask = geometry_mask(bounding_polygons, out_shape=raster_data.shape[1:], transform=profile['transform'], all_touched=True, invert=True)
     
@@ -624,38 +491,6 @@ def main():
     
     # logger.log(f'Saving reduced features to {os.path.join(out_path, "features_dissolved.gpkg")}...')
     # features_dissolved_gdf.to_file(os.path.join(out_path, 'features_dissolved.gpkg'), driver='GPKG')
-=======
-    # for i, (g, segment_id) in enumerate(tqdm(geoms, desc='Compiling features', unit='geometries')):
-    #     if segment_id not in class_means.keys():
-    #         logger.log(f'Segment ID {segment_id} not found in class means! Skipping...')
-    #         continue
-        
-    #     features_dict['geometry'].append(shapely.geometry.shape(g))
-    #     probs = class_means[segment_id]
-    #     for j, prob in enumerate(probs):
-    #         class_label = LEGEND_CLASSES[j + 1]
-    #         features_dict[class_label].append(prob)
-    #     features_dict['predicted_class'].append(LEGEND_CLASSES[np.argmax(probs) + 1])
-    #     features_dict['confidence'].append(np.max(probs))
-    
-    
-    # features_gdf = gpd.GeoDataFrame(features_dict, crs=profile['crs'], geometry='geometry')
-    
-    
-    logger.log(f'Compiling features into GeoDataFrame...')
-    features_gdf = gpd.GeoDataFrame(features_dict, crs=profile['crs'], geometry='geometry')
-    
-    logger.log(f'Saving features to {os.path.join(out_path, "features.gpkg")}...')
-    features_gdf.to_file(os.path.join(out_path, 'features.gpkg'), driver='GPKG')
-    
-    # features_dissolved_gdf = features_gdf[['predicted_class', 'geometry']]
-    logger.log('Dissolving features...')
-    # TODO: split features gdf into chunks then dissolve using multiprocessing
-    features_dissolved_gdf = features_gdf.dissolve(by='predicted_class', aggfunc='mean')
-    
-    logger.log(f'Saving reduced features to {os.path.join(out_path, "features_dissolved.gpkg")}...')
-    features_dissolved_gdf.to_file(os.path.join(out_path, 'features_dissolved.gpkg'), driver='GPKG')
->>>>>>> 92c38dada988a07d5b0ea62e610a1f6cbc95eac6
 
 # TODO: Move helper functions to a separate file
 def process_segment_mean(segments, segment_ids, raster):

@@ -272,17 +272,12 @@ def parse_arguments() -> argparse.Namespace:
         parser.error('--lr must be greater than 0')
         
     if args.num_epochs < 1:
-    if args.num_epochs < 1:
         parser.error('--n-epochs must be greater than or equal to 1')
         
     if args.early_stopping_patience < 1:
         parser.error('--early_stopping_patience must be greater than or equal to 1')
-        parser.error('--early_stopping_patience must be greater than or equal to 1')
         
     if args.reduce_lr_patience < 1:
-        parser.error('--lr_reduce_patience must be greater than or equal to 1')
-    
-    args.grad_accumulation_steps = args.full_batch_size // args.mini_batch_size
         parser.error('--lr_reduce_patience must be greater than or equal to 1')
     
     args.grad_accumulation_steps = args.full_batch_size // args.mini_batch_size
@@ -638,21 +633,9 @@ def main() -> None:
     logger.log(f'Trainable parameters: {trainable_params}')
 
     optimizer = AdamW(
-
-    optimizer = AdamW(
         params=model.parameters(),
         lr=args.lr,
-        weight_decay=1e-2,
-    )
-    
-    scaler = GradScaler()
-    # new pytorch version requires device_type argument, old one assumes CUDA and has no device_type argument
-    # NOTE: DISABLE AUTOCAST FOR NOW
-    try:
-        autocast_context_manager = autocast(device_type=device.type, enabled=False)
-    except TypeError: # multiple values for argument `enabled`
-        autocast_context_manager = autocast(enabled=False)
-        weight_decay=1e-2,
+        # weight_decay=1e-2,
     )
     
     scaler = GradScaler()
@@ -718,7 +701,6 @@ def main() -> None:
     logger.log(f'Starting training from epoch {starting_epoch}...')
     
     for epoch in range(starting_epoch, args.num_epochs+1):
-    for epoch in range(starting_epoch, args.num_epochs+1):
         
         lr = optimizer.param_groups[0]['lr']
         history_dict['learning_rate'].append(lr)
@@ -758,31 +740,7 @@ def main() -> None:
                 postfix={'lr': f'{lr:.0e}'}, 
                 unit='batch'
             ) as pbar:
-                for step, (X, y) in enumerate(loader):
-                    
-                    with autocast_context_manager:
-                        X, y = X.to(device), y.to(device)
                 
-                        y_hat = model(X)
-                        if hasattr(y_hat, 'logits'):
-                            y_hat = y_hat.logits
-                            y_hat = torch.nn.functional.interpolate(y_hat, size=y.shape[-2:], mode='bilinear', align_corners=False)
-
-                        loss = criterion(y_hat, y)
-                        
-                        if phase == 'train' and epoch != 0:
-                            scaler.scale(loss).backward()
-                    
-                        phase_stats['loss'].append(loss.detach().cpu().item())
-                        for metric_fn in metric_fns:
-                            phase_stats[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X)) # multiple by samples seen to get true average later
-
-                        running_metrics = {
-                            'loss': sum(phase_stats['loss']) / ((step * loader.batch_size) + len(X)),
-                        }
-                        for metric_fn in metric_fns:
-                            running_metrics[metric_fn.__name__] = sum(phase_stats[metric_fn.__name__]) / ((step * loader.batch_size) + len(X))
-            ) as pbar:
                 for step, (X, y) in enumerate(loader):
                     
                     with autocast_context_manager:
@@ -925,14 +883,6 @@ def main() -> None:
     test_metrics = {}
     
     model.load_state_dict(load_pth(os.path.join(out_dir, 'best_model.pth')))
-    model.eval()
-    torch.set_grad_enabled(False)
-    y_preds = []
-    y_trues = []
-    
-    total_steps = math.ceil(len(test_loader) / args.grad_accumulation_steps)
-    with tqdm(total=total_steps, desc='Testing', unit='batch') as pbar:
-        for step, (X, y) in enumerate(test_loader):
     model.eval()
     torch.set_grad_enabled(False)
     y_preds = []
