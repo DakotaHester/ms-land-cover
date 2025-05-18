@@ -1,35 +1,27 @@
+import math
+from time import time
 from typing import OrderedDict
+import pandas as pd
 import torch
 import torch.nn as nn
-from torch.nn import functional as F
-try:
-    from torch.amp import autocast, GradScaler
-except ImportError:
-    from torch.cuda.amp import autocast, GradScaler
+import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import ReduceLROnPlateau, LambdaLR
-from calflops import calculate_flops
+from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torchvision.models import resnet152, ResNet152_Weights
 import numpy as np
-from argparse import ArgumentParser
 import os
 from glob import glob
+from calflops import calculate_flops
 from tqdm import tqdm
-import pandas as pd
-from time import time
 import json
-import math
-from timm.models.resnet import resnet152d
-from timm.models.convnext import convnext_base
 
-from src.mslandcover.data.datasets import PreTrainDataset
-from src.mslandcover.data import transforms
-from src.mslandcover.models import HRNetSegmentationModel, ResNetAutoencoder, UNet, HighResUNet, UResNetD, AttentionUResNetD, ProjectionHead, SegformerForSimCLR, AttentionUConvNeXt
-from src.mslandcover.optim import LARS, PCGradAMP
-from src.mslandcover.loss import cached_mse_loss_call, cached_contrastive_loss_call
-from src.mslandcover.metrics import psnr, ssim
-from src.mslandcover.gradcaching import cached_model_call, init_grad_cache_closure_dicts, call_closures
-from src.mslandcover.utils import Logger, ProfilerHistory, get_torch_device, load_pth
-from src.mslandcover.config import HRNET_W48_CONFIG, HRNET_W18_CONFIG
+from mslandcover.utils import ProfilerHistory, Logger, get_torch_device, load_pth
+from mslandcover.data.datasets import PreTrainDataset
+from mslandcover.data import transforms
+from mslandcover.models import DeepLabV3Plus, ProjectionHead, ResNetBackbone
+from mslandcover.loss import nt_xent_loss
+from mslandcover.metrics import psnr, ssim
+from argparse import ArgumentParser
 
 def parse_arguments():
     parser = ArgumentParser()
@@ -37,50 +29,29 @@ def parse_arguments():
     parser.add_argument(
         '--pretrain_scheme',
         type=str,
-        default='dae_si',
-        choices=['ae', 'dae', 'hsv', 'dae_hsv', 'simclr', 'ae_simclr', 'dae_simclr', 'hsv_simclr', 'dae_hsv_simclr', 'lab', 'dae_lab', 'simclr_lab', 'dae_simclr_lab', 'ae_lab', 'simclr_ae_lab', 'dae_si', 'hires_simclr'],
-        help='The pretraining scheme to use. One of [ae, dae, hsv, dae_hsv, simclr, ae_simclr, dae_simclr, hsv_simclr, dae_hsv_simclr, lab, dae_lab, simclr_lab, dae_simclr_lab, ae_lab, simclr_ae_lab, dae_rs],.',
+        default='simclr',
+        choices=['dae', 'simclr', 'hires_simclr'],
+        help='The pretraining scheme to use.',
     )
     
     parser.add_argument(
         '--model',
         type=str,
-        default='att_unext',
-        choices=['unet', 'hrnet_w48', 'hrnet_w18', 'resnet152', 'hrunet', 'uresnetd', 'resnet152d', 'att_unet', 'segformer', 'convnext', 'att_unext'],
+        default='resnet152',
+        choices=['resnet152', 'deeplabv3p'],
     )
-    
-    parser.add_argument(
-        '--pretrain_hdf5_path',
-        type=str,
-        default='/scratch/dhester/mslc/pretrain.hdf5',
-        help='Path to the pretraining HDF5 dataset.',
-    )
-    
-    parser.add_argument(
-        '--pretrain_hdf5_group',
-        type=str,
-        default='pretrain',
-        help='The group in the HDF5 dataset to use for pretraining.',
-    )
-    
-    parser.add_argument(
-        '--pretrain_val_hdf5_group',
-        type=str,
-        default='pretrain_val',
-        help='The group in the HDF5 dataset to use for pretraining validation.',
-    )    
     
     parser.add_argument(
         '--pretrain_data_dir', 
         type=str,  
-        default='/scratch/dhester/mslc/pretrain/',
+        default='/scratch/dhester/mslc_data_v2/pretrain/',
         help='Path to the directory containing the pretraining data.',
     )
     
     parser.add_argument(
         '--pretrain_val_data_dir', 
         type=str,  
-        default='/scratch/dhester/mslc/pretrain_val/',
+        default='/scratch/dhester/mslc_data_v2/pretrain_val/',
         help='Path to the directory containing the pretraining validation data.',
     )
     
@@ -119,6 +90,13 @@ def parse_arguments():
         help='The factor by which to reduce the learning rate after loading the imagenet weights.',
     )
     
+    parser.add_argument(
+        '--temperature',
+        type=float,
+        default=0.5,
+        help='The temperature to use for the NT-Xent loss.',
+    )
+    
     # "Training with large minibatches is bad for your health.
     #  More importantly, it's bad for your test error.
     #  Friends dont let friends use minibatches larger than 32.""
@@ -135,7 +113,7 @@ def parse_arguments():
         '--mini_batch_size',
         type=int,
         default=256,
-        help='The mini-batch size to use for gradient caching.',
+        help='The mini-batch size to use for gradient accumulation. Only relevant if using pretraining scheme "dae".',
     )
     
     parser.add_argument(
@@ -197,26 +175,19 @@ def parse_arguments():
     )
     
     parser.add_argument(
+        '--n_bands',
+        type=int,
+        default=4,
+        help='The number of bands in the input data. If 3, then color infrared composites are used (NIR, Red, Green)',
+    )
+    
+    parser.add_argument(
         '--visualize_augmentations_dir',
         type=str,
         default='./paper/images/augmentations/' if False else None,
         help='The directory to save augmented images for visualization. If \
             provided, the script will only visualize the augmentations and not \
             train the model.',
-    )
-    
-    parser.add_argument(
-        '--use_amp',
-        default=False,
-        action='store_true',
-        help='Use Automatic Mixed Precision (AMP) for training.',
-    )
-    
-    parser.add_argument(
-        '--use_pcgrad',
-        default=True,
-        action='store_true',
-        help='Use Projected Conflicting Gradients (PCGrad) for training.',
     )
     
     parser.add_argument(
@@ -243,22 +214,12 @@ def parse_arguments():
     return parser.parse_args()
 
 
+
+
 def main():
     
     args = parse_arguments()
     
-    if args.frozen_encoder and args.model not in  ['unet', 'uresnetd', 'att_unet', 'att_unext']:
-        print('WARNING! Frozen encoder is only supported for U-Net models. Continuing without freezing the encoder.')
-        args.frozen_encoder = False
-    
-    if 'simclr' in args.pretrain_scheme:
-        if args.model == 'hrunet':
-            raise ValueError('HRUNet does not support contrastive learning. Please choose a different pretraining scheme.')
-        elif args.model == 'uresnetd':
-            raise ValueError('UResNetD does not support contrastive learning. Please choose a different pretraining scheme.')
-    else:
-        if args.model == 'resnet152d':
-            raise ValueError('ResNet152D ONLY supports SimCLR pretraining.')
     torch.random.manual_seed(args.seed)
     np.random.seed(args.seed)
     
@@ -284,10 +245,10 @@ def main():
     logger.log('='*20, prepend_timestamp=False)
     
     is_contrastive = 'simclr' in args.pretrain_scheme
-    is_reconstruction = 'hsv' in args.pretrain_scheme or 'dae' in args.pretrain_scheme or 'ae' in args.pretrain_scheme or 'lab' in args.pretrain_scheme
-    is_output_transformed = 'hsv' in args.pretrain_scheme or 'lab' in args.pretrain_scheme
-    is_output_spectral_index = 'si' in args.pretrain_scheme
-    is_multitask = is_contrastive and is_reconstruction
+    is_reconstruction = 'dae' in args.pretrain_scheme 
+    
+    if is_contrastive and args.mini_batch_size != args.full_batch_size:
+        raise ValueError('Contrastive learning requires the mini-batch size to be equal to the full batch size.')
     
     device = get_torch_device()
     logger.log(f'Using device: {device}')
@@ -303,54 +264,52 @@ def main():
             transform = transforms.SimCLRDataAugmentation(size=args.image_size, s=1.0)
     else:
         transform = transforms.StandardDataAugmentations(size=args.image_size, use_color_transforms=False)
-    # transform = transforms.H(size=args.image_size, s=0.5) if is_contrastive \
-        # else transforms.StandardDataAugmentations(size=args.image_size, use_color_transforms=False)
-    return_hsv = 'hsv' in args.pretrain_scheme
-    return_lab = 'lab' in args.pretrain_scheme
+
     noisy_input = 'dae' in args.pretrain_scheme
-    is_output_spectral_index = 'si' in args.pretrain_scheme
     n_views = 2 if is_contrastive else 1
     
-    mean_path = os.path.join(args.weights_dir, 'pretrain_mean.pth')
-    std_path = os.path.join(args.weights_dir, 'pretrain_std.pth')
+    if args.n_bands == 4:
+        mean_path = os.path.join(args.weights_dir, 'pretrain_mean_4.pt')
+        std_path = os.path.join(args.weights_dir, 'pretrain_std_4.pt')
+    else:
+        mean_path = os.path.join(args.weights_dir, 'pretrain_mean.pth')
+        std_path = os.path.join(args.weights_dir, 'pretrain_std.pth')
     
     mean = load_pth(mean_path) if os.path.exists(mean_path) else None
     std = load_pth(std_path) if os.path.exists(std_path) else None
     
     train_dataset = PreTrainDataset(
-        hdf5_path=args.pretrain_hdf5_path,
-        hdf5_group=args.pretrain_hdf5_group,
+        # hdf5_path=args.pretrain_hdf5_path,
+        # hdf5_group=args.pretrain_hdf5_group,
+        data_paths=glob(os.path.join(args.pretrain_data_dir, '*.tif')),
         transform=transform,
         n_views=n_views,
         mean=mean,
         std=std,
-        return_hsv=return_hsv,
-        return_lab=return_lab,
-        return_spectral_indices=is_output_spectral_index,
         noisy_input=noisy_input,
         noise_std=1.0,
-        noise_pct=0.5,
+        # noise_pct=0.5,
         preload=args.preload_data,
+        n_bands=args.n_bands,
     )
     val_dataset = PreTrainDataset(
-        hdf5_path=args.pretrain_hdf5_path,
-        hdf5_group=args.pretrain_val_hdf5_group,
+        # hdf5_path=args.pretrain_hdf5_path,
+        # hdf5_group=args.pretrain_val_hdf5_group,
+        data_paths=glob(os.path.join(args.pretrain_val_data_dir, '*.tif')),
         n_views=n_views,
         mean=train_dataset.mean,
         std=train_dataset.std,
         transform=transforms.ResizeTransform(size=args.image_size),
-        return_hsv=return_hsv,
-        return_lab=return_lab,
-        return_spectral_indices=is_output_spectral_index,
         noisy_input=noisy_input,
         noise_std=1.0,
-        noise_pct=0.5,
-        preload=args.preload_data
+        # noise_pct=0.5,
+        preload=args.preload_data,
+        n_bands=args.n_bands,
     )
     
     if args.debug:
         train_dataset.ids_list = train_dataset.ids_list[:(512)*4]
-        # val_dataset.ids_list = val_dataset.ids_list[:512]
+        val_dataset.ids_list = val_dataset.ids_list[:512]
         
         args.full_batch_size = 128
         args.mini_batch_size = 16
@@ -392,9 +351,6 @@ def main():
         transforms.visualize_transforms(
             args.visualize_augmentations_dir,
             n_views,
-            return_hsv,
-            return_lab,
-            is_output_spectral_index,
             noisy_input,
             train_dataset,
             glob(os.path.join(args.pretrain_data_dir, '*.tif')),
@@ -404,147 +360,49 @@ def main():
         )
         return
 
-    # determine appropriate activation function for the output layer    
-    if is_output_spectral_index:
-        activation_fn = nn.Tanh() # spectral index is in the range [-1, 1]
-    elif is_output_transformed:
-        activation_fn = nn.Sigmoid() # output in [0, 1]
-    else:
-        activation_fn = nn.Identity()
 
-    if 'hrnet' in args.model:
-        model_config = HRNET_W48_CONFIG if args.model == 'hrnet_w48' else HRNET_W18_CONFIG
-        model = HRNetSegmentationModel(
-            config=model_config,
-            img_decoder_head=is_reconstruction,
-            aux_simclr_head=is_contrastive,
-            img_decoder_activation='sigmoid' if is_output_transformed else 'none',
-        )
-        if not args.rand_init:
-            imagenet_weights = load_pth(os.path.join(out_dir, 'imagenet.pth'))
-            model.load_encoder_weights(imagenet_weights)
-    elif args.model == 'resnet152':
-        model = ResNetAutoencoder(
-            img_decoder_head=is_reconstruction,
-            aux_simclr_head=is_contrastive,
-            pretrained=not args.rand_init,
-            dropout_rate=0.5, # use dropout prior to final 1x1 conv layer
-            img_decoder_activation_fn=activation_fn,
-        )
-    elif args.model == 'unet':
-        if not is_reconstruction or is_multitask:
-            raise ValueError('Only single-task reconstruction is supported for U-Nets.')
+    activation_fn = nn.Identity()
 
-        model = UNet(
-            num_classes=3,
-            pretrained=not args.rand_init,
-            activation=activation_fn,
-        )
-        
-    elif args.model == 'hrunet':
-        if not is_reconstruction or is_multitask:
-            raise ValueError('Only single-task reconstruction is supported for HRUNets.')
-        model = HighResUNet(
-            num_classes=3,
-            pretrained=not args.rand_init,
-            activation=activation_fn,
-            deep_supervision=args.deep_supervision,
-        )
-        if args.deep_supervision:
-            deep_supervision_weights = [0.5, 0.25, 0.15, 0.1]
-    elif args.model == 'uresnetd':
-        if not is_reconstruction or is_multitask:
-            raise ValueError('Only single-task reconstruction is supported for UResNetD.')
-        model = UResNetD(
-            num_classes=3,
-            pretrained=not args.rand_init,
-            activation=activation_fn,
-            deep_supervision=args.deep_supervision,
-        )
-        # deep_supervision_weights = [0.5, 0.20, 0.15, 0.10, 0.05]
-        if args.deep_supervision:
-            deep_supervision_weights = [1.0, 1.0, 1.0, 1.0, 1.0]
-        # if args.model_weights 
-    elif args.model == 'att_unet':
-        if not is_reconstruction or is_multitask:
-            raise ValueError('Only single-task reconstruction is supported for Attention U-Nets.')
-        model = AttentionUResNetD(
-            num_classes=3,
-            pretrained=not args.rand_init,
-            activation=activation_fn,
-            deep_supervision=args.deep_supervision,
-        )
-        if args.deep_supervision:
-            deep_supervision_weights = [0.5, 0.20, 0.15, 0.10, 0.05]
-        if args.encoder_weights is not None:
-            encoder_weights = load_pth(args.encoder_weights)
-            # only load the encoder weights
-            for k in list(encoder_weights.keys()):
-                name_parts = k.split('.')
-                if name_parts[0] == 'encoder':
-                    encoder_weights['.'.join(name_parts[1:])] = encoder_weights.pop(k)
-                else:
-                    encoder_weights.pop(k)
-            model.encoder.load_state_dict(encoder_weights)
-            logger.log(f'Loaded encoder weights from {args.encoder_weights}.')
-        
-    elif args.model == 'resnet152d':
-        encoder_model = resnet152d(pretrained=not args.rand_init)
-        encoder_model.global_pool = nn.Identity()
-        encoder_model.fc = nn.Identity()
+    if args.model == 'resnet152':
+        encoder = resnet152(weights=ResNet152_Weights.IMAGENET1K_V2 if not args.rand_init else None)
+        if args.n_bands == 4:
+            encoder.conv1 = nn.Conv2d(4, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+        # encoder.global_pool = nn.Identity()
+        encoder.fc = nn.Identity()
         model = nn.Sequential(OrderedDict([
-            ('encoder', encoder_model),
+            ('encoder', encoder),
             ('projection_head', ProjectionHead(in_channels=2048))
         ]))
-    
-    elif args.model == 'segformer':
-        if args.pretrain_scheme != 'simclr':
-            raise ValueError('Segformer only supports SimCLR pretraining.')
-        model = SegformerForSimCLR()
-    
-    elif args.model == 'convnext':
-        encoder_model = convnext_base(pretrained=not args.rand_init)
-        encoder_model.head = nn.Identity()
-        model = nn.Sequential(OrderedDict([
-            ('encoder', encoder_model),
-            ('projection_head', ProjectionHead(1024))
-        ]))
-    
-    
-    elif args.model == 'att_unext':
-        if not is_reconstruction or is_multitask:
-            raise ValueError('Only single-task reconstruction is supported for Attention U-ConvNeXt.')
-        model = AttentionUConvNeXt(
-            num_classes=3,
-            pretrained=not args.rand_init,
-            activation=activation_fn,
-        )
-        if args.encoder_weights is not None:
-            encoder_weights = load_pth(args.encoder_weights)
-            # only load the encoder weights
-            for k in list(encoder_weights.keys()):
-                name_parts = k.split('.')
-                if name_parts[0] == 'encoder':
-                    encoder_weights['.'.join(name_parts[1:])] = encoder_weights.pop(k)
-                else:
-                    encoder_weights.pop(k)
-            model.encoder.load_state_dict(encoder_weights)
-            logger.log(f'Loaded encoder weights from {args.encoder_weights}.')
-        
+     
+    elif args.model == 'deeplabv3p':
+        raise NotImplementedError('DeepLabV3+ not implemented yet.')
+        # encoder = ResNetBackbone()
+        # model = DeepLabV3Plus(
+        #     backbone=ResNetBackbone(pretrained=args.encoder_weights if args.encoder_weights is not None else not args.rand_init, in_channels=args.n_bands),
+        #     num_classes=args.n_bands,
+        # )
         
     else:
         raise ValueError(f'Invalid model: {args.model}')
     
     model.to(device)
     
-    if args.frozen_encoder:
+    if args.frozen_encoder and args.model not in ['deeplabv3p']:
         for encoder_block in model.encoder_blocks:
             for param in encoder_block.parameters():
                 param.requires_grad = False
+    elif args.frozen_encoder:
+        for param in model.backbone.parameters():
+            param.requires_grad = False
+        # if not loading encoder weights, then unfreeze the backbone.initial.
+        if args.encoder_weights is None:
+            logger.log('NOTE! Unfreezing backbone.initial parameters to account for discrepancies in channels.')
+            for param in model.backbone.initial[0].parameters():
+                param.requires_grad = True
     
     flops, macs, _ = calculate_flops(
         model=model,
-        input_shape=(1, 3, args.image_size, args.image_size),
+        input_shape=(1, args.n_bands, args.image_size, args.image_size),
         output_as_string=False,
         print_results=False,
         print_detailed=False,
@@ -559,26 +417,10 @@ def main():
             'total_parameters': n_params,
             'trainable_parameters': n_trainable_params,
         }, f, indent=4)
+        
+
+    optimizer = torch.optim.AdamW(params=model.parameters(), lr=args.init_lr)
     
-    # define optimizer and scheduler - the specifics are taken from the original SimCLR implementation
-    # learning_rate = 3 * args.full_batch_size * ((args.image_size ** 2) / 256 ** 2) / 256 
-    learning_rate = args.init_lr
-    if not args.rand_init:
-        learning_rate *= args.learning_rate_factor # reduce the learning rate as model is pretrained
-    
-    # optimizer = LARS(
-    #     params=model.parameters(),
-    #     lr=learning_rate, # per original SimCLR implementation
-    #     weight_decay=1e-6,
-    # )
-    optimizer = torch.optim.AdamW(params=model.parameters(), lr=learning_rate)
-    
-    # warmup_epochs = args.num_epochs // 10
-    # if warmup_epochs == 0: warmup_epochs = 1 # prevent division by zero
-    # warmup_scheduler = LambdaLR(
-    #     optimizer=optimizer,
-    #     lr_lambda=lambda epoch: min(1, (epoch+1) / warmup_epochs),
-    # )
     reduce_lr_on_plateau = ReduceLROnPlateau(
         optimizer=optimizer,
         patience=args.reduce_lr_patience,
@@ -586,38 +428,12 @@ def main():
         eps=0,
     )
     
-    if args.use_amp:
-        scaler = GradScaler() # AMP for gradient scaling
-    
-    # new pytorch version requires device_type argument, old one assumes CUDA and has no device_type argument
-    try:
-        autocast_context_manager = autocast(device_type=device.type, enabled=args.use_amp)
-    except TypeError: # multiple values for argument `enabled`
-        autocast_context_manager = autocast(enabled=args.use_amp)
-    
-    # Gradient Surgery (projected conflicting gradients) - only used for multi-task learning
-    args.use_pcgrad = args.use_pcgrad and is_multitask 
-    if args.use_pcgrad:
-        grad_optimizer = PCGradAMP(
-            num_tasks=2,
-            optimizer=optimizer,
-            scaler=scaler if args.use_amp else None,
-        )
-    
-    cache_contents = []
-    if is_contrastive:
-        cache_contents.append('z')
-        if is_multitask:
-            cache_contents.extend(['y', 'y_hat'])
     
     history_dict = {
         'learning_rate': [],
     }
     for phase in ['train', 'val']:
-        history_dict[f'{phase}_total_loss'] = []
-        if is_multitask:
-            history_dict[f'{phase}_reconstruction_loss'] = []
-            history_dict[f'{phase}_contrastive_loss'] = []
+        history_dict[f'{phase}_loss'] = []
         if is_reconstruction:
             history_dict[f'{phase}_psnr'] = []
             history_dict[f'{phase}_ssim'] = []
@@ -633,13 +449,7 @@ def main():
         checkpoint = torch.load(os.path.join(log_dir, 'checkpoint.pth'))
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
-        # warmup_scheduler.load_state_dict(checkpoint['warmup_scheduler'])
         reduce_lr_on_plateau.load_state_dict(checkpoint['reduce_lr_on_plateau'])
-        
-        if args.use_amp:
-            scaler.load_state_dict(checkpoint['scaler'])
-        if args.use_pcgrad:
-            grad_optimizer.load_state_dict(checkpoint['grad_optimizer'])
         
         starting_epoch = checkpoint['epoch']  # start from the next epoch (checkpoints are saved at the end of the epoch)
         best_val_loss = checkpoint['best_val_loss']
@@ -658,7 +468,7 @@ def main():
         
         for phase in ['train', 'val']:
             phase_start_time = time()
-            tqdm_postfix = {'lr': f'{lr:.0e}',}
+            tqdm_postfix = {'LR': f'{lr:.0e}',}
             
             if phase == 'train':
                 torch.set_grad_enabled(epoch != 0) # disable backpropagation for the first epoch to get a baseline loss
@@ -672,193 +482,103 @@ def main():
                 loader = val_loader
             
             total_steps = math.ceil(len(loader) / grad_accum_steps) if phase == 'val' else math.floor(len(loader) / grad_accum_steps)
-            pbar = tqdm(
+            with tqdm(
                 desc=f'Epoch {epoch}/{args.num_epochs} {phase.capitalize()}', 
                 total=total_steps,
                 unit='batch',
                 postfix=tqdm_postfix,
-            )
-            
-            if is_contrastive:
-                cache, closures = init_grad_cache_closure_dicts(n_views, cache_contents)
-                contrastive_loss_values = []
-            
-            if is_reconstruction:
-                reconstruction_loss_values = []
-                psnr_values = []
-                ssim_values = []
-            
-            if is_multitask:
-                total_loss_values = []
-            
-            for step, batch in enumerate(loader):
+            ) as pbar:
                 
-                with autocast_context_manager:
-                    
-                    if is_contrastive and not is_multitask:
-                        for view in range(n_views):
-                            X = batch[view] # only need the first element of the tuple - the "target" is irrelevant here
-                            # if X is tuple, then only grab the first element
-                            if isinstance(X, tuple) or isinstance(X, list):
-                                X = X[0]
-                            X = X.to(device)
-                            z, closure = cached_model_call(model, X)
-                            
-                            cache[view]['z'].append(z)
-                            closures[view].append(closure)
+                loss_values = []
+                if is_reconstruction:
+                    psnr_values = []
+                    ssim_values = []
+                
+                for step, batch in enumerate(loader):
+                    if is_contrastive:
+                        X_0, X_1 = batch
+                        X_0, X_1 = X_0.to(device), X_1.to(device)
+                        z_0, z_1 = model(X_0), model(X_1)
                         
-                    elif is_reconstruction and not is_multitask:
+                        loss = nt_xent_loss(z_0, z_1, temperature=args.temperature, reduction='sum')
+                        loss_values.append(loss.item())
+                        
+                        epoch_loss = np.sum(loss_values) / ((step * args.mini_batch_size) + len(batch))
+                        tqdm_postfix['Loss'] = f'{epoch_loss:.2e}'
+                        
+                        # no grad accumulation for contrastive loss - can go ahead and update the model
+                        if phase == 'train' and epoch != 0:
+                            loss.backward()
+                            optimizer.step()
+                            optimizer.zero_grad()
+                        
+                        pbar.set_postfix(tqdm_postfix)
+                        pbar.update(1)
+                    
+                    else:
                         X, y = batch
                         X, y = X.to(device), y.to(device)
-                        
                         y_hat = model(X)
                         
                         # reconstruction_loss = F.mse_loss(y_hat, y, reduction='sum')
                         # NOTE: L1/MAE loss is used instead of MSE loss 
                         # https://research.nvidia.com/sites/default/files/pubs/2017-03_Loss-Functions-for/NN_ImgProc.pdf
                         # https://openaccess.thecvf.com/content/WACV2022/papers/Mustafa_Training_a_Task-Specific_Image_Reconstruction_Loss_WACV_2022_paper.pdf
-                        reconstruction_loss = F.l1_loss(y_hat, y, reduction='sum') 
-                        reconstruction_loss_values.append(reconstruction_loss.item())
-                        
+                        loss = F.l1_loss(y_hat, y, reduction='sum') 
+                        loss_values.append(loss.item())
                         ssim_values.append(ssim(y_hat, y, reduction='sum').item())
                         psnr_values.append(psnr(y_hat, y, reduction='sum').item())
                         
-                        if phase == 'train' and epoch != 0:
-                            if args.use_amp:
-                                scaler.scale(reconstruction_loss).backward()
-                            else:
-                                reconstruction_loss.backward()
-                        
-                        if phase == 'val' and np.nan in reconstruction_loss_values:
-                            msg = f'NaN in reconstruction loss values.'
-                            msg += f' | y_min: {y.min().item():.4f}, y_max: {y.max().item():.4f}, y_mean: {y.mean().item():.4f}, y_std: {y.std().item():.4f}'
-                            msg += f' | y_hat_min: {y_hat.min().item():.4f}, y_hat_max: {y_hat.max().item():.4f}, y_hat_mean: {y_hat.mean().item():.4f}, y_hat_std: {y_hat.std().item():.4f}'
-                            logger.log(msg)
-                            raise ValueError(msg)
-                            # print(np.sum(reconstruction_loss_values) / ((step * args.mini_batch_size) + len(batch)))
-                        
-                    elif is_multitask:
-                        for view in range(n_views):
-                            X, y = batch[view]
-                            X, y = X.to(device), y.to(device)
-                            y_hat, z, closure = cached_model_call(model, X) 
-                            
-                            cache[view]['y'].append(y)
-                            cache[view]['y_hat'].append(y_hat)
-                            cache[view]['z'].append(z)
-                            closures[view].append(closure)
-                        
-                if (step + 1) % grad_accum_steps == 0:
-                                                            
-                    if is_contrastive:
-                        contrastive_loss = cached_contrastive_loss_call(cache[0]['z'], cache[1]['z'])
-                        contrastive_loss_values.append(contrastive_loss.item())
-                        epoch_contrastive_loss = np.sum(contrastive_loss_values) / ((step * args.mini_batch_size) + len(batch)) 
-                        tqdm_postfix['NT-Xent Loss'] = f'{epoch_contrastive_loss:.3e}'
-                    
-                    if is_reconstruction:
-                        if is_multitask:
-                            reconstruction_loss = torch.tensor(0.0, device=device)
-                            for view in range(n_views):
-                                reconstruction_loss += cached_mse_loss_call(cache[view]['y_hat'], cache[view]['y'])
-                            reconstruction_loss_values.append(reconstruction_loss.item() / n_views)
-                            
-                        epoch_reconstruction_loss = np.sum(reconstruction_loss_values) / ((step * args.mini_batch_size) + len(batch)) 
-                        epoch_psnr = np.sum(psnr_values) / ((step * args.mini_batch_size) + len(batch))
+                        epoch_loss = np.sum(loss_values) / ((step * args.mini_batch_size) + len(batch))
                         epoch_ssim = np.sum(ssim_values) / ((step * args.mini_batch_size) + len(batch))
-                        tqdm_postfix['MAE Loss'] = f'{epoch_reconstruction_loss:.2e}'
+                        epoch_psnr = np.sum(psnr_values) / ((step * args.mini_batch_size) + len(batch))
+                        tqdm_postfix['Loss'] = f'{epoch_loss:.2e}'
                         tqdm_postfix['PSNR'] = f'{epoch_psnr:.2f}'
                         tqdm_postfix['SSIM'] = f'{epoch_ssim:.2f}'
                         
-                    
-                    if is_multitask:
-                        loss = [reconstruction_loss, contrastive_loss]
-                        total_loss_values.append(sum([l.item() for l in loss]))
-                        epoch_loss = np.sum(total_loss_values) / ((step * args.mini_batch_size) + len(batch))
-                        tqdm_postfix['Total Loss'] = f'{epoch_loss:.2e}'
-                    
-                    else:
-                        loss = contrastive_loss if is_contrastive else reconstruction_loss
-                        epoch_loss = epoch_contrastive_loss if is_contrastive else epoch_reconstruction_loss
-                    
-                    if phase == 'train' and epoch != 0:
-                        if args.use_pcgrad:
-                            grad_optimizer.backward(loss) 
-                            call_closures(cache, closures) 
-                            grad_optimizer.step()
+                        pbar.set_postfix(tqdm_postfix)
+                        
+                        if phase == 'train' and epoch != 0:
+                            loss.backward()
                             
-                        elif args.use_amp:
-                            if not is_reconstruction: # backward pass already done for reconstruction loss
-                                scaler.scale(loss).backward()
-                            if is_contrastive: 
-                                call_closures(cache, closures)
-                            scaler.step(optimizer)
-                            scaler.update()
-                            
-                        else:
-                            if not is_reconstruction: # backward pass already done for reconstruction loss
-                                loss.backward()
-                            if is_contrastive: 
-                                call_closures(cache, closures)
-                            optimizer.step()
-                            
-                        optimizer.zero_grad()
-                    
-                    cache, closures = init_grad_cache_closure_dicts(n_views, cache_contents)
-                    
-                    pbar.set_postfix(tqdm_postfix)
-                    pbar.update(1)
-                    
-                    if phase == 'val':
-                        if len(loader) - step < grad_accum_steps:
-                            break
+                            if (step + 1) % grad_accum_steps == 0:
+                                optimizer.step()
+                                optimizer.zero_grad()
+                                pbar.update(1)
 
-                profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                                
-            history_dict[f'{phase}_total_loss'].append(epoch_loss)            
-            if is_multitask:
-                history_dict[f'{phase}_reconstruction_loss'].append(epoch_reconstruction_loss)
-                history_dict[f'{phase}_contrastive_loss'].append(epoch_contrastive_loss)
-            if is_reconstruction:
-                history_dict[f'{phase}_psnr'].append(epoch_psnr)
-                history_dict[f'{phase}_ssim'].append(epoch_ssim)
-            
-            profiler.save(os.path.join(log_dir, 'profiler.csv'))
-            
-        if epoch_loss < best_val_loss:
-            logger.log(f'Validation loss improved from {best_val_loss:.5f} at epoch {best_epoch} to {epoch_loss:.5f} during epoch {epoch}. Saving model...')
-            best_val_loss = epoch_loss
-            best_epoch = epoch
-            torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}.pth'))
-        
-        # warmup_scheduler.step()
-        reduce_lr_on_plateau.step(epoch_loss)
-        checkpoint = {
-            'epoch': epoch,
-            'model': model.state_dict(),
-            'optimizer': optimizer.state_dict(),
-            # 'warmup_scheduler': warmup_scheduler.state_dict(),
-            'reduce_lr_on_plateau': reduce_lr_on_plateau.state_dict(),
-            # 'scheduler': scheduler.state_dict(),
-            'scaler': scaler.state_dict() if args.use_amp else None,
-            'grad_optimizer': grad_optimizer.state_dict() if args.use_pcgrad else None,
-            'history': history_dict,
-            'profiler': profiler.profiler_history_dict,
-            'best_epoch': best_epoch,
-            'best_val_loss': best_val_loss,
-        }
-        torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
-        with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
-            f.write(str(best_epoch)) # just in case
-        
-        history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch) + 1))
-        history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
+                    profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
+                                    
+                history_dict[f'{phase}_loss'].append(epoch_loss)            
+                if is_reconstruction:
+                    history_dict[f'{phase}_psnr'].append(epoch_psnr)
+                    history_dict[f'{phase}_ssim'].append(epoch_ssim)
                 
-        if epoch - best_epoch > args.early_stopping_patience:
-            logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
-            break
-
-
-
-if __name__ == '__main__':
-    main()
+                profiler.save(os.path.join(log_dir, 'profiler.csv'))
+                
+            if epoch_loss < best_val_loss:
+                logger.log(f'Validation loss improved from {best_val_loss:.5f} at epoch {best_epoch} to {epoch_loss:.5f} during epoch {epoch}. Saving model...')
+                best_val_loss = epoch_loss
+                best_epoch = epoch
+                torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}.pth'))
+            
+            reduce_lr_on_plateau.step(epoch_loss)
+            checkpoint = {
+                'epoch': epoch,
+                'model': model.state_dict(),
+                'optimizer': optimizer.state_dict(),
+                'reduce_lr_on_plateau': reduce_lr_on_plateau.state_dict(),
+                'history': history_dict,
+                'profiler': profiler.profiler_history_dict,
+                'best_epoch': best_epoch,
+                'best_val_loss': best_val_loss,
+            }
+            torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
+            with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
+                f.write(str(best_epoch)) # just in case
+            
+            history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch) + 1))
+            history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
+                    
+            if epoch - best_epoch > args.early_stopping_patience:
+                logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
+                break
