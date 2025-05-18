@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ms-land-cover"
+version = "0.1.0"
+description = "Multispectral Land Cover Pretraining and Segmentation"
+authors = [
+    { name="Dakota Hester", email="dh2306@msstate.edu" }
+]
+dependencies = [
+    "torch",
+    "torchvision",
+    "numpy",
+    "pandas",
+    "tqdm",
+    "scikit-learn",
+    "scipy",
+    "rasterio",
+    "geopandas",
+    "shapely",
+    "h5py",
+    "opencv-python",
+    "matplotlib",
+    "pillow",
+    "joblib",
+    "scikit-image",
+    "affine",
+    "pyproj",
+    "pyarrow",
+    "pyogrio"
+]
+
+[project.optional-dependencies]
+dev = [
+    "ipython",
+    "jupyter"
+]
