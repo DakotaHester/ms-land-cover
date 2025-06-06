@@ -52,18 +52,19 @@ randinit_arg=""
 
 # done
 
-HIRES_SIMCLR_WEIGHTS_PATH="./weights/convnext/hires_simclr.pth"
-SIMCLR_WEIGHTS_PATH="./weights/convnext/simclr.pth"
+HIRES_SIMCLR_512_WEIGHTS_PATH="./weights/resnet_2/hires_simclr_512.pth"
+HIRES_SIMCLR_WEIGHTS_PATH="./weights/resnet_2/hires_simclr.pth"
+SIMCLR_WEIGHTS_PATH="./weights/resnet_2/simclr.pth"
 # SIMCLR_RANDINIT_WEIGHTS_PATH="./weights/simclr2a_tests/resnet152d_randinit/simclr.pth"
 
 # Ensure the log directory exists
 # mkdir -p "$PBS_LOG_DIR"
 
-pretrain_schemes_2=('dae_si' 'dae')
+pretrain_schemes_2=('dae')
 freeze_encoders_2=("--frozen_encoder" "no_freeze")
 # freeze_encoders_2=("no_freeze")
-# init_encoder_weights=("imagenet" "simclr" "hires_simclr" "randinit")
-init_encoder_weights=("imagenet")
+init_encoder_weights=("imagenet" "simclr" "hires_simclr" "randinit")
+# init_encoder_weights=("imagenet")
 # echo "pretrain_schemes_2: ${pretrain_schemes_2[@]}"
 for freeze_encoders in ${freeze_encoders_2[@]}
 do

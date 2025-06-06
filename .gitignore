@@ -61,4 +61,4 @@ data/NAIP_MS
 *.aux
 *.nav
 *.snm
-data/shapefiles
+data/shapefiles*.egg-info

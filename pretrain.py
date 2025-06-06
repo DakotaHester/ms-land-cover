@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torchvision.models import resnet152, ResNet152_Weights
+from torchvision.models import resnet152, ResNet152_Weights, resnet50, ResNet50_Weights
 import numpy as np
 import os
 from glob import glob
@@ -84,35 +84,23 @@ def parse_arguments():
     )
     
     parser.add_argument(
-        '--learning_rate_factor',
-        type=float,
-        default=1.0,
-        help='The factor by which to reduce the learning rate after loading the imagenet weights.',
-    )
-    
-    parser.add_argument(
         '--temperature',
         type=float,
         default=0.5,
         help='The temperature to use for the NT-Xent loss.',
     )
     
-    # "Training with large minibatches is bad for your health.
-    #  More importantly, it's bad for your test error.
-    #  Friends dont let friends use minibatches larger than 32.""
-    # - Yann LeCun (https://twitter.com/ylecun/status/989610208497360896)
-    # https://arxiv.org/pdf/1804.07612
     parser.add_argument(
         '--full_batch_size', 
         type=int, 
-        default=256, # 4096 in original SimCLR implementation
+        default=128, # 4096 in original SimCLR implementation
         help='The batch size to use for pretraining.',
     )
     
     parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=256,
+        default=128,
         help='The mini-batch size to use for gradient accumulation. Only relevant if using pretraining scheme "dae".',
     )
     
@@ -265,15 +253,15 @@ def main():
     else:
         transform = transforms.StandardDataAugmentations(size=args.image_size, use_color_transforms=False)
 
-    noisy_input = 'dae' in args.pretrain_scheme
+    noisy_input = args.pretrain_scheme in ['dae', 'hires_simclr']
     n_views = 2 if is_contrastive else 1
     
     if args.n_bands == 4:
-        mean_path = os.path.join(args.weights_dir, 'pretrain_mean_4.pt')
-        std_path = os.path.join(args.weights_dir, 'pretrain_std_4.pt')
+        mean_path = os.path.join('weights', 'pretrain_mean_4.pt')
+        std_path = os.path.join('weights', 'pretrain_std_4.pt')
     else:
-        mean_path = os.path.join(args.weights_dir, 'pretrain_mean.pth')
-        std_path = os.path.join(args.weights_dir, 'pretrain_std.pth')
+        mean_path = os.path.join('weights', 'pretrain_mean.pth')
+        std_path = os.path.join('weights', 'pretrain_std.pth')
     
     mean = load_pth(mean_path) if os.path.exists(mean_path) else None
     std = load_pth(std_path) if os.path.exists(std_path) else None
@@ -351,6 +339,9 @@ def main():
         transforms.visualize_transforms(
             args.visualize_augmentations_dir,
             n_views,
+            False,
+            False,
+            False,
             noisy_input,
             train_dataset,
             glob(os.path.join(args.pretrain_data_dir, '*.tif')),
@@ -360,14 +351,10 @@ def main():
         )
         return
 
-
-    activation_fn = nn.Identity()
-
     if args.model == 'resnet152':
         encoder = resnet152(weights=ResNet152_Weights.IMAGENET1K_V2 if not args.rand_init else None)
         if args.n_bands == 4:
             encoder.conv1 = nn.Conv2d(4, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-        # encoder.global_pool = nn.Identity()
         encoder.fc = nn.Identity()
         model = nn.Sequential(OrderedDict([
             ('encoder', encoder),
@@ -441,24 +428,24 @@ def main():
     profiler = ProfilerHistory(device)
     profiler.update(epoch=-1, phase='init', step=0, time=0)
     
-    starting_epoch = 0
+    starting_epoch = 0 # epoch 0 is a "dry run" to get a baseline loss
     best_val_loss = np.inf
     best_epoch = -1
     
     if args.load_checkpoint:
-        checkpoint = torch.load(os.path.join(log_dir, 'checkpoint.pth'))
+        checkpoint = torch.load(os.path.join(log_dir, 'checkpoint.pth'), weights_only=False)
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         reduce_lr_on_plateau.load_state_dict(checkpoint['reduce_lr_on_plateau'])
         
-        starting_epoch = checkpoint['epoch']  # start from the next epoch (checkpoints are saved at the end of the epoch)
+        starting_epoch = checkpoint['epoch']  + 1 # start from the next epoch (checkpoints are saved at the end of the epoch)
         best_val_loss = checkpoint['best_val_loss']
         best_epoch = checkpoint['best_epoch']
         
         history_dict = checkpoint['history']
         profiler.profiler_history_dict = checkpoint['profiler']
         
-        logger.log(f'Loaded checkpoint from epoch {starting_epoch}.')
+        logger.log(f'Loaded checkpoint from epoch {starting_epoch - 1}.')
     
     logger.log(f'Starting training at epoch {starting_epoch}...')
     for epoch in range(starting_epoch, args.num_epochs+1):
@@ -481,7 +468,7 @@ def main():
                 model.eval()
                 loader = val_loader
             
-            total_steps = math.ceil(len(loader) / grad_accum_steps) if phase == 'val' else math.floor(len(loader) / grad_accum_steps)
+            total_steps = math.ceil(len(loader) // grad_accum_steps) if phase == 'train' else len(loader) // grad_accum_steps
             with tqdm(
                 desc=f'Epoch {epoch}/{args.num_epochs} {phase.capitalize()}', 
                 total=total_steps,
@@ -494,37 +481,72 @@ def main():
                     psnr_values = []
                     ssim_values = []
                 
+                # A note on extensive profiling:
+                # Trying to track the memory usage of each method as extensively as possible
                 for step, batch in enumerate(loader):
                     if is_contrastive:
+                        # load batch
                         X_0, X_1 = batch
-                        X_0, X_1 = X_0.to(device), X_1.to(device)
-                        z_0, z_1 = model(X_0), model(X_1)
+                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                         
+                        # send to GPU
+                        X_0, X_1 = X_0[0].to(device), X_1[0].to(device)
+                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
+                        
+                        # first pass through model
+                        z_0 = model(X_0)
+                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
+                        
+                        # second pass through model
+                        z_1 = model(X_1)
+                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
+                        
+                        # calculate loss
                         loss = nt_xent_loss(z_0, z_1, temperature=args.temperature, reduction='sum')
-                        loss_values.append(loss.item())
+                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                         
+                        # metrics
+                        loss_values.append(loss.item())
                         epoch_loss = np.sum(loss_values) / ((step * args.mini_batch_size) + len(batch))
                         tqdm_postfix['Loss'] = f'{epoch_loss:.2e}'
                         
                         # no grad accumulation for contrastive loss - can go ahead and update the model
                         if phase == 'train' and epoch != 0:
+                            # backpropagation
                             loss.backward()
+                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
+                            
+                            # parameter update
                             optimizer.step()
+                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
+                            
+                            # reset gradients
                             optimizer.zero_grad()
+                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                         
                         pbar.set_postfix(tqdm_postfix)
                         pbar.update(1)
                     
                     else:
+                        # load batch
                         X, y = batch
+                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
+                        
+                        # send to GPU
                         X, y = X.to(device), y.to(device)
+                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
+                        
+                        # forward pass through model
                         y_hat = model(X)
+                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                         
                         # reconstruction_loss = F.mse_loss(y_hat, y, reduction='sum')
                         # NOTE: L1/MAE loss is used instead of MSE loss 
                         # https://research.nvidia.com/sites/default/files/pubs/2017-03_Loss-Functions-for/NN_ImgProc.pdf
                         # https://openaccess.thecvf.com/content/WACV2022/papers/Mustafa_Training_a_Task-Specific_Image_Reconstruction_Loss_WACV_2022_paper.pdf
                         loss = F.l1_loss(y_hat, y, reduction='sum') 
+                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
+                        
                         loss_values.append(loss.item())
                         ssim_values.append(ssim(y_hat, y, reduction='sum').item())
                         psnr_values.append(psnr(y_hat, y, reduction='sum').item())
@@ -539,15 +561,24 @@ def main():
                         pbar.set_postfix(tqdm_postfix)
                         
                         if phase == 'train' and epoch != 0:
+                            # backpropagation
                             loss.backward()
+                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                             
-                            if (step + 1) % grad_accum_steps == 0:
+                        if (step + 1) % grad_accum_steps == 0:
+                            if phase == 'train' and epoch != 0:
+                                # parameter update
                                 optimizer.step()
+                                profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
+                            
+                                # reset gradients
                                 optimizer.zero_grad()
-                                pbar.update(1)
+                                profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
+                        
+                            pbar.update(1)
 
                     profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                                    
+                                   
                 history_dict[f'{phase}_loss'].append(epoch_loss)            
                 if is_reconstruction:
                     history_dict[f'{phase}_psnr'].append(epoch_psnr)
@@ -555,30 +586,42 @@ def main():
                 
                 profiler.save(os.path.join(log_dir, 'profiler.csv'))
                 
-            if epoch_loss < best_val_loss:
-                logger.log(f'Validation loss improved from {best_val_loss:.5f} at epoch {best_epoch} to {epoch_loss:.5f} during epoch {epoch}. Saving model...')
-                best_val_loss = epoch_loss
-                best_epoch = epoch
-                torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}.pth'))
-            
-            reduce_lr_on_plateau.step(epoch_loss)
-            checkpoint = {
-                'epoch': epoch,
-                'model': model.state_dict(),
-                'optimizer': optimizer.state_dict(),
-                'reduce_lr_on_plateau': reduce_lr_on_plateau.state_dict(),
-                'history': history_dict,
-                'profiler': profiler.profiler_history_dict,
-                'best_epoch': best_epoch,
-                'best_val_loss': best_val_loss,
-            }
-            torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
-            with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
-                f.write(str(best_epoch)) # just in case
-            
-            history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(epoch) + 1))
-            history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
-                    
-            if epoch - best_epoch > args.early_stopping_patience:
-                logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
-                break
+        if epoch_loss < best_val_loss:
+            logger.log(f'Validation loss improved from {best_val_loss:.5f} at epoch {best_epoch} to {epoch_loss:.5f} during epoch {epoch}. Saving model...')
+            best_val_loss = epoch_loss
+            best_epoch = epoch
+            torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}.pth'))
+        
+        reduce_lr_on_plateau.step(epoch_loss)
+        checkpoint = {
+            'epoch': epoch,
+            'model': model.state_dict(),
+            'optimizer': optimizer.state_dict(),
+            'reduce_lr_on_plateau': reduce_lr_on_plateau.state_dict(),
+            'history': history_dict,
+            'profiler': profiler.profiler_history_dict,
+            'best_epoch': best_epoch,
+            'best_val_loss': best_val_loss,
+        }
+        torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
+        with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
+            f.write(str(best_epoch)) # just in case
+        
+        num_epochs_total = len(history_dict['learning_rate'])
+        history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(num_epochs_total)))
+        history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
+                
+        if epoch - best_epoch > args.early_stopping_patience:
+            logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
+            break
+    
+    logger.log(f'Best validation loss: {best_val_loss:.5f} at epoch {best_epoch}.')
+    logger.log(f'Finished training at epoch {epoch}.')
+    
+    # write a `finished.txt` file to the log directory so that we know the training is finished
+    with open(os.path.join(log_dir, 'finished.txt'), 'w') as f:
+        f.write(f'Finished training at epoch {epoch}.\n')
+        f.write(f'Best validation loss: {best_val_loss:.5f} at epoch {best_epoch}.\n')
+
+if __name__ == '__main__':
+    main()

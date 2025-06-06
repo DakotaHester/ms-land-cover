@@ -20,8 +20,8 @@ from warnings import warn
 class PreTrainDataset(Dataset):
     
     def __init__(self, 
-        hdf5_path: str,
-        hdf5_group: str,
+        hdf5_path: Optional[str]=None,
+        hdf5_group: Optional[str]=None,
         n_views: int=2,
         data_paths: Optional[Iterable[str]]=None, # Only needed to calculate mean and std, may be removed in the future
         mean: Optional[np.ndarray]=None,
@@ -32,7 +32,8 @@ class PreTrainDataset(Dataset):
         return_spectral_indices: bool=False,
         noisy_input: bool=False,
         noise_std: float=2.0,
-        noise_pct: float=0.5,
+        n_bands: int=4,
+        # noise_pct: float=0.5,
         return_metadata: bool=False,
         device: torch.device=torch.device('cpu'),
         batch_size_for_stats: int=1024,
@@ -71,7 +72,7 @@ class PreTrainDataset(Dataset):
         self.return_spectral_indices = return_spectral_indices
         self.noisy_input = noisy_input
         self.noise_std = noise_std
-        self.noise_pct = noise_pct
+        self.n_bands = n_bands
         self.return_metadata = return_metadata
         self.device = device
         self.preload = preload
@@ -175,6 +176,13 @@ class PreTrainDataset(Dataset):
                 return_metadata=True, 
                 device=self.device,
             )
+            
+            if self.n_bands == 3:
+                # create nir composite
+                nir_band = img[3, :, :]
+                red_band = img[0, :, :]
+                green_band = img[1, :, :]
+                img = torch.stack([red_band, green_band, nir_band], dim=0)
                 
         returns = []
         for _ in range(self.n_views): 
@@ -183,10 +191,10 @@ class PreTrainDataset(Dataset):
             
             if self.noisy_input:
                 noisy_view = T.add_gaussian_noise(norm_view, std=self.noise_std)
-
-                # randomly set some pixels to 0
-                mask = torch.rand_like(norm_view) < self.noise_pct
-                noisy_view[mask] = 0.0
+                
+                # # randomly set some pixels to 0
+                # mask = torch.rand_like(norm_view) < self.noise_pct
+                # noisy_view[mask] = 0.0
                 
             if self.return_hsv:
                 hsv = T.rgb_to_hsv(view)
@@ -214,7 +222,7 @@ class PreTrainDataset(Dataset):
             
             else:
                 if self.noisy_input:
-                    returns.append((noisy_view.to(self.device), norm_view.to(self.device)))
+                    returns.append((noisy_view.to(self.device), noisy_view.to(self.device)))
                 else:
                     returns.append((norm_view.to(self.device), norm_view.to(self.device)))
                 

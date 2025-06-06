@@ -67,26 +67,10 @@ def normalize(tensor: torch.Tensor, mean: torch.Tensor, std: torch.Tensor) -> to
     
     dim = tensor.dim()
     if dim == 3:
-        permuted = False
-        if tensor.size(0) == 3:
-            tensor = tensor.permute(1, 2, 0)
-            permuted = True
-        
-        tensor = (tensor - mean) / std
-        
-        if permuted:
-            tensor = tensor.permute(2, 0, 1)
+        tensor = (tensor - mean[:, None, None]) / std[:, None, None]
     
     elif dim == 4:
-        permuted = False
-        if tensor.size(1) == 3:
-            tensor = tensor.permute(0, 2, 3, 1)
-            permuted = True
-        
-        tensor = (tensor - mean) / std
-        
-        if permuted:
-            tensor = tensor.permute(0, 3, 1, 2)
+        tensor = (tensor - mean[None, :, None, None]) / std[None, :, None, None]
     
     return tensor
     
@@ -131,6 +115,62 @@ def get_color_transforms(s: float=0.5, kernel_size: int=25, scale_sigma_by_s: bo
             transforms.GaussianBlur(kernel_size=kernel_size, sigma=sigma) # kernel size should be 10% of image size
         ], p=0.5),
         Clamp(),
+    ])
+    
+
+
+
+class RandomPerBandJitter:
+    """
+    Apply random brightness and contrast jitter independently per band.
+    """
+    def __init__(self, brightness=0.2, contrast=0.2):
+        self.brightness = brightness
+        self.contrast = contrast
+
+    def __call__(self, img):
+        # img: Tensor of shape (C, H, W)
+        C = img.shape[0]
+        out = torch.empty_like(img)
+        for c in range(C):
+            band = img[c]
+            b_factor = np.random.uniform(1 - self.brightness, 1 + self.brightness)
+            c_factor = np.random.uniform(1 - self.contrast, 1 + self.contrast)
+            mean = band.mean()
+            jittered = (band - mean) * c_factor + mean  # contrast
+            jittered = jittered * b_factor              # brightness
+            out[c] = jittered
+        return out
+
+
+class RandomGamma:
+    """
+    Apply gamma correction randomly to each band.
+    """
+    def __init__(self, gamma_range=(0.5, 2.0)):
+        self.gamma_range = gamma_range
+
+    def __call__(self, img):
+        out = torch.empty_like(img)
+        for c in range(img.shape[0]):
+            # make it so that gamma in (0.5, 1) is equally as likely as gamma in (1, 2)
+            if np.random.rand() < 0.5:
+                gamma = np.random.uniform(1.0, self.gamma_range[1])
+            else:
+                gamma = np.random.uniform(self.gamma_range[0], 1.0)
+            # gamma = np.random.uniform(*self.gamma_range)
+            out[c] = img[c] ** gamma
+        return torch.clamp(out, 0, 1)
+
+
+def get_multispectral_augmentations(s=1.0):
+    """
+    Returns a composition of augmentations suitable for 4-band multispectral data.
+    """
+    return transforms.Compose([
+        RandomGamma(gamma_range=(0.5, 2.0)),
+        RandomPerBandJitter(brightness=0.3*s, contrast=0.3*s),
+        # transforms.RandomGrayscale(p=0.2),
     ])
 
 
@@ -389,6 +429,12 @@ class SimpleRandomCrop:
     
     def __call__(self, X: torch.Tensor, y: Optional[torch.Tensor]=None) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
         
+        # handle case where image is already the desired size
+        if X.shape[1] == self.size and X.shape[2] == self.size:
+            if y is not None:
+                return X, y
+            return X
+        
         # determine upper left corner of crop - make sure that crop is completely within the image
         x_offset = torch.randint(0, X.shape[1] - self.size, (1,)).item()
         y_offset = torch.randint(0, X.shape[2] - self.size, (1,)).item()
@@ -416,15 +462,19 @@ class HiResDataAugmentation:
         self.random_horizontal_flip = transforms.RandomHorizontalFlip()
         self.random_vertical_flip = transforms.RandomVerticalFlip()
         self.random_90_degree_rotation = Random90DegreeRotation()
-        self.elastic_transform = transforms.ElasticTransform(alpha=((size/256)*50.0)*s, sigma=((size/256)*5.0)*s)
-        self.color_transforms = get_color_transforms(s=s, kernel_size=int(size*0.1), scale_sigma_by_s=True)
-        self.gaussian_noise = transforms.Lambda(lambda x: add_gaussian_noise(x, std=0.1*s))
+        # self.elastic_transform = transforms.ElasticTransform(alpha=((size/256)*50.0)*5*s, sigma=((size/256)*5.0)*5*s)
+        # self.color_transforms = get_color_transforms(s=s, kernel_size=int(size*0.1), scale_sigma_by_s=True)
+        self.multispectral_augmentations = get_multispectral_augmentations()
+        # self.gaussian_noise = transforms.Lambda(lambda x: add_gaussian_noise(x, std=0.1*s)) # gaussian noise handled by Dataset
+        self.blur = transforms.GaussianBlur(kernel_size=0.1*size, sigma=(0.1*s, 2.0*s))
         self.composed_transforms = transforms.Compose([
             self.random_crop,
             self.random_horizontal_flip,
             self.random_vertical_flip,
             self.random_90_degree_rotation,
-            self.color_transforms,
+            self.multispectral_augmentations,
+            # self.gaussian_noise,
+            self.blur,
         ])
     
     

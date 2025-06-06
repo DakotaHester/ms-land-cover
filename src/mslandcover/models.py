@@ -18,10 +18,7 @@ import torch.nn.functional as F
 
 from torchvision.models import ConvNeXt_Tiny_Weights, convnext_tiny
 from torchvision.models import ResNet152_Weights, resnet152
-<<<<<<< HEAD
 from timm.models import convnext
-=======
->>>>>>> 92c38dada988a07d5b0ea62e610a1f6cbc95eac6
 from .utils import load_pth
 
 BN_MOMENTUM = 0.1
@@ -602,27 +599,21 @@ class ProjectionHead(nn.Module):
     def __init__(self, in_channels: int=720, num_hiddens: int=1, embedding_dim: int=128):
         super(ProjectionHead, self).__init__()
         
-        self.gap = nn.AdaptiveAvgPool2d((1, 1))
+        # self.gap = nn.AdaptiveAvgPool2d((1, 1))
         
         self.hiddens = nn.ModuleList([])
         for _ in range(num_hiddens):
             self.hiddens.append(nn.Sequential(
-                nn.Linear(in_channels, in_channels),
-                nn.BatchNorm1d(in_channels),
+                nn.Linear(in_channels, in_channels, bias=False),
                 nn.ReLU(inplace=True)
             ))
         
-        self.output = nn.Sequential(
-            nn.Linear(in_channels, embedding_dim, bias=False),
-            nn.BatchNorm1d(embedding_dim)
-        )
+        self.output = nn.Linear(in_channels, embedding_dim, bias=False)
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        
-        x = self.gap(x).view(x.size(0), -1) # reshape to (batch_size, num_channels)
-        
+                
         for hidden_layer in self.hiddens:
-            x = hidden_layer(x) + x
+            x = hidden_layer(x)
 
         return self.output(x)
 
@@ -1795,25 +1786,25 @@ class AttentionUResNetD(nn.Module):
 
 
 
-class SegformerForSimCLR(nn.Module):
-    def __init__(self, model_name="nvidia/mit-b5", projection_dim=128):
-        super().__init__()
+# class SegformerForSimCLR(nn.Module):
+#     def __init__(self, model_name="nvidia/mit-b5", projection_dim=128):
+#         super().__init__()
         
-        # Load the pretrained SegFormer model
-        self.segformer = SegformerModel.from_pretrained(model_name)
-        self.hidden_size = self.segformer.config.hidden_sizes[-1]  # Get the final hidden size
+#         # Load the pretrained SegFormer model
+#         self.segformer = SegformerModel.from_pretrained(model_name)
+#         self.hidden_size = self.segformer.config.hidden_sizes[-1]  # Get the final hidden size
         
-        # Create projection head for SimCLR
-        self.projection_head = ProjectionHead(in_channels=self.hidden_size, embedding_dim=projection_dim)
+#         # Create projection head for SimCLR
+#         self.projection_head = ProjectionHead(in_channels=self.hidden_size, embedding_dim=projection_dim)
     
-    def forward(self, x):
-        # Intermediate representation corresponding to the final hidden state
-        z = self.segformer(x).last_hidden_state
+#     def forward(self, x):
+#         # Intermediate representation corresponding to the final hidden state
+#         z = self.segformer(x).last_hidden_state
         
-        # Apply projection head
-        projected_features = self.projection_head(z)
+#         # Apply projection head
+#         projected_features = self.projection_head(z)
         
-        return projected_features
+#         return projected_features
     
     
 class ASPP(nn.Module):
@@ -1947,19 +1938,201 @@ class AttentionUConvNeXt(nn.Module):
             for param in decoder_block.parameters():
                 param.requires_grad = False
         
-<<<<<<< HEAD
         for param in self.bottleneck_cbam.parameters():
-=======
-        for param in self.aspp.parameters():
->>>>>>> 92c38dada988a07d5b0ea62e610a1f6cbc95eac6
             param.requires_grad = False
             
     
     def reinit_classifier(self, num_classes: int=8) -> None:
-<<<<<<< HEAD
         self.classifier = nn.Conv2d(128, num_classes, kernel_size=1)
-=======
-        self.classifier = nn.Conv2d(64, num_classes, kernel_size=1)
->>>>>>> 92c38dada988a07d5b0ea62e610a1f6cbc95eac6
         self.num_classes = num_classes
         return self
+
+
+class DepthwiseSeparableConv(nn.Module):
+    """Depthwise separable convolution: depthwise conv + pointwise conv."""
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int = 3,
+        stride: int = 1,
+        padding: int = 1,
+        dilation: int = 1,
+        bias: bool = False,
+    ) -> None:
+        super().__init__()
+        # Depthwise: groups=in_channels
+        self.depthwise = nn.Conv2d(
+            in_channels, in_channels, kernel_size,
+            stride, padding, dilation, groups=in_channels, bias=bias
+        )
+        # Pointwise: 1x1 convolution to mix channels
+        self.pointwise = nn.Conv2d(
+            in_channels, out_channels, kernel_size=1, bias=bias
+        )
+        self.bn = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        x = self.depthwise(x)
+        x = self.pointwise(x)
+        x = self.bn(x)
+        return self.relu(x)
+
+
+
+class ASPP(nn.Module):
+    """Atrous Spatial Pyramid Pooling as in DeepLab v3+."""
+    def __init__(self, in_channels: int, out_channels: int, dilation_rates: tuple[int, ...]) -> None:
+        super().__init__()
+        # 1×1 conv branch
+        self.conv_1x1 = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+        )
+        # parallel atrous conv branches
+        self.branches = nn.ModuleList([
+            nn.Sequential(
+                nn.Conv2d(in_channels, out_channels, kernel_size=3,
+                          padding=rate, dilation=rate, bias=False),
+                nn.BatchNorm2d(out_channels),
+                nn.ReLU(inplace=True),
+            )
+            for rate in dilation_rates
+        ])
+        # image-level pooling branch
+        self.image_pool = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(in_channels, out_channels, kernel_size=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+        )
+        # combine & project
+        self.project = nn.Sequential(
+            nn.Conv2d(out_channels * (2 + len(dilation_rates)), out_channels, kernel_size=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True),
+            nn.Dropout(0.5),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        size = x.shape[-2:]
+        feats = [self.conv_1x1(x)] + [branch(x) for branch in self.branches]
+        # image-level features
+        img_feat = self.image_pool(x)
+        img_feat = nn.functional.interpolate(img_feat, size=size, mode="bilinear", align_corners=False)
+        feats.append(img_feat)
+        x = torch.cat(feats, dim=1)
+        return self.project(x)
+
+
+
+class Decoder(nn.Module):
+    """DeepLab v3+ decoder that fuses low- and high-level features."""
+    def __init__(self, low_level_in: int, low_level_out: int, num_classes: int) -> None:
+        super().__init__()
+        # Reduce low-level feature channels to low_level_out (e.g. 48)
+        self.reduce_low = nn.Sequential(
+            nn.Conv2d(low_level_in, low_level_out, kernel_size=1, bias=False),
+            nn.BatchNorm2d(low_level_out),
+            nn.ReLU(inplace=True),
+        )
+        # Two separable conv layers to refine concatenated features
+        self.refine = nn.Sequential(
+            DepthwiseSeparableConv(low_level_out + 256, 256, kernel_size=3, padding=1),
+            DepthwiseSeparableConv(256, 256, kernel_size=3, padding=1),
+        )
+        # Final classifier
+        self.classifier = nn.Conv2d(256, num_classes, kernel_size=1)
+
+    def forward(self, low_level_feat: torch.Tensor, high_level_feat: torch.Tensor) -> torch.Tensor:
+        # Upsample ASPP output by factor 4
+        high = nn.functional.interpolate(high_level_feat, size=low_level_feat.shape[-2:], mode="bilinear", align_corners=False)
+        low = self.reduce_low(low_level_feat)
+        x = torch.cat([low, high], dim=1)
+        x = self.refine(x)
+        return self.classifier(x)
+
+
+
+class ResNetBackbone(nn.Module):
+    """
+    Wraps a ResNet-152 to output (low_level_feat, high_level_feat).
+    output_stride=16: remove stride in layer4; stride=8: also in layer3.
+    """
+    def __init__(self, output_stride: int = 16, pretrained: bool = True, in_channels=4) -> None:
+        super().__init__()
+        if isinstance(pretrained, bool):
+            resnet = resnet152(weights=ResNet152_Weights.DEFAULT if pretrained else None)
+            if in_channels != 3:
+                resnet.conv1 = nn.Conv2d(in_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+        else:
+            resnet = resnet152()
+            if in_channels != 3:
+                resnet.conv1 = nn.Conv2d(in_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+            if pretrained is not None:
+                resnet.load_state_dict(load_pth(pretrained), strict=True)
+        # Modify strides/dilations for atrous convolution
+        if output_stride == 16:
+            resnet.layer4[0].conv2.stride = (1, 1)
+            resnet.layer4[0].downsample[0].stride = (1, 1)
+            for block in resnet.layer4:
+                block.conv2.dilation = (2, 2)
+                block.conv2.padding = (2, 2)
+        elif output_stride == 8:
+            for layer in [resnet.layer3, resnet.layer4]:
+                layer[0].conv2.stride = (1, 1)
+                layer[0].downsample[0].stride = (1, 1)
+                for block in layer:
+                    block.conv2.dilation = (2 if layer is resnet.layer4 else 4,)*2
+                    block.conv2.padding = (2 if layer is resnet.layer4 else 4,)*2
+        
+        # Keep initial layers
+        self.initial = nn.Sequential(
+            resnet.conv1, resnet.bn1, resnet.relu, resnet.maxpool
+        )
+        # Low-level: output of layer1 (conv2_x)
+        self.layer1 = resnet.layer1
+        # High-level: output of layer2/3/4
+        self.layer2 = resnet.layer2
+        self.layer3 = resnet.layer3
+        self.layer4 = resnet.layer4
+
+    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+        x = self.initial(x)
+        low_level = self.layer1(x)
+        x = self.layer2(low_level)
+        x = self.layer3(x)
+        high_level = self.layer4(x)
+        return low_level, high_level
+
+
+
+class DeepLabV3Plus(nn.Module):
+    """
+    DeepLab v3+ for semantic segmentation.
+    - backbone: module returning (low_level_feat, high_level_feat)
+    - num_classes: # of segmentation classes
+    - aspp_rates: dilation rates for ASPP
+    """
+    def __init__(
+        self,
+        backbone: nn.Module,
+        num_classes: int,
+        aspp_out: int = 256,
+        aspp_rates: tuple[int, ...] = (12, 24, 36),
+    ) -> None:
+        super().__init__()
+        self.backbone = backbone
+        # ASPP on high-level features
+        self.aspp = ASPP(in_channels=2048, out_channels=aspp_out, dilation_rates=aspp_rates)
+        # Decoder fusing ASPP and low-level (conv2) features
+        self.decoder = Decoder(low_level_in=256, low_level_out=48, num_classes=num_classes)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        low_level, high_level = self.backbone(x)
+        x = self.aspp(high_level)
+        x = self.decoder(low_level, x)
+        # Final upsample to input resolution
+        return nn.functional.interpolate(x, size=x.shape[-2]*4, mode="bilinear", align_corners=False)

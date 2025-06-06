@@ -6,7 +6,6 @@ MODEL="convnext"
 MINI_BATCH_SIZE=8
 FULL_BATCH_SIZE=8
 LR=0.00001
-<<<<<<< HEAD
 NUM_EPOCHS=1000
 FOCAL_GAMMA=2.0
 
@@ -14,17 +13,6 @@ FOCAL_GAMMA=2.0
 pretrain_schemes=('dae' 'dae_si' 'none')
 freeze_encoders=("frozen_encoder" "no_freeze")
 all_init_encoder_weights=("hires_simclr" "simclr" "randinit" "imagenet")
-=======
-NUM_EPOCHS=1
-FOCAL_GAMMAS=5.0
-
-pretrain_schemes=('dae_si' 'dae' 'none')
-freeze_encoders=("frozen_encoder" "no_freeze")
-# freeze_encoders_2=("no_freeze")
-all_init_encoder_weights=("imagenet" "simclr" "hires_simclr" "randinit")
-# init_encoder_weights=("imagenet")
-# echo "pretrain_schemes_2: ${pretrain_schemes_2[@]}"
->>>>>>> 92c38dada988a07d5b0ea62e610a1f6cbc95eac6
 finetune_weights_trained=("full_model" "decoder_only" "linear_probe")
 for freeze_encoders in ${freeze_encoders[@]}
 do
@@ -80,7 +68,6 @@ do
                     fi
                 fi
 
-<<<<<<< HEAD
                 # OUTPUT_DIR='./weights/hires_simclr_tests_finetune/'${init_encoder_weights}'/'${finetune_training}'/'${freeze_encoders}'/'${pretrain_scheme}
                 OUTPUT_DIR="./weights/hires_simclr_tests_finetune2/${init_encoder_weights}/${finetune_training}/${freeze_encoders}/${pretrain_scheme}"
                 LOG_DIR="./logs/hires_simclr_tests_finetune2/${init_encoder_weights}/${finetune_training}/${freeze_encoders}/${pretrain_scheme}"
@@ -100,13 +87,6 @@ do
                 mkdir -p "$LOG_DIR/$model"
                 echo "python finetune.py --model $MODEL --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --focal_gamma $FOCAL_GAMMA --log_dir $LOG_DIR --output_dir $OUTPUT_DIR --lr $LR --num_epochs $NUM_EPOCHS ${WEIGHTS_ARG} ${weights_trained_arg}"
                 python finetune.py --model $MODEL --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --focal_gamma $FOCAL_GAMMA --log_dir $LOG_DIR --output_dir $OUTPUT_DIR --lr $LR --num_epochs $NUM_EPOCHS ${WEIGHTS_ARG} ${weights_trained_arg}
-=======
-                LOG_DIR="./logs/hires_simclr_tests_finetune/${init_encoder_weights}/${finetune_training}/${freeze_encoders}/${pretrain_scheme}"
-                mkdir -p "$LOG_DIR"
-                mkdir -p "$LOG_DIR/$model"
-                echo "python finetune.py --model $MODEL --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --log_dir $LOG_DIR --image_size 256 --init_lr $LR --num_epochs $NUM_EPOCHS --focal_gammas $FOCAL_GAMMAS ${WEIGHTS_ARG} ${weights_trained_arg}"
-                python finetune.py --model $MODEL --mini_batch_size $MINI_BATCH_SIZE --full_batch_size $FULL_BATCH_SIZE --log_dir $LOG_DIR --image_size 256 --init_lr $LR --num_epochs $NUM_EPOCHS --focal_gammas $FOCAL_GAMMAS ${WEIGHTS_ARG} ${weights_trained_arg}
->>>>>>> 92c38dada988a07d5b0ea62e610a1f6cbc95eac6
 
             # if [[ "$freeze_encoders" == "no_freeze" ]]; then
             #     freeze_encoders=""
