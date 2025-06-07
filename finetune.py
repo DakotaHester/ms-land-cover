@@ -388,7 +388,8 @@ def main() -> None:
     )
     
     # no class weightings
-    alpha = torch.ones_like(class_dist)
+    # alpha = torch.ones_like(class_dist)
+    alpha = (1 / torch.tensor(class_dist, dtype=torch.float32)) ** (1 / args.alpha_power)
     logger.log(f'Class weights: {alpha}')
     criterion = FocalLoss(alpha=alpha, gamma=args.focal_gamma, reduction='sum').to(device)
     
