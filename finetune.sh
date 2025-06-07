@@ -80,14 +80,12 @@ for n_train in 250 500 750; do
         # Set encoder weights path or keyword
         if [[ "$scheme" == "imagenet" ]]; then
           ENCODER_WEIGHTS="imagenet"
-          SCHEME_NAME="imagenet"
         else
-          ENCODER_WEIGHTS="./weights/resnet152_202505/${scheme}_bands${bands}_size${pre_size}_batch${pre_batch}_randinitfalse/${scheme}.pth"
-          SCHEME_NAME="$scheme"
+          ENCODER_WEIGHTS="./weights/resnet152_202505/${scheme}_bands${bands}_size${pre_size}_batch${pre_batch}_randinitfalse/resnet152/${scheme}.pth"
         fi
 
         # Unique log/output directories for this job
-        JOB_NAME="ft_${SCHEME_NAME}_bands${bands}_size${pre_size}_batch${pre_batch}_randinitfalse_n${n_train}_fold${fold}"
+        JOB_NAME="ft_${scheme}_bands${bands}_size${pre_size}_batch${pre_batch}_randinitfalse_n${n_train}_fold${fold}"
         JOB_LOG_DIR="${BASE_LOG_DIR}/${JOB_NAME}"
         JOB_WEIGHTS_DIR="${BASE_WEIGHTS_DIR}/${JOB_NAME}"
         mkdir -p "$JOB_LOG_DIR" "$JOB_WEIGHTS_DIR"
@@ -134,7 +132,7 @@ export CUDA_VISIBLE_DEVICES=0
 
 echo "========== SLURM JOB INFO =========="
 echo "Job Name: $JOB_NAME"
-echo "Pretrain scheme: $SCHEME_NAME"
+echo "Pretrain scheme: $scheme"
 echo "Bands: $bands"
 echo "n_train: $n_train"
 echo "fold: $fold"

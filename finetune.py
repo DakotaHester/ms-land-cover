@@ -183,9 +183,9 @@ def parse_arguments() -> argparse.Namespace:
     )
     
     parser.add_argument(
-        '--load_data_from_disk',
+        '--preload',
         action='store_true',
-        help='Load data from disk instead of memory',
+        help='Load data into memory before training.',
     )
     
     parser.add_argument(
@@ -307,26 +307,28 @@ def main() -> None:
     train_splits = [split for split in splits_df.columns if splits_df[split].iloc[0] == 'train']
     val_splits = [split for split in splits_df.columns if splits_df[split].iloc[0] == 'val']
     
-    logger.log("Train splits:", train_splits)
-    logger.log("Validation splits:", val_splits)
+    logger.log(f"Train splits: {train_splits}")
+    logger.log(f"Validation splits: {val_splits}")
     
     train_dataset = FineTuneDataset(
         data_paths=[file for split in train_splits for file in glob(os.path.join(args.split_dir, split, 'input', '*.tif'))],
         target_paths=[file for split in train_splits for file in glob(os.path.join(args.split_dir, split, 'target', '*.tif'))],
+        n_bands=args.n_bands,
         mean=mean,
         std=std,
         transform=StandardDataAugmentations(),
-        preload=not args.load_data_from_disk,
+        preload=args.preload,
         n_threads=args.num_workers,
     )
     
     val_dataset = FineTuneDataset(
         data_paths=[file for split in val_splits for file in glob(os.path.join(args.split_dir, split, 'input', '*.tif'))],
         target_paths=[file for split in val_splits for file in glob(os.path.join(args.split_dir, split, 'target', '*.tif'))],
+        n_bands=args.n_bands,
         mean=mean,
         std=std,
         transform=None,
-        preload=not args.load_data_from_disk,
+        preload=args.preload,
         n_threads=args.num_workers,
     )
     

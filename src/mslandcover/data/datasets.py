@@ -348,13 +348,6 @@ class FineTuneDataset(Dataset):
                 device=self.device,
             )
             
-            if self.n_bands == 3:
-                # create nir composite
-                nir_band = img[3, :, :]
-                red_band = img[0, :, :]
-                green_band = img[1, :, :]
-                img = torch.stack([red_band, green_band, nir_band], dim=0)
-            
             if self.target_paths is not None:
                 target_path = self.target_paths[idx]
                 target = utils.read_image(
@@ -368,8 +361,16 @@ class FineTuneDataset(Dataset):
                 target = target.unsqueeze(0) if len(target.shape) == 2 else target
                 target = target - 1
 
+        if self.n_bands == 3:
+            # create nir composite
+            nir_band = img[3, :, :]
+            red_band = img[0, :, :]
+            green_band = img[1, :, :]
+            img = torch.stack([red_band, green_band, nir_band], dim=0)
+            
         if self.transform is not None: # color transform expects data in [0, 1] range
             img, target = self.transform(img, target)
+        
         img = T.normalize(img, mean=self.mean, std=self.std) 
         returns = [img]
         
