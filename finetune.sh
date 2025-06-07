@@ -16,7 +16,7 @@ BASE_LOG_DIR="./logs/finetune_20250607"
 BASE_WEIGHTS_DIR="./weights/finetune_20250607"
 SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250607"
 SPLIT_DIR="./data/splits"
-MAX_JOBS=8
+MAX_JOBS=10
 
 # =========================
 # MODEL & TRAINING CONFIGURATION
@@ -86,7 +86,7 @@ for n_train in 250 500 750; do
             fi
 
             # Unique log/output directories for this job
-            JOB_NAME="ft_${scheme}_bands${bands}_size${pre_size}_batch${pre_batch}_randinitfalse_n${n_train}_fold${fold}"
+            JOB_NAME="ft_${scheme}_bands${bands}_size${pre_size}_batch${pre_batch}_randinitfalse_frozenencoder${freeze_encoder}_n${n_train}_fold${fold}"
             JOB_LOG_DIR="${BASE_LOG_DIR}/${JOB_NAME}"
             JOB_WEIGHTS_DIR="${BASE_WEIGHTS_DIR}/${JOB_NAME}"
             mkdir -p "$JOB_LOG_DIR" "$JOB_WEIGHTS_DIR"
