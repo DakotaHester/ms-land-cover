@@ -49,6 +49,7 @@ mkdir -p "$SLURM_SCRIPT_DIR"
 MODELS=("deeplabv3plus" "unet" "attention_unet")
 PRETRAIN_SCHEMES=("hires_simclr" "simclr" "imagenet")
 BANDS=(4 3)  # 4 bands for hires_simclr, 3 bands for simclr
+PRETRAIN_SIZES=(256)
 FREEZE_ENCODERS=(false true) # Freeze encoder options
 
 # Dataset sizes and folds
@@ -71,51 +72,60 @@ for model in "${MODELS[@]}"; do
 
         for fold in $(seq 1 $n_folds); do
             for scheme in "${PRETRAIN_SCHEMES[@]}"; do
-                for bands in "${BANDS[@]}"; do
-                    for freeze_encoder in "${FREEZE_ENCODERS[@]}"; do
+                for pre_size in "${PRETRAIN_SIZES[@]}"; do
+                    if [[ "$pre_size" -eq 256 ]]; then
+                        pre_batch=128
+                    elif [[ "$pre_size" -eq 192 ]]; then
+                        pre_batch=256
+                    elif [[ "$pre_size" -eq 128 ]]; then
+                        pre_batch=512
+                    fi
 
-                        if [[ "$scheme" == "hires_simclr" && "$bands" -ne 4 ]]; then
-                            continue
-                        elif [[ "$scheme" == "simclr" && "$bands" -ne 3 ]]; then
-                            continue
-                        fi
+                    for bands in "${BANDS[@]}"; do
+                        for freeze_encoder in "${FREEZE_ENCODERS[@]}"; do
 
-                        # Set encoder weights path or keyword
-                        if [[ "$scheme" == "imagenet" ]]; then
-                            ENCODER_WEIGHTS="imagenet"
-                        else
-                            ENCODER_WEIGHTS="./weights/resnet152_202505/${scheme}_bands${bands}_size${pre_size}_batch${pre_batch}_randinitfalse/resnet152/${scheme}.pth"
-                        fi
-
-                        # Unique log/output directories for this job
-                        JOB_NAME="${model}_ft_${scheme}_bands${bands}_size${pre_size}_batch${pre_batch}_randinitfalse_frozenencoder${freeze_encoder}_n${n_train}_fold${fold}"
-                        BASE_DIR="${model}/${scheme}/${bands}_bands/presize_${pre_size}/prebatch_${pre_batch}/randinit_false/frozenencoder_${freeze_encoder}/${n_train}/fold_${fold}"
-                        JOB_LOG_DIR="${BASE_LOG_DIR}/${BASE_DIR}"
-                        JOB_WEIGHTS_DIR="${BASE_WEIGHTS_DIR}/${BASE_DIR}"
-                        mkdir -p "$JOB_LOG_DIR" "$JOB_WEIGHTS_DIR"
-
-                        SLURM_SCRIPT="${SLURM_SCRIPT_DIR}/${BASE_DIR}.slurm"
-                        LOG_FILE="${JOB_LOG_DIR}/slurm.out"
-                        FINISHED_FILE="${JOB_LOG_DIR}/finished.txt"
-
-                        if [[ -f "$FINISHED_FILE" ]]; then
-                            echo "Skipping $JOB_NAME (already finished)"
-                            continue
-                        fi
-
-                        # Wait if too many jobs are queued or running
-                        while true; do
-                            TOTAL_JOBS=$(squeue -u "$USER" | tail -n +2 | wc -l)
-                            if [[ "$TOTAL_JOBS" -lt "$MAX_JOBS" ]]; then
-                                break
-                            else
-                                echo "[$(date)] $TOTAL_JOBS jobs in queue. Waiting to submit $JOB_NAME..."
-                                sleep 60
+                            if [[ "$scheme" == "hires_simclr" && "$bands" -ne 4 ]]; then
+                                continue
+                            elif [[ "$scheme" == "simclr" && "$bands" -ne 3 ]]; then
+                                continue
                             fi
-                        done
 
-                        # Create SLURM script
-                        cat > "$SLURM_SCRIPT" <<EOL
+                            # Set encoder weights path or keyword
+                            if [[ "$scheme" == "imagenet" ]]; then
+                                ENCODER_WEIGHTS="imagenet"
+                            else
+                                ENCODER_WEIGHTS="./weights/resnet152_202505/${scheme}_bands${bands}_size${pre_size}_batch${pre_batch}_randinitfalse/resnet152/${scheme}.pth"
+                            fi
+
+                            # Unique log/output directories for this job
+                            JOB_NAME="${model}_ft_${scheme}_bands${bands}_size${pre_size}_batch${pre_batch}_randinitfalse_frozenencoder${freeze_encoder}_n${n_train}_fold${fold}"
+                            BASE_DIR="${model}/${scheme}/${bands}_bands/presize_${pre_size}/prebatch_${pre_batch}/randinit_false/frozenencoder_${freeze_encoder}/${n_train}/fold_${fold}"
+                            JOB_LOG_DIR="${BASE_LOG_DIR}/${BASE_DIR}"
+                            JOB_WEIGHTS_DIR="${BASE_WEIGHTS_DIR}/${BASE_DIR}"
+                            mkdir -p "$JOB_LOG_DIR" "$JOB_WEIGHTS_DIR"
+
+                            SLURM_SCRIPT="${SLURM_SCRIPT_DIR}/${BASE_DIR}.slurm"
+                            LOG_FILE="${JOB_LOG_DIR}/slurm.out"
+                            FINISHED_FILE="${JOB_LOG_DIR}/finished.txt"
+
+                            if [[ -f "$FINISHED_FILE" ]]; then
+                                echo "Skipping $JOB_NAME (already finished)"
+                                continue
+                            fi
+
+                            # Wait if too many jobs are queued or running
+                            while true; do
+                                TOTAL_JOBS=$(squeue -u "$USER" | tail -n +2 | wc -l)
+                                if [[ "$TOTAL_JOBS" -lt "$MAX_JOBS" ]]; then
+                                    break
+                                else
+                                    echo "[$(date)] $TOTAL_JOBS jobs in queue. Waiting to submit $JOB_NAME..."
+                                    sleep 60
+                                fi
+                            done
+
+                            # Create SLURM script
+                            cat > "$SLURM_SCRIPT" <<EOL
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -n $N_TASKS
@@ -178,11 +188,13 @@ $( [[ "$LOAD_CHECKPOINT" == true ]] && echo "--load_checkpoint" ) \
 
 EOL
 
-                        # Submit the job
-                        sbatch "$SLURM_SCRIPT"
-                        echo "Submitted $JOB_NAME (log: $LOG_FILE)"
-                        COUNT=$((COUNT+1))
-                        sleep 5 # Slight delay to avoid race conditions
+                            # Submit the job
+                            sbatch "$SLURM_SCRIPT"
+                            echo "Submitted $JOB_NAME (log: $LOG_FILE)"
+                            COUNT=$((COUNT+1))
+                            sleep 5 # Slight delay to avoid race conditions
+                            
+                            done
                         done
                     done
                 done
