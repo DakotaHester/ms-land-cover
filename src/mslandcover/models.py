@@ -1418,7 +1418,7 @@ class AttentionUnetUpBlock(nn.Module):
         out_channels: int,
         upsample: bool=True,
         use_cbam: bool=False,
-        bilinear_upsample: bool=False,
+        bilinear_upsample: bool=True,
         n_convs: int=2,
         activation_func='relu',
     ):
