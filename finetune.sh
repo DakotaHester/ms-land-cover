@@ -46,7 +46,7 @@ mkdir -p "$SLURM_SCRIPT_DIR"
 # =========================
 # PRETRAIN SCHEMES TO TEST
 # =========================
-MODELS=("deeplabv3plus" "unet" "attention_unet")
+MODELS=("unet" "deeplabv3plus" "attention_unet")
 PRETRAIN_SCHEMES=("hires_simclr" "simclr" "imagenet")
 BANDS=(4 3)  # 4 bands for hires_simclr, 3 bands for simclr
 PRETRAIN_SIZES=(256)
@@ -73,6 +73,11 @@ for model in "${MODELS[@]}"; do
         for fold in $(seq 1 $n_folds); do
             for scheme in "${PRETRAIN_SCHEMES[@]}"; do
                 for pre_size in "${PRETRAIN_SIZES[@]}"; do
+                    
+                    if [[ "$scheme" -eq "imagenet" ]]; then
+                        pre_size=256  # Imagenet always uses 256 (imagenet technically uses 224, but we use 256 for simplicity here)
+                    fi
+
                     if [[ "$pre_size" -eq 256 ]]; then
                         pre_batch=128
                     elif [[ "$pre_size" -eq 192 ]]; then
