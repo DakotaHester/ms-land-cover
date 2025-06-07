@@ -104,7 +104,7 @@ for model in "${MODELS[@]}"; do
                             JOB_WEIGHTS_DIR="${BASE_WEIGHTS_DIR}/${BASE_DIR}"
                             mkdir -p "$JOB_LOG_DIR" "$JOB_WEIGHTS_DIR"
 
-                            SLURM_SCRIPT="${SLURM_SCRIPT_DIR}/${BASE_DIR}.slurm"
+                            SLURM_SCRIPT="${JOB_LOG_DIR}/${BASE_DIR}.slurm"
                             LOG_FILE="${JOB_LOG_DIR}/slurm.out"
                             FINISHED_FILE="${JOB_LOG_DIR}/finished.txt"
 
@@ -193,7 +193,7 @@ EOL
                             echo "Submitted $JOB_NAME (log: $LOG_FILE)"
                             COUNT=$((COUNT+1))
                             sleep 5 # Slight delay to avoid race conditions
-                            
+
                             done
                         done
                     done
