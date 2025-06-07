@@ -997,18 +997,23 @@ class ResNetAutoencoder(nn.Module):
 
 class UNetUpBlock(nn.Module):
     
-    def __init__(self, in_channels: int, out_channels: int):
+    def __init__(self, in_channels: int, skip_channels: int, out_channels: int, num_blocks: int=2):
         super(UNetUpBlock, self).__init__()
         
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.num_blocks = num_blocks
+        
         self.up = nn.Upsample(scale_factor=2, mode='bilinear', align_corners=False)
-        # self.se = SEBlock(in_channels)
         self.conv_blocks = nn.ModuleList([])
-        for i in range(2):
-            channels = in_channels if i == 0 else out_channels
-            self.conv_blocks.append(nn.Sequential(
-                nn.Conv2d(channels, out_channels, kernel_size=3, padding=1),
-                nn.BatchNorm2d(out_channels),
-                nn.ReLU(inplace=True)
+        for i in range(num_blocks):
+            channels = in_channels + skip_channels if i == 0 else out_channels
+            self.conv_blocks.append(ConvBlock(
+                in_channels=channels,
+                out_channels=out_channels,
+                kernel_size=3,
+                padding=1,
+                activation='relu',
             ))
     
     def forward(self, x: torch.Tensor, x_enc: Optional[torch.Tensor]=None) -> torch.Tensor:
@@ -1017,8 +1022,10 @@ class UNetUpBlock(nn.Module):
         # x = self.se(x)
         if x_enc is not None:
             x = torch.cat([x, x_enc], dim=1)
-        x = self.conv_blocks[0](x)
-        x = self.conv_blocks[1](x) + x
+        
+        for conv_block in self.conv_blocks:
+            x = conv_block(x)
+        
         return x
 
 
@@ -1071,147 +1078,6 @@ class ImprovedUnetUpBlock(nn.Module):
             else:
                 x = conv_block(x) + x
         return x
-
-
-
-class UNet(nn.Module):
-    
-    def __init__(self, 
-        num_classes: int=8,
-        pretrained: bool=True, 
-        activation: nn.Module=nn.Softmax(dim=1),
-        use_extended_decoder: bool=False,
-        auxillary_simclr_head: bool=False,
-    ):
-        super(UNet, self).__init__()
-        
-        self.pretrained = pretrained
-        weights = ResNet152_Weights.DEFAULT if pretrained else None
-        self.num_classes = num_classes
-        self.use_extended_decoder = use_extended_decoder
-        self.auxillary_simclr_head = auxillary_simclr_head
-        
-        self.encoder = resnet152(weights=weights)
-        self.encoder.avgpool = nn.Identity()
-        self.encoder.fc = nn.Identity()
-        self.encoder_blocks = nn.ModuleList([
-            nn.Sequential(
-                self.encoder.conv1,
-                self.encoder.bn1,
-                self.encoder.relu,
-            ),
-            nn.Sequential(
-                self.encoder.maxpool,
-                self.encoder.layer1
-            ),
-            self.encoder.layer2,
-            self.encoder.layer3,
-            self.encoder.layer4,
-        ])
-        
-        self.decoder_blocks = nn.ModuleList([
-            UNetUpBlock(3072, 1024),
-            UNetUpBlock(1536, 512),
-            UNetUpBlock(768, 256),
-            UNetUpBlock(320, 128),
-            UNetUpBlock(128, 64),
-        ])
-        if self.use_extended_decoder:
-            for _ in range(2):
-                self.decoder_blocks.append(nn.Sequential(
-                    nn.Conv2d(64, 64, kernel_size=3, padding=1),
-                    nn.BatchNorm2d(64),
-                    nn.ReLU(inplace=True)
-                ))
-        
-
-        self.classifier = nn.Conv2d(64, num_classes, kernel_size=1)
-        self.activation = activation
-        
-        self.projection_head = None
-        if auxillary_simclr_head:
-            self.projection_head = ProjectionHead(in_channels=2048)
-        
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        
-        # encoder blocks
-        x_enc_list = []
-        for block in self.encoder_blocks:
-            x = block(x)
-            x_enc_list.append(x)
-        # x_list = [
-        #     stem_features,                (B, 64, 128, 128)
-        #     residual_block_1_features,    (B, 256, 64, 64)
-        #     residual_block_2_features,    (B, 512, 32, 32)
-        #     residual_block_3_features,    (B, 1024, 16, 16)
-        #     residual_block_4_features,    (B, 2048, 8, 8)
-        # ]
-        
-        x = self.decoder_blocks[0](x_enc_list[-1], x_enc_list[-2]) # (B, 1024, 16, 16)
-        x = self.decoder_blocks[1](x, x_enc_list[-3])          # (B, 512, 32, 32)
-        x = self.decoder_blocks[2](x, x_enc_list[-4])          # (B, 256, 64, 64)
-        x = self.decoder_blocks[3](x, x_enc_list[-5])          # (B, 128, 128, 128)
-        
-        # no concatenation with encoder features for last block, just bringing features back up to original size
-        x_1 = self.decoder_blocks[4](x)                    # (B, 64, 256, 256)
-        
-        if self.use_extended_decoder:
-            # final decoder blocks are just basic convolutional blocks
-            x = self.decoder_blocks[5](x_1) + x_1          # (B, 64, 256, 256) 
-            x = self.decoder_blocks[6](x) + x_1 + x        # (B, 64, 256, 256)
-        else:
-            x = x_1
-        
-        x = self.classifier(x)                             # (B, num_classes, 256, 256)
-        x = self.activation(x)
-        
-        if self.projection_head is not None:
-            return x, self.projection_head(x_enc_list[-1])
-        
-        return x
-
-    
-    
-    def load_encoder_weights(self, state_dict: dict):
-        for key in list(state_dict.keys()):
-            if key.split('.')[0] == 'encoder':
-                new_key = '.'.join(key.split('.')[1:])
-                state_dict[new_key] = state_dict.pop(key)
-                key = new_key
-            # remove keys that are not in the encoder
-            if key.split('.')[0] in ['incre_modules', 'downsamp_modules', 'final_layer', 'classifier', 'decoder', 'projection_head']:
-                del state_dict[key]
-        self.encoder.load_state_dict(state_dict)
-    
-    
-    
-    def freeze_encoder(self):
-        for encoder_block in self.encoder_blocks:
-            for param in encoder_block.parameters():
-                param.requires_grad = False
-    
-    
-    
-    def unfreeze_encoder(self):
-        for encoder_block in self.encoder_blocks:
-            for param in encoder_block.parameters():
-                param.requires_grad = True
-    
-    
-    
-    def freeze_decoder(self):
-        for decoder_block in self.decoder_blocks:
-            for param in decoder_block.parameters():
-                param.requires_grad = False
-    
-    
-    
-    def unfreeze_decoder(self):
-        for decoder_block in self.decoder_blocks:
-            for param in decoder_block.parameters():
-                param.requires_grad = True
-
-
 
 
 class HighResUNet(nn.Module):
@@ -1547,13 +1413,13 @@ class AttentionUnetUpBlock(nn.Module):
     This replaces the standard ImprovedUnetUpBlock with attention mechanism.
     """
     def __init__(self,
-        encoder_channels: int,
         decoder_channels: int,
+        encoder_channels: int,
         out_channels: int,
         upsample: bool=True,
         use_cbam: bool=False,
         bilinear_upsample: bool=False,
-        n_convs: int=4,
+        n_convs: int=2,
         activation_func='relu',
     ):
         super(AttentionUnetUpBlock, self).__init__()
@@ -1590,15 +1456,10 @@ class AttentionUnetUpBlock(nn.Module):
                 )
         
         # self.proj = nn.Conv2d(encoder_channels + out_channels, out_channels, kernel_size=1)
-        self.proj = ConvBlock(encoder_channels + out_channels, out_channels, kernel_size=1, stride=1, padding=0, batch_norm=True, activation=activation_func)
+        # self.proj = ConvBlock(encoder_channels + out_channels, out_channels, kernel_size=1, stride=1, padding=0, batch_norm=True, activation=activation_func)
         self.conv_blocks = nn.ModuleList([])
         for i in range(n_convs):
             channels = encoder_channels + out_channels if i == 0 else out_channels
-            # self.conv_blocks.append(nn.Sequential(
-            #     nn.Conv2d(channels, out_channels, kernel_size=3, padding=1),
-            #     nn.BatchNorm2d(out_channels),
-            #     nn.ReLU(inplace=True)
-            # ))
             self.conv_blocks.append(ConvBlock(channels, out_channels, kernel_size=3, stride=1, padding=1, batch_norm=True, activation=activation_func))
         
         if use_cbam:
@@ -1636,10 +1497,7 @@ class AttentionUnetUpBlock(nn.Module):
             
         # Apply convolution blocks
         for i, conv_block in enumerate(self.conv_blocks):
-            if i == 0:
-                x = conv_block(x) + self.proj(x)
-            else:
-                x = conv_block(x) + x
+            x = conv_block(x)
         
         # Apply CBAM if enabled
         if self.use_cbam:
@@ -2129,10 +1987,110 @@ class DeepLabV3Plus(nn.Module):
         self.aspp = ASPP(in_channels=2048, out_channels=aspp_out, dilation_rates=aspp_rates)
         # Decoder fusing ASPP and low-level (conv2) features
         self.decoder = Decoder(low_level_in=256, low_level_out=48, num_classes=num_classes)
+        
+        if num_classes == 1:
+            self.activation = nn.Sigmoid()
+        else:
+            self.activation = nn.Softmax(dim=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         low_level, high_level = self.backbone(x)
         x = self.aspp(high_level)
         x = self.decoder(low_level, x)
         # Final upsample to input resolution
-        return nn.functional.interpolate(x, size=x.shape[-2]*4, mode="bilinear", align_corners=False)
+        x = nn.functional.interpolate(x, size=x.shape[-2]*4, mode="bilinear", align_corners=False)
+        return self.activation(x)
+
+
+
+class ResNetBackboneUNet(nn.Module):
+    def __init__(self, in_channels=4, pretrained=True):
+        super(ResNetBackboneUNet, self).__init__()
+        resnet = resnet152(weights=ResNet152_Weights.DEFAULT if pretrained else None)
+
+        if in_channels != 3:
+            resnet.conv1 = nn.Conv2d(in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
+
+        self.initial = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu)   # H/2
+        self.pool = resnet.maxpool                                           # H/4
+        self.layer1 = resnet.layer1                                          # H/4
+        self.layer2 = resnet.layer2                                          # H/8
+        self.layer3 = resnet.layer3                                          # H/16
+        self.layer4 = resnet.layer4                                          # H/32
+
+    def forward(self, x):
+        x0 = self.initial(x)            # [B, 64, H/2, W/2]
+        x1 = self.pool(x0)              # [B, 64, H/4, W/4]
+        x2 = self.layer1(x1)            # [B, 256, H/4, W/4]
+        x3 = self.layer2(x2)            # [B, 512, H/8, W/8]
+        x4 = self.layer3(x3)            # [B, 1024, H/16, W/16]
+        x5 = self.layer4(x4)            # [B, 2048, H/32, W/32]
+        
+        return [x0, x2, x3, x4, x5]
+
+
+
+class UNet(nn.Module):
+    def __init__(self, backbone: ResNetBackboneUNet, num_classes: int = 8):
+        
+        super(UNet, self).__init__()
+        
+        self.backbone = backbone
+        self.num_classes = num_classes
+        
+        self.decoder_blocks = nn.ModuleList([
+            UNetUpBlock(2048, 1024, 1024),
+            UNetUpBlock(1024, 512, 512),
+            UNetUpBlock(512, 256, 256),
+            UNetUpBlock(256, 64, 64),
+            UNetUpBlock(64, 0, 32), # No skip connection for the last block - only upsampling
+        ])
+        
+        self.classifier = nn.Conv2d(32, num_classes, kernel_size=1)
+        if num_classes == 1:
+            self.activation = nn.Sigmoid()
+        else:
+            self.activation = nn.Softmax(dim=1)
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        """
+        Forward pass of the UNet.
+        
+        Args:
+            x: Input image tensor
+            
+        Returns:
+            Model output (segmentation map)
+        """
+        # in_shape = x.shape[2:]
+        
+        # Encoder path
+        x_enc_feature_maps = self.backbone(x)
+        x = x_enc_feature_maps.pop()  # Start with the last feature map
+        
+        for i, block in enumerate(self.decoder_blocks):
+            x = block(x, x_enc_feature_maps.pop() if len(x_enc_feature_maps) > 0 else None) # do not use skip connection for the last block
+        
+        x = self.classifier(x)
+        return self.activation(x)
+
+
+
+class AttentionUNet(UNet):
+    """
+    Attention U-Net with ResNet backbone.
+    
+    This model uses attention mechanisms in the decoder blocks to focus on relevant features.
+    """
+    def __init__(self, backbone: ResNetBackboneUNet, num_classes: int = 8):
+        
+        super(AttentionUNet, self).__init__(backbone, num_classes)
+        
+        # only change the decoder blocks to use attention
+        self.decoder_blocks = nn.ModuleList([
+            AttentionUnetUpBlock(2048, 1024, 1024),
+            AttentionUnetUpBlock(1024, 512, 512),
+            AttentionUnetUpBlock(512, 256, 256),
+            AttentionUnetUpBlock(256, 64, 64),
+            AttentionUnetUpBlock(64, 0, 32), # No skip connection for the last block - only upsampling
+        ])

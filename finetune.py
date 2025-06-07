@@ -1,40 +1,21 @@
 import argparse
 from glob import glob
 import math
-import math
 import os
 from time import time
 import numpy as np
 import pandas as pd
 import torch
 from torch.optim import AdamW
-from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
-from sklearn.metrics import confusion_matrix, classification_report
-from sklearn.metrics import confusion_matrix, classification_report
 
 from mslandcover.utils import Logger, get_torch_device, ProfilerHistory, load_pth
-from mslandcover.config import LEGEND_CLASSES
 from mslandcover.data.datasets import FineTuneDataset
 from mslandcover.data.transforms import StandardDataAugmentations 
 from mslandcover.loss import FocalLoss
-from mslandcover.models import DeepLabV3Plus, ResNetBackbone
+from mslandcover.models import DeepLabV3Plus, ResNetBackbone, UNet, AttentionUNet, ResNetBackboneUNet
 from mslandcover import metrics
-
-from transformers import SegformerForSemanticSegmentation, SegformerConfig
-
-try:
-    from torch.amp import autocast, GradScaler
-except ImportError:
-    from torch.cuda.amp import autocast, GradScaler
-
-from transformers import SegformerForSemanticSegmentation, SegformerConfig
-
-try:
-    from torch.amp import autocast, GradScaler
-except ImportError:
-    from torch.cuda.amp import autocast, GradScaler
 
 
 def parse_arguments() -> argparse.Namespace:
@@ -43,8 +24,8 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--model',
         type=str,
-        choices=['deeplabv3plus'],
-        default='deeplabv3plus',
+        choices=['deeplabv3plus', 'unet', 'attention_unet'],
+        default='attention_unet',
         help='The model to use for training',
     )
     
@@ -233,7 +214,7 @@ def parse_arguments() -> argparse.Namespace:
         '--alpha_power',
         type=float,
         default=2.0,
-        help='The power to raise the class distribution to for the focal loss',
+        help='The inverse power to raise the class distribution to for class weighting in the focal loss (i.e., 2.0 ~ sqrt(1 / class_distribution) to balance the loss for each class)',
     )
     
     parser.add_argument(
@@ -387,9 +368,8 @@ def main() -> None:
         # prefetch_factor=4 if args.num_workers > 1 else 0,
     )
     
-    # no class weightings
-    # alpha = torch.ones_like(class_dist)
-    alpha = (1 / torch.tensor(class_dist, dtype=torch.float32)) ** (1 / args.alpha_power)
+    # class weighting is the inverse of the class distribution raised to the power of 1 over the alpha power
+    alpha = class_dist ** (-1 / args.alpha_power)
     logger.log(f'Class weights: {alpha}')
     criterion = FocalLoss(alpha=alpha, gamma=args.focal_gamma, reduction='sum').to(device)
     
@@ -416,9 +396,38 @@ def main() -> None:
         )
         model = model.to(device)
     
+    elif args.model in ['unet', 'attention_unet']:
+        
+        backbone = ResNetBackboneUNet(
+            in_channels=args.n_bands,
+            pretrained=args.encoder_weights == 'imagenet',
+        )
+        
+        if args.encoder_weights not in [None, 'imagenet']:
+            if os.path.exists(args.encoder_weights):
+                logger.log(f'Loading encoder weights from {args.encoder_weights}')
+                encoder_weights = load_pth(args.encoder_weights, map_location=device)
+                encoder_weights = adjust_backbone_weights(encoder_weights)
+            else:
+                raise FileNotFoundError(f'Encoder weights not found at {args.encoder_weights}')
+        
+        if args.model == 'unet':
+            model = UNet(
+                backbone=backbone,
+                num_classes=num_classes,
+            )
+        elif args.model == 'attention_unet':
+            model = AttentionUNet(
+                backbone=backbone,
+                num_classes=num_classes,
+            )
+        
+        model = model.to(device)
+        
+    
     else:
         raise ValueError(f'Unknown model: {args.model}')
-        
+    
     if args.freeze_encoder:
         logger.log('Freezing encoder weights')
         for param in model.backbone.parameters():
