@@ -1,0 +1,15 @@
+n_train,fold,split_1,split_2,split_3,split_4
+250,1,train,val,val,val
+250,2,val,train,val,val
+250,3,val,val,train,val
+250,4,val,val,val,train
+500,1,train,train,val,val
+500,2,train,val,train,val
+500,3,train,val,val,train
+500,4,val,train,train,val
+500,5,val,train,val,train
+500,6,val,val,train,train
+750,1,train,train,train,val
+750,2,train,train,val,train
+750,3,train,val,train,train
+750,4,val,train,train,train
