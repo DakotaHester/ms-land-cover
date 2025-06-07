@@ -62,3 +62,4 @@ data/NAIP_MS
 *.nav
 *.snm
 data/shapefiles*.egg-info
+data/old_splits

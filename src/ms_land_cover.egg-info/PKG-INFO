@@ -1,0 +1,28 @@
+Metadata-Version: 2.4
+Name: ms-land-cover
+Version: 0.1.0
+Summary: Multispectral Land Cover Pretraining and Segmentation
+Author-email: Dakota Hester <dh2306@msstate.edu>
+Requires-Dist: torch
+Requires-Dist: torchvision
+Requires-Dist: numpy
+Requires-Dist: pandas
+Requires-Dist: tqdm
+Requires-Dist: scikit-learn
+Requires-Dist: scipy
+Requires-Dist: rasterio
+Requires-Dist: geopandas
+Requires-Dist: shapely
+Requires-Dist: h5py
+Requires-Dist: opencv-python
+Requires-Dist: matplotlib
+Requires-Dist: pillow
+Requires-Dist: joblib
+Requires-Dist: scikit-image
+Requires-Dist: affine
+Requires-Dist: pyproj
+Requires-Dist: pyarrow
+Requires-Dist: pyogrio
+Provides-Extra: dev
+Requires-Dist: ipython; extra == "dev"
+Requires-Dist: jupyter; extra == "dev"

@@ -243,6 +243,7 @@ class FineTuneDataset(Dataset):
         target_paths: Optional[Iterable[str]]=None,
         mean: Optional[np.ndarray]=None,
         std: Optional[np.ndarray]=None,
+        n_bands: int=4,
         transform: Optional[transforms.Compose]=T.StandardDataAugmentations(),
         return_metadata: bool=False,
         device: torch.device=torch.device('cpu'),
@@ -250,6 +251,7 @@ class FineTuneDataset(Dataset):
         n_threads: int=os.cpu_count()
     ):
         
+        self.n_bands = n_bands
         self.transform = transform
         self.return_metadata = return_metadata
         self.device = device
@@ -345,6 +347,14 @@ class FineTuneDataset(Dataset):
                 return_metadata=True, 
                 device=self.device,
             )
+            
+            if self.n_bands == 3:
+                # create nir composite
+                nir_band = img[3, :, :]
+                red_band = img[0, :, :]
+                green_band = img[1, :, :]
+                img = torch.stack([red_band, green_band, nir_band], dim=0)
+            
             if self.target_paths is not None:
                 target_path = self.target_paths[idx]
                 target = utils.read_image(

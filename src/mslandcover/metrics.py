@@ -69,7 +69,7 @@ def f1_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     float
         The F1 score of the model.
     """
-    return metrics.f1_score(y_true, y_pred, average='weighted', zero_division=0)
+    return metrics.f1_score(y_true, y_pred, average='micro', zero_division=0)
 
 
 
@@ -90,7 +90,7 @@ def precision_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     float
         The precision score of the model.
     """
-    return metrics.precision_score(y_true, y_pred, average='weighted', zero_division=0)
+    return metrics.precision_score(y_true, y_pred, average='micro', zero_division=0)
 
 
 
@@ -111,7 +111,7 @@ def recall_score(y_true: np.ndarray, y_pred: np.ndarray) -> float:
     float
         The recall score of the model.
     """
-    return metrics.recall_score(y_true, y_pred, average='weighted', zero_division=0)
+    return metrics.recall_score(y_true, y_pred, average='micro', zero_division=0)
 
 
 

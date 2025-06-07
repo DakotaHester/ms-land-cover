@@ -499,19 +499,11 @@ class HiResDataAugmentation:
 
 class StandardDataAugmentations:
     '''
-    Simple data augmentations for training a segmentation model. Includes random 
-    flips and color distortions.
+    Simple data augmentation that applies random rotation, horizontal, and vertical flips.
     '''
-    
-    def __init__(self, size: int=256, s: float=1.0, use_color_transforms: bool=True):
-        
-        self.color_transforms = None
-        if use_color_transforms:
-            self.color_transforms = get_color_transforms(s=s)
-        self.size = size
-        self.resize_transform = ResizeTransform(size=size)
-    
-    def __call__(self, X: torch.Tensor, y: Optional[torch.Tensor] = None):
+
+    @staticmethod
+    def __call__(X: torch.Tensor, y: Optional[torch.Tensor] = None):
         
         # do not resize this time, just apply random flip and color distortions
         if torch.rand(1) > 0.5:
@@ -528,14 +520,6 @@ class StandardDataAugmentations:
         X = F.rotate(X, rot_angle * 90)
         if y is not None:
             y = F.rotate(y, rot_angle * 90)
-        
-        if self.color_transforms is not None:
-            X = self.color_transforms(X)
-        
-        if y is not None:
-            X, y = self.resize_transform(X, y)
-        else:
-            X = self.resize_transform(X)
         
         if y is not None:
             return X, y
