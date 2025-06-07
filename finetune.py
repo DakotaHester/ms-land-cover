@@ -213,7 +213,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--alpha_power',
         type=float,
-        default=2.0,
+        default=0.0,
         help='The inverse power to raise the class distribution to for class weighting in the focal loss (i.e., 2.0 ~ sqrt(1 / class_distribution) to balance the loss for each class)',
     )
     
@@ -333,23 +333,6 @@ def main() -> None:
         logger.log(f'New class distribution: {train_dataset.get_class_distribution()}')
         logger.log(f'New N_train: {len(train_dataset)}')
     
-    class_dist = train_dataset.get_class_distribution()
-    num_classes = len(class_dist)
-    
-    oversample_classes = []
-    minimum_oversample_ratios = []
-    for i, prob in enumerate(class_dist):
-        if prob < args.minimum_class_proportion:
-            oversample_classes.append(i)
-            minimum_oversample_ratios.append(args.minimum_oversample_ratio_factor * prob)
-    logger.log(f'Class distribution: {class_dist}')
-    
-    if len(oversample_classes) > 0:
-        train_dataset.oversample_classes(oversample_classes, oversample_factor=args.oversample_factor, minimum_ratio=minimum_oversample_ratios)
-        logger.log(f'Oversampled classes: {oversample_classes}')
-        logger.log(f'New class distribution: {train_dataset.get_class_distribution()}')
-        logger.log(f'New N_train: {len(train_dataset)}')
-    
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=args.mini_batch_size,
@@ -369,7 +352,10 @@ def main() -> None:
     )
     
     # class weighting is the inverse of the class distribution raised to the power of 1 over the alpha power
-    alpha = class_dist ** (-1 / args.alpha_power)
+    if args.alpha_power == 0:
+        alpha = torch.ones(num_classes)
+    else:
+        alpha = class_dist ** (-1 / args.alpha_power)
     logger.log(f'Class weights: {alpha}')
     criterion = FocalLoss(alpha=alpha, gamma=args.focal_gamma, reduction='sum').to(device)
     
