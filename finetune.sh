@@ -37,7 +37,7 @@ LOAD_CHECKPOINT=false        # --load_checkpoint
 MINIMUM_CLASS_PROPORTION=0.0         # --minimum_class_proportion
 OVERSAMPLE_FACTOR=2                  # --oversample_factor
 MINIMUM_OVERSAMPLE_RATIO_FACTOR=2.0  # --minimum_oversample_ratio_factor
-ALPHA_POWER=0.0                      # --alpha_power
+ALPHA_POWER=2.0                      # --alpha_power
 FOCAL_GAMMA=2.0                      # --focal_gamma
 
 # Ensure script directory exists
