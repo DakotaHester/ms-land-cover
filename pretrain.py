@@ -438,7 +438,7 @@ def main():
     profiler = ProfilerHistory(device)
     profiler.update(epoch=-1, phase='init', step=0, time=0)
     
-    starting_epoch = 1 # epoch 0 is a "dry run" to get a baseline loss
+    starting_epoch = 0 # epoch 0 is a "dry run" to get a baseline loss
     best_val_loss = np.inf
     best_epoch = -1
     
