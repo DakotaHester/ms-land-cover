@@ -17,7 +17,7 @@ import torch._utils
 import torch.nn.functional as F
 
 from torchvision.models import ConvNeXt_Tiny_Weights, convnext_tiny
-from torchvision.models import ResNet152_Weights, resnet152
+from torchvision.models import ResNet152_Weights, resnet152, ResNet101_Weights, resnet101
 from timm.models import convnext
 from .utils import load_pth
 
@@ -1922,11 +1922,11 @@ class ResNetBackbone(nn.Module):
     def __init__(self, output_stride: int = 16, pretrained: bool = True, in_channels=4) -> None:
         super().__init__()
         if isinstance(pretrained, bool):
-            resnet = resnet152(weights=ResNet152_Weights.DEFAULT if pretrained else None)
+            resnet = resnet101(weights=ResNet101_Weights.DEFAULT if pretrained else None)
             if in_channels != 3:
                 resnet.conv1 = nn.Conv2d(in_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         else:
-            resnet = resnet152()
+            resnet = resnet101()
             if in_channels != 3:
                 resnet.conv1 = nn.Conv2d(in_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
             if pretrained is not None:
@@ -2006,7 +2006,7 @@ class DeepLabV3Plus(nn.Module):
 class ResNetBackboneUNet(nn.Module):
     def __init__(self, in_channels=4, pretrained=True):
         super(ResNetBackboneUNet, self).__init__()
-        resnet = resnet152(weights=ResNet152_Weights.DEFAULT if pretrained else None)
+        resnet = resnet101(weights=ResNet101_Weights.DEFAULT if pretrained else None)
 
         if in_channels != 3:
             resnet.conv1 = nn.Conv2d(in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)

@@ -47,7 +47,8 @@ mkdir -p "$SLURM_SCRIPT_DIR"
 # PRETRAIN SCHEMES TO TEST
 # =========================
 MODELS=("unet" "deeplabv3plus" "attention_unet")
-PRETRAIN_SCHEMES=("hires_simclr" "simclr" "imagenet")
+# PRETRAIN_SCHEMES=("hires_simclr" "simclr" "imagenet")
+PRETRAIN_SCHEMES=("imagenet")
 BANDS=(4 3)  # 4 bands for hires_simclr, 3 bands for simclr
 PRETRAIN_SIZES=(256)
 FREEZE_ENCODERS=(false true) # Freeze encoder options

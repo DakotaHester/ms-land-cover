@@ -25,7 +25,7 @@ def parse_arguments() -> argparse.Namespace:
         '--model',
         type=str,
         choices=['deeplabv3plus', 'unet', 'attention_unet'],
-        default='attention_unet',
+        default='deeplabv3plus',
         help='The model to use for training',
     )
     
@@ -53,7 +53,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--n_train_samples',
         type=int,
-        default=750,
+        default=250,
         choices=[250, 500, 750],
         help="Number of samples to use for training. Choose from 250, 500, or 750 samples. This is used to limit the number of samples in the dataset for faster training.",
     )
@@ -61,7 +61,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--fold',
         type=int,
-        default=0,
+        default=1,
         choices=[1, 2, 3, 4],
         help='The fold to use for training. This is used to select the train/val splits from the splits.csv file.',
     )
@@ -213,7 +213,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--alpha_power',
         type=float,
-        default=0.0,
+        default=2.0,
         help='The inverse power to raise the class distribution to for class weighting in the focal loss (i.e., 2.0 ~ sqrt(1 / class_distribution) to balance the loss for each class)',
     )
     

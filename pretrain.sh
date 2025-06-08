@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # ======= Adjustable Constants =======
-NUM_EPOCHS=100
-INIT_LR=0.000001 # 1e-6
-EARLY_STOPPING_PATIENCE=15
-REDUCE_LR_PATIENCE=2 # tolerate 2 bad epochs, reduce lr after 3 epochs of no improvement
-TEMPERATURE=0.5
-NUM_WORKERS=32
+NUM_EPOCHS=50
+INIT_LR=0.0001 # 1e-4
+EARLY_STOPPING_PATIENCE=5
+REDUCE_LR_PATIENCE=0 # tolerate 0 bad epochs, reduce lr after 1 epochs of no improvement
+TEMPERATURE=0.1 
+NUM_WORKERS=48
 SEED=1701
 # ====================================
 
@@ -14,7 +14,7 @@ PRETRAIN_SCHEMES=("hires_simclr" "simclr")
 # IMAGE_SIZES=(256 192 128)
 # BATCH_SIZES=(128 256 512)
 BANDS=(4 3)
-BATCH_SIZES=(256)
+BATCH_SIZES=(128)
 RAND_INIT_OPTIONS=(false)
 
 LOAD_CHECKPOINT=false
@@ -43,12 +43,14 @@ for rand_init in "${RAND_INIT_OPTIONS[@]}"; do
       #   bands=$band
       if [[ "$scheme" == "hires_simclr" ]]; then
         bands=4
+        size=192
       elif [[ "$scheme" == "simclr" ]]; then
         bands=3
+        size=256
       fi
 
-      LOG_DIR="./logs/pretrain/resnet152_202505/${scheme}_bands${bands}_size${size}_batch${batch}_randinit${rand_init}"
-      WEIGHTS_DIR="./weights/resnet152_202505/${scheme}_bands${bands}_size${size}_batch${batch}_randinit${rand_init}"
+      LOG_DIR="./logs/pretrain/resnet152_202506/${scheme}_bands${bands}_size${size}_batch${batch}_randinit${rand_init}"
+      WEIGHTS_DIR="./weights/resnet152_202506/${scheme}_bands${bands}_size${size}_batch${batch}_randinit${rand_init}"
 
       if [[ -f "$LOG_DIR/resnet152/$scheme/finished.txt" ]]; then
         echo "Skipping: $scheme bands=$bands size=$size batch=$batch rand_init=$rand_init (already finished)"
@@ -62,7 +64,7 @@ for rand_init in "${RAND_INIT_OPTIONS[@]}"; do
           --full_batch_size "$batch" \
           --mini_batch_size "$batch" \
           --log_dir "$LOG_DIR" \
-          --weights_dir "./weights/resnet152_202505/${scheme}_bands${bands}_size${size}_batch${batch}_randinit${rand_init}" \
+          --weights_dir "./weights/resnet152_202506/${scheme}_bands${bands}_size${size}_batch${batch}_randinit${rand_init}" \
           --num_epochs "$NUM_EPOCHS" \
           --init_lr "$INIT_LR" \
           --early_stopping_patience "$EARLY_STOPPING_PATIENCE" \

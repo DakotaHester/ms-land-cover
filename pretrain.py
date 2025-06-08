@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-from torchvision.models import resnet152, ResNet152_Weights, resnet50, ResNet50_Weights
+from torchvision.models import resnet152, ResNet152_Weights, resnet101, ResNet101_Weights
 import numpy as np
 import os
 from glob import glob
@@ -37,8 +37,8 @@ def parse_arguments():
     parser.add_argument(
         '--model',
         type=str,
-        default='resnet152',
-        choices=['resnet152', 'deeplabv3p'],
+        default='resnet101',
+        choices=['resnet101', 'resnet152', 'deeplabv3p'],
     )
     
     parser.add_argument(
@@ -86,7 +86,7 @@ def parse_arguments():
     parser.add_argument(
         '--temperature',
         type=float,
-        default=0.5,
+        default=0.05,
         help='The temperature to use for the NT-Xent loss.',
     )
     
@@ -360,6 +360,16 @@ def main():
             ('encoder', encoder),
             ('projection_head', ProjectionHead(in_channels=2048))
         ]))
+    
+    elif args.model == 'resnet101':
+        encoder = resnet101(weights=ResNet101_Weights.IMAGENET1K_V2 if not args.rand_init else None)
+        if args.n_bands == 4:
+            encoder.conv1 = nn.Conv2d(4, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
+        encoder.fc = nn.Identity()
+        model = nn.Sequential(OrderedDict([
+            ('encoder', encoder),
+            ('projection_head', ProjectionHead(in_channels=2048))
+        ]))
      
     elif args.model == 'deeplabv3p':
         raise NotImplementedError('DeepLabV3+ not implemented yet.')
@@ -428,7 +438,7 @@ def main():
     profiler = ProfilerHistory(device)
     profiler.update(epoch=-1, phase='init', step=0, time=0)
     
-    starting_epoch = 0 # epoch 0 is a "dry run" to get a baseline loss
+    starting_epoch = 1 # epoch 0 is a "dry run" to get a baseline loss
     best_val_loss = np.inf
     best_epoch = -1
     

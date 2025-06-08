@@ -455,6 +455,12 @@ class HiResDataAugmentation:
     
     def __init__(self, size: int=192, s: float=1.0):
         
+        kernel_size = int(size*0.1)
+        if kernel_size % 2 == 0:
+            kernel_size -= 1
+        if kernel_size < 3:
+            kernel_size = 3
+        
         self.size = size
         # self.resize_transform = ResizeTransform(size=size)
         # self.random_resize_crop = transforms.RandomResizedCrop(size=size)
@@ -466,7 +472,7 @@ class HiResDataAugmentation:
         # self.color_transforms = get_color_transforms(s=s, kernel_size=int(size*0.1), scale_sigma_by_s=True)
         self.multispectral_augmentations = get_multispectral_augmentations()
         # self.gaussian_noise = transforms.Lambda(lambda x: add_gaussian_noise(x, std=0.1*s)) # gaussian noise handled by Dataset
-        self.blur = transforms.GaussianBlur(kernel_size=0.1*size, sigma=(0.1*s, 2.0*s))
+        self.blur = transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.1*s, 2.0*s))
         self.composed_transforms = transforms.Compose([
             self.random_crop,
             self.random_horizontal_flip,
