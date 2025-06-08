@@ -76,7 +76,7 @@ def normalize(tensor: torch.Tensor, mean: torch.Tensor, std: torch.Tensor) -> to
     
 
 
-def get_color_transforms(s: float=0.5, kernel_size: int=25, scale_sigma_by_s: bool=False) -> transforms.Compose:
+def get_color_transforms(s: float=1.0, kernel_size: int=25, scale_sigma_by_s: bool=False) -> transforms.Compose:
     """
     Create a composition of color space augmentations.
     
@@ -446,6 +446,47 @@ class SimpleRandomCrop:
         return X
 
 
+class MultispectralSolarize:
+    def __init__(self, threshold=0.5, max_value=1.0, p=0.5):
+        """
+        Parameters:
+            threshold (float or list): Threshold(s) above which to invert per channel.
+            max_value (float or list): Max value(s) for inversion per channel.
+            p (float): Probability of applying solarization.
+        """
+        self.threshold = threshold
+        self.max_value = max_value
+        self.p = p
+
+    def __call__(self, x):
+        if torch.rand(1) > self.p:
+            return x
+
+        assert x.ndim == 3, "Input must be a [C, H, W] tensor"
+        C, H, W = x.shape
+        x = x.clone()
+
+        # Resolve threshold and max_value to tensors
+        threshold = (
+            torch.tensor(self.threshold, dtype=x.dtype, device=x.device).view(C, 1, 1)
+            if isinstance(self.threshold, (list, tuple))
+            else torch.full((C, 1, 1), float(self.threshold), dtype=x.dtype, device=x.device)
+        )
+
+        max_value = (
+            torch.tensor(self.max_value, dtype=x.dtype, device=x.device).view(C, 1, 1)
+            if isinstance(self.max_value, (list, tuple))
+            else torch.full((C, 1, 1), float(self.max_value), dtype=x.dtype, device=x.device)
+        )
+
+        # Manual per-pixel, per-channel solarization
+        above_thresh = x > threshold
+        inverted = max_value - x
+        x = torch.where(above_thresh, inverted, x)
+
+        return x
+
+
 class HiResDataAugmentation:
     """
     Instead of random resize and cropping, simply clip a random region from the 
@@ -453,7 +494,8 @@ class HiResDataAugmentation:
     Also, add VerticalFlip and random 90 degree rotation.
     """
     
-    def __init__(self, size: int=192, s: float=1.0):
+    def __init__(self, size: int=192, s: float=1.0, alt_transform: bool=False):
+        
         
         kernel_size = int(size*0.1)
         if kernel_size % 2 == 0:
@@ -472,16 +514,19 @@ class HiResDataAugmentation:
         # self.color_transforms = get_color_transforms(s=s, kernel_size=int(size*0.1), scale_sigma_by_s=True)
         self.multispectral_augmentations = get_multispectral_augmentations()
         # self.gaussian_noise = transforms.Lambda(lambda x: add_gaussian_noise(x, std=0.1*s)) # gaussian noise handled by Dataset
-        self.blur = transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.1*s, 2.0*s))
+        self.blur = transforms.RandomApply([transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.1*s, 2.0*s))], p=1.0 if not alt_transform else 0.1)
+        self.solarize = MultispectralSolarize(threshold=0.5, p=0.2 if alt_transform else 0.0)
+        
         self.composed_transforms = transforms.Compose([
             self.random_crop,
             self.random_horizontal_flip,
             self.random_vertical_flip,
             self.random_90_degree_rotation,
             self.multispectral_augmentations,
-            # self.gaussian_noise,
             self.blur,
+            self.solarize,
         ])
+        
     
     
     def __call__(self, X: torch.Tensor) -> torch.Tensor:
@@ -789,3 +834,32 @@ def calculate_ngrdi(X: torch.Tensor, eps: float=1e-6):
     if unsqueezed:
         return ngrdi.squeeze(0)
     return ngrdi
+
+
+class BYOLDataAugmentation:
+    """
+    Data augmentation pipeline for BYOL pretraining.
+    """
+    def __init__(self, size=256, s=1.0, alt_transform=False):
+        kernel_size = int(0.1 * size)
+        if kernel_size % 2 == 0:
+            kernel_size += 1
+        if kernel_size < 3:
+            kernel_size = 3
+        
+        self.alt_transform = alt_transform
+        
+        transforms_list = [
+            transforms.RandomResizedCrop(size=size, scale=(0.08, 1.0), ratio=(3/4, 4/3)),
+            transforms.RandomHorizontalFlip(),
+            transforms.RandomApply([transforms.ColorJitter(0.4*s, 0.4*s, 0.2*s, 0.2*s)], p=0.8),
+            transforms.RandomGrayscale(p=0.2),
+            transforms.RandomApply([transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.1*s, 2.0*s))], p=1.0 if not alt_transform else 0.1),
+        ]
+        if alt_transform:
+            transforms_list.append(transforms.RandomSolarize(threshold=0.5, p=0.2))
+        
+        self.transform = transforms.Compose(transforms_list)
+    
+    def __call__(self, x):
+        return self.transform(x)

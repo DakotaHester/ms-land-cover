@@ -7,6 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.amp import autocast, GradScaler
 from torchvision.models import resnet152, ResNet152_Weights, resnet101, ResNet101_Weights
 import numpy as np
 import os
@@ -18,9 +19,10 @@ import json
 from mslandcover.utils import ProfilerHistory, Logger, get_torch_device, load_pth
 from mslandcover.data.datasets import PreTrainDataset
 from mslandcover.data import transforms
-from mslandcover.models import DeepLabV3Plus, ProjectionHead, ResNetBackbone
-from mslandcover.loss import nt_xent_loss
+from mslandcover.models import SimCLRProjectionHead, BYOLWrapper
+from mslandcover.loss import nt_xent_loss, byol_loss_fn
 from mslandcover.metrics import psnr, ssim
+
 from argparse import ArgumentParser
 
 def parse_arguments():
@@ -29,9 +31,9 @@ def parse_arguments():
     parser.add_argument(
         '--pretrain_scheme',
         type=str,
-        default='simclr',
-        choices=['dae', 'simclr', 'hires_simclr'],
-        help='The pretraining scheme to use.',
+        default='byol',
+        choices=['dae', 'simclr', 'hires_simclr', 'byol', 'hires_byol'],
+        help='The pretraining scheme to use. Options: simclr, hires_simclr, dae, byol, hires_byol.',
     )
     
     parser.add_argument(
@@ -93,14 +95,14 @@ def parse_arguments():
     parser.add_argument(
         '--full_batch_size', 
         type=int, 
-        default=128, # 4096 in original SimCLR implementation
+        default=16, # 4096 in original SimCLR implementation
         help='The batch size to use for pretraining.',
     )
     
     parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=128,
+        default=16,
         help='The mini-batch size to use for gradient accumulation. Only relevant if using pretraining scheme "dae".',
     )
     
@@ -151,7 +153,7 @@ def parse_arguments():
     parser.add_argument(
         '--num_workers',
         type=int,
-        default=8,
+        default=48,
         help='The number of workers to use for data loading.',
     )
     
@@ -203,7 +205,6 @@ def parse_arguments():
 
 
 
-
 def main():
     
     args = parse_arguments()
@@ -234,9 +235,14 @@ def main():
     
     is_contrastive = 'simclr' in args.pretrain_scheme
     is_reconstruction = 'dae' in args.pretrain_scheme 
-    
+    is_byol = 'byol' in args.pretrain_scheme
+
     if is_contrastive and args.mini_batch_size != args.full_batch_size:
         raise ValueError('Contrastive learning requires the mini-batch size to be equal to the full batch size.')
+    if args.n_bands not in [3, 4]:
+        raise ValueError('Number of bands must be 3 (RGB) or 4 (CIR) for pretraining.')
+    if args.n_bands == 4 and args.pretrain_scheme in ['simclr', 'byol']:
+        raise ValueError('SimCLR and BYOL pretraining schemes are not supported for 4-band data. Use DAE instead.')
     
     device = get_torch_device()
     logger.log(f'Using device: {device}')
@@ -250,11 +256,16 @@ def main():
             transform = transforms.HiResDataAugmentation(size=args.image_size, s=1.0)
         else:
             transform = transforms.SimCLRDataAugmentation(size=args.image_size, s=1.0)
+    elif is_byol:
+        if args.pretrain_scheme == 'hires_byol':
+            transform = [transforms.HiResDataAugmentation(size=args.image_size, s=1.0), transforms.HiResDataAugmentation(size=args.image_size, s=1.0, alt_transform=True)]
+        else:
+            transform = [transforms.BYOLDataAugmentation(size=args.image_size, s=1.0), transforms.BYOLDataAugmentation(size=args.image_size, s=1.0, alt_transform=True)]
     else:
         transform = transforms.StandardDataAugmentations(size=args.image_size, use_color_transforms=False)
 
-    noisy_input = args.pretrain_scheme in ['dae', 'hires_simclr']
-    n_views = 2 if is_contrastive else 1
+    noisy_input = args.pretrain_scheme in ['dae', 'hires_simclr', 'hires_byol']
+    n_views = 2 if (is_contrastive or is_byol) else 1
     
     if args.n_bands == 4:
         mean_path = os.path.join('weights', 'pretrain_mean_4.pt')
@@ -266,10 +277,15 @@ def main():
     mean = load_pth(mean_path) if os.path.exists(mean_path) else None
     std = load_pth(std_path) if os.path.exists(std_path) else None
     
+    # train_paths = glob('./data/splits/split_[1-3]/input/*.tif')
+    # val_paths = glob('./data/splits/split_4/input/*.tif')
+    
+    # print(len(train_paths))
     train_dataset = PreTrainDataset(
         # hdf5_path=args.pretrain_hdf5_path,
         # hdf5_group=args.pretrain_hdf5_group,
         data_paths=glob(os.path.join(args.pretrain_data_dir, '*.tif')),
+        # data_paths=train_paths,
         transform=transform,
         n_views=n_views,
         mean=mean,
@@ -284,10 +300,11 @@ def main():
         # hdf5_path=args.pretrain_hdf5_path,
         # hdf5_group=args.pretrain_val_hdf5_group,
         data_paths=glob(os.path.join(args.pretrain_val_data_dir, '*.tif')),
+        # data_paths=val_paths,
         n_views=n_views,
         mean=train_dataset.mean,
         std=train_dataset.std,
-        transform=transforms.ResizeTransform(size=args.image_size),
+        transform=transform,
         noisy_input=noisy_input,
         noise_std=1.0,
         # noise_pct=0.5,
@@ -356,21 +373,29 @@ def main():
         if args.n_bands == 4:
             encoder.conv1 = nn.Conv2d(4, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         encoder.fc = nn.Identity()
-        model = nn.Sequential(OrderedDict([
-            ('encoder', encoder),
-            ('projection_head', ProjectionHead(in_channels=2048))
-        ]))
+        
+        if is_contrastive:
+            model = nn.Sequential(OrderedDict([
+                ('encoder', encoder),
+                ('projection_head', SimCLRProjectionHead(in_channels=2048))
+            ]))
+        elif is_byol:
+            model = BYOLWrapper(encoder)
     
     elif args.model == 'resnet101':
         encoder = resnet101(weights=ResNet101_Weights.IMAGENET1K_V2 if not args.rand_init else None)
         if args.n_bands == 4:
             encoder.conv1 = nn.Conv2d(4, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         encoder.fc = nn.Identity()
-        model = nn.Sequential(OrderedDict([
-            ('encoder', encoder),
-            ('projection_head', ProjectionHead(in_channels=2048))
-        ]))
-     
+        
+        if is_contrastive:
+            model = nn.Sequential(OrderedDict([
+                ('encoder', encoder),
+                ('projection_head', SimCLRProjectionHead(in_channels=2048))
+            ]))
+        elif is_byol:
+            model = BYOLWrapper(encoder)
+    
     elif args.model == 'deeplabv3p':
         raise NotImplementedError('DeepLabV3+ not implemented yet.')
         # encoder = ResNetBackbone()
@@ -398,7 +423,7 @@ def main():
                 param.requires_grad = True
     
     flops, macs, _ = calculate_flops(
-        model=model,
+        model=model if not is_byol else model.online_encoder,
         input_shape=(1, args.n_bands, args.image_size, args.image_size),
         output_as_string=False,
         print_results=False,
@@ -418,13 +443,15 @@ def main():
 
     optimizer = torch.optim.AdamW(params=model.parameters(), lr=args.init_lr)
     
+    # Initialize mixed precision scaler
+    scaler = GradScaler()
+    
     reduce_lr_on_plateau = ReduceLROnPlateau(
         optimizer=optimizer,
         patience=args.reduce_lr_patience,
         factor=0.1,
         eps=0,
     )
-    
     
     history_dict = {
         'learning_rate': [],
@@ -438,7 +465,7 @@ def main():
     profiler = ProfilerHistory(device)
     profiler.update(epoch=-1, phase='init', step=0, time=0)
     
-    starting_epoch = 1 # epoch 0 is a "dry run" to get a baseline loss
+    starting_epoch = 0 # epoch 0 is a "dry run" to get a baseline loss
     best_val_loss = np.inf
     best_epoch = -1
     
@@ -446,6 +473,7 @@ def main():
         checkpoint = torch.load(os.path.join(log_dir, 'checkpoint.pth'), weights_only=False)
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
+        scaler.load_state_dict(checkpoint['scaler'])
         reduce_lr_on_plateau.load_state_dict(checkpoint['reduce_lr_on_plateau'])
         
         starting_epoch = checkpoint['epoch']  + 1 # start from the next epoch (checkpoints are saved at the end of the epoch)
@@ -503,17 +531,17 @@ def main():
                         X_0, X_1 = X_0[0].to(device), X_1[0].to(device)
                         profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                         
-                        # first pass through model
-                        z_0 = model(X_0)
-                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                        
-                        # second pass through model
-                        z_1 = model(X_1)
-                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                        
-                        # calculate loss
-                        loss = nt_xent_loss(z_0, z_1, temperature=args.temperature, reduction='sum')
-                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
+                        # Mixed precision forward passes
+                        with autocast(str(device)):
+                            z_0 = model(X_0)
+                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
+                            
+                            z_1 = model(X_1)
+                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
+                            
+                            # calculate loss
+                            loss = nt_xent_loss(z_0, z_1, temperature=args.temperature, reduction='sum')
+                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                         
                         # metrics
                         loss_values.append(loss.item())
@@ -522,12 +550,13 @@ def main():
                         
                         # no grad accumulation for contrastive loss - can go ahead and update the model
                         if phase == 'train' and epoch != 0:
-                            # backpropagation
-                            loss.backward()
+                            # backpropagation with mixed precision
+                            scaler.scale(loss).backward()
                             profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                             
                             # parameter update
-                            optimizer.step()
+                            scaler.step(optimizer)
+                            scaler.update()
                             profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                             
                             # reset gradients
@@ -536,6 +565,34 @@ def main():
                         
                         pbar.set_postfix(tqdm_postfix)
                         pbar.update(1)
+                    
+                    elif is_byol:
+                        # BYOL training with gradient accumulation using mixed precision
+                        X_0, X_1 = batch
+                        X_0, X_1 = X_0[0].to(device), X_1[0].to(device)
+
+                        with autocast(str(device)):
+                            proj1, proj2, target_proj1, target_proj2 = model(X_0, X_1)
+                            loss = byol_loss_fn(proj1, target_proj2, reduction='sum') + byol_loss_fn(proj2, target_proj1, reduction='sum')
+                            loss = loss / grad_accum_steps
+
+                        loss_values.append(loss.item() * grad_accum_steps)  # store unscaled loss for logging
+                        epoch_loss = np.sum(loss_values) / ((step * args.mini_batch_size) + len(batch))
+                        tqdm_postfix['Loss'] = f'{epoch_loss:.2e}'
+
+                        if phase == 'train' and epoch != 0:
+                            scaler.scale(loss).backward()
+
+                        if (step + 1) % grad_accum_steps == 0:
+                            if phase == 'train' and epoch != 0:
+                                scaler.step(optimizer)
+                                scaler.update()
+                                optimizer.zero_grad()
+                                model._update_target_encoder()
+
+                            pbar.update(1)
+
+                        pbar.set_postfix(tqdm_postfix)
                     
                     else:
                         # load batch
@@ -546,18 +603,20 @@ def main():
                         X, y = X.to(device), y.to(device)
                         profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                         
-                        # forward pass through model
-                        y_hat = model(X)
-                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
+                        # forward pass through model with mixed precision
+                        with autocast(str(device)):
+                            y_hat = model(X)
+                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
+                            
+                            # reconstruction_loss = F.mse_loss(y_hat, y, reduction='sum')
+                            # NOTE: L1/MAE loss is used instead of MSE loss 
+                            # https://research.nvidia.com/sites/default/files/pubs/2017-03_Loss-Functions-for/NN_ImgProc.pdf
+                            # https://openaccess.thecvf.com/content/WACV2022/papers/Mustafa_Training_a_Task-Specific_Image_Reconstruction_Loss_WACV_2022_paper.pdf
+                            loss = F.l1_loss(y_hat, y, reduction='sum') 
+                            loss = loss / grad_accum_steps  # scale loss for gradient accumulation
+                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                         
-                        # reconstruction_loss = F.mse_loss(y_hat, y, reduction='sum')
-                        # NOTE: L1/MAE loss is used instead of MSE loss 
-                        # https://research.nvidia.com/sites/default/files/pubs/2017-03_Loss-Functions-for/NN_ImgProc.pdf
-                        # https://openaccess.thecvf.com/content/WACV2022/papers/Mustafa_Training_a_Task-Specific_Image_Reconstruction_Loss_WACV_2022_paper.pdf
-                        loss = F.l1_loss(y_hat, y, reduction='sum') 
-                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                        
-                        loss_values.append(loss.item())
+                        loss_values.append(loss.item() * grad_accum_steps)
                         ssim_values.append(ssim(y_hat, y, reduction='sum').item())
                         psnr_values.append(psnr(y_hat, y, reduction='sum').item())
                         
@@ -571,14 +630,15 @@ def main():
                         pbar.set_postfix(tqdm_postfix)
                         
                         if phase == 'train' and epoch != 0:
-                            # backpropagation
-                            loss.backward()
+                            # backpropagation with mixed precision
+                            scaler.scale(loss).backward()
                             profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                             
                         if (step + 1) % grad_accum_steps == 0:
                             if phase == 'train' and epoch != 0:
-                                # parameter update
-                                optimizer.step()
+                                # parameter update with mixed precision
+                                scaler.step(optimizer)
+                                scaler.update()
                                 profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                             
                                 # reset gradients
@@ -607,6 +667,7 @@ def main():
             'epoch': epoch,
             'model': model.state_dict(),
             'optimizer': optimizer.state_dict(),
+            'scaler': scaler.state_dict(),
             'reduce_lr_on_plateau': reduce_lr_on_plateau.state_dict(),
             'history': history_dict,
             'profiler': profiler.profiler_history_dict,

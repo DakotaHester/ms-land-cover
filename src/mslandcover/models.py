@@ -20,6 +20,7 @@ from torchvision.models import ConvNeXt_Tiny_Weights, convnext_tiny
 from torchvision.models import ResNet152_Weights, resnet152, ResNet101_Weights, resnet101
 from timm.models import convnext
 from .utils import load_pth
+import copy
 
 BN_MOMENTUM = 0.1
 logger = logging.getLogger(__name__)
@@ -591,13 +592,13 @@ class ImageDecoderHead(nn.Module):
         return self        
 
 
-# ProjectionHead implementation inspired by official TF code https://github.com/google-research/simclr/blob/383d4143fd8cf7879ae10f1046a9baeb753ff438/tf2/model.py#L157
+# SimCLRProjectionHead implementation inspired by official TF code https://github.com/google-research/simclr/blob/383d4143fd8cf7879ae10f1046a9baeb753ff438/tf2/model.py#L157
 # per paper, only use one hidden layer and do not apply a non-linearity to the output embeddings
 # z_i = W^{(2)} \sigma(W^{(1)} h_i)
-class ProjectionHead(nn.Module):
+class SimCLRProjectionHead(nn.Module):
     
     def __init__(self, in_channels: int=720, num_hiddens: int=1, embedding_dim: int=128):
-        super(ProjectionHead, self).__init__()
+        super(SimCLRProjectionHead, self).__init__()
         
         # self.gap = nn.AdaptiveAvgPool2d((1, 1))
         
@@ -792,7 +793,7 @@ class HRNetSegmentationModel(nn.Module):
                     
         self.projection_head = None
         if aux_simclr_head:
-            self.projection_head = ProjectionHead(in_channels=self.encoder_output_channels)
+            self.projection_head = SimCLRProjectionHead(in_channels=self.encoder_output_channels)
     
     
     
@@ -860,7 +861,7 @@ class ConvNextTinyAutoencoder(nn.Module):
                     
         self.projection_head = None
         if aux_simclr_head:
-            self.projection_head = ProjectionHead(in_channels=self.encoder_output_channels)
+            self.projection_head = SimCLRProjectionHead(in_channels=self.encoder_output_channels)
     
     
     def forward(self, x: torch.Tensor) -> Union[torch.Tensor, Tuple[torch.Tensor, torch.Tensor]]:
@@ -956,7 +957,7 @@ class ResNetAutoencoder(nn.Module):
                     
         self.projection_head = None
         if aux_simclr_head:
-            self.projection_head = ProjectionHead(in_channels=self.final_layer_output_channels)
+            self.projection_head = SimCLRProjectionHead(in_channels=self.final_layer_output_channels)
     
     
     def load_encoder_weights(self, state_dict: dict):
@@ -1653,7 +1654,7 @@ class AttentionUResNetD(nn.Module):
 #         self.hidden_size = self.segformer.config.hidden_sizes[-1]  # Get the final hidden size
         
 #         # Create projection head for SimCLR
-#         self.projection_head = ProjectionHead(in_channels=self.hidden_size, embedding_dim=projection_dim)
+#         self.projection_head = SimCLRProjectionHead(in_channels=self.hidden_size, embedding_dim=projection_dim)
     
 #     def forward(self, x):
 #         # Intermediate representation corresponding to the final hidden state
@@ -1922,10 +1923,12 @@ class ResNetBackbone(nn.Module):
     def __init__(self, output_stride: int = 16, pretrained: bool = True, in_channels=4) -> None:
         super().__init__()
         if isinstance(pretrained, bool):
-            resnet = resnet101(weights=ResNet101_Weights.DEFAULT if pretrained else None)
+            # resnet = resnet152(weights=ResNet152_Weights.DEFAULT if pretrained else None)
+            resnet = resnet101(weights=ResNet101_Weights.IMAGENET1K_V2 if pretrained else None)
             if in_channels != 3:
                 resnet.conv1 = nn.Conv2d(in_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         else:
+            # resnet = resnet152()
             resnet = resnet101()
             if in_channels != 3:
                 resnet.conv1 = nn.Conv2d(in_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
@@ -2006,7 +2009,8 @@ class DeepLabV3Plus(nn.Module):
 class ResNetBackboneUNet(nn.Module):
     def __init__(self, in_channels=4, pretrained=True):
         super(ResNetBackboneUNet, self).__init__()
-        resnet = resnet101(weights=ResNet101_Weights.DEFAULT if pretrained else None)
+        # resnet = resnet152(weights=ResNet152_Weights.DEFAULT if pretrained else None)
+        resnet = resnet101(weights=ResNet101_Weights.IMAGENET1K_V2 if pretrained else None)
 
         if in_channels != 3:
             resnet.conv1 = nn.Conv2d(in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)
@@ -2094,3 +2098,78 @@ class AttentionUNet(UNet):
             AttentionUnetUpBlock(256, 64, 64),
             AttentionUnetUpBlock(64, 0, 32), # No skip connection for the last block - only upsampling
         ])
+
+
+class BYOLProjectionHead(nn.Module):
+    """
+    Projection head for BYOL: 2-layer MLP with BatchNorm and ReLU.
+    """
+    def __init__(self, in_dim=2048, hidden_dim=4096, out_dim=256):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, hidden_dim, bias=False),
+            nn.BatchNorm1d(hidden_dim),
+            nn.ReLU(inplace=True),
+            nn.Linear(hidden_dim, out_dim, bias=True),
+        )
+    
+    def forward(self, x):
+        return self.net(x)
+
+
+class BYOLPredictionHead(nn.Module):
+    """
+    Prediction head for BYOL: 2-layer MLP with BatchNorm and ReLU (as in the original BYOL paper).
+    """
+    def __init__(self, in_dim=256, hidden_dim=4096, out_dim=256):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, hidden_dim, bias=False),
+            nn.BatchNorm1d(hidden_dim),
+            nn.ReLU(inplace=True),
+            nn.Linear(hidden_dim, out_dim, bias=True),
+        )
+    def forward(self, x):
+        return self.net(x)
+
+
+
+class BYOLWrapper(nn.Module):
+    """
+    BYOL wrapper for online and target encoders, with prediction head on online branch only.
+    """
+    def __init__(self, encoder, proj_in_dim=2048, proj_hidden_dim=4096, proj_out_dim=256, pred_hidden_dim=4096, moving_average_decay=0.999):
+        super().__init__()
+        
+        self.moving_average_decay = moving_average_decay
+        
+        # Online encoder: encoder -> projection head -> prediction head
+        self.online_encoder = nn.Sequential(
+            encoder,
+            BYOLProjectionHead(in_dim=proj_in_dim, hidden_dim=proj_hidden_dim, out_dim=proj_out_dim),
+        )
+        self.online_predictor = BYOLPredictionHead(in_dim=proj_out_dim, hidden_dim=pred_hidden_dim, out_dim=proj_out_dim)
+        # Target encoder: encoder -> projection head
+        self.target_encoder = nn.Sequential(
+            copy.deepcopy(encoder),
+            BYOLProjectionHead(in_dim=proj_in_dim, hidden_dim=proj_hidden_dim, out_dim=proj_out_dim),
+        )
+        for param in self.target_encoder.parameters():
+            param.requires_grad = False
+
+    @torch.no_grad()
+    def _update_target_encoder(self):
+        for online, target in zip(self.online_encoder.parameters(), self.target_encoder.parameters()):
+            target.data = target.data * self.moving_average_decay + online.data * (1.0 - self.moving_average_decay)
+
+    def forward(self, x1, x2):
+        # Online branch: encoder -> projection -> prediction
+        proj1 = self.online_encoder(x1)
+        proj2 = self.online_encoder(x2)
+        pred1 = self.online_predictor(proj1)
+        pred2 = self.online_predictor(proj2)
+        # Target branch: encoder -> projection (no prediction head)
+        with torch.no_grad():
+            target_proj1 = self.target_encoder(x1)
+            target_proj2 = self.target_encoder(x2)
+        return pred1, pred2, target_proj1.detach(), target_proj2.detach()
