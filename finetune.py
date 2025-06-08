@@ -62,7 +62,7 @@ def parse_arguments() -> argparse.Namespace:
         '--fold',
         type=int,
         default=1,
-        choices=[1, 2, 3, 4],
+        choices=[1, 2, 3, 4, 5, 6],
         help='The fold to use for training. This is used to select the train/val splits from the splits.csv file.',
     )
     
