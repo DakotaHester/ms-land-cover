@@ -2138,7 +2138,7 @@ class BYOLWrapper(nn.Module):
     """
     BYOL wrapper for online and target encoders, with prediction head on online branch only.
     """
-    def __init__(self, encoder, proj_in_dim=2048, proj_hidden_dim=4096, proj_out_dim=256, pred_hidden_dim=4096, moving_average_decay=0.999):
+    def __init__(self, encoder, proj_in_dim=2048, proj_hidden_dim=4096, proj_out_dim=256, pred_hidden_dim=4096, moving_average_decay=0.99):
         super().__init__()
         
         self.moving_average_decay = moving_average_decay
@@ -2162,14 +2162,12 @@ class BYOLWrapper(nn.Module):
         for online, target in zip(self.online_encoder.parameters(), self.target_encoder.parameters()):
             target.data = target.data * self.moving_average_decay + online.data * (1.0 - self.moving_average_decay)
 
-    def forward(self, x1, x2):
+    def forward(self, v, v_prime):
         # Online branch: encoder -> projection -> prediction
-        proj1 = self.online_encoder(x1)
-        proj2 = self.online_encoder(x2)
-        pred1 = self.online_predictor(proj1)
-        pred2 = self.online_predictor(proj2)
+        q = self.online_predictor(self.online_encoder(v))
+        q_prime = self.online_predictor(self.online_encoder(v_prime))
         # Target branch: encoder -> projection (no prediction head)
         with torch.no_grad():
-            target_proj1 = self.target_encoder(x1)
-            target_proj2 = self.target_encoder(x2)
-        return pred1, pred2, target_proj1.detach(), target_proj2.detach()
+            z = self.target_encoder(v)
+            z_prime = self.target_encoder(v_prime) 
+        return q, q_prime, z, z_prime

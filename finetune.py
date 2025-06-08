@@ -765,24 +765,29 @@ def main() -> None:
 def adjust_backbone_weights(weights):
     new_weights = {}
     for key in weights.keys():
+        
         if key.startswith('encoder.'):
             new_key = key.replace('encoder.', '')
+        elif key.startswith('online_encoder.0.'):
+            new_key = key.replace('online_encoder.0.', '')
+        else:
+            continue
             
-            # initial layers should match up
-            if new_key == 'conv1.weight':
-                new_key = 'initial.0.weight'
-            elif new_key == 'bn1.weight':
-                new_key = 'initial.1.weight'
-            elif new_key == 'bn1.bias':
-                new_key = 'initial.1.bias'
-            elif new_key == 'bn1.running_mean':
-                new_key = 'initial.1.running_mean'
-            elif new_key == 'bn1.running_var':
-                new_key = 'initial.1.running_var'
-            elif new_key == 'bn1.num_batches_tracked':
-                new_key = 'initial.1.num_batches_tracked'
+        # initial layers should match up
+        if new_key == 'conv1.weight':
+            new_key = 'initial.0.weight'
+        elif new_key == 'bn1.weight':
+            new_key = 'initial.1.weight'
+        elif new_key == 'bn1.bias':
+            new_key = 'initial.1.bias'
+        elif new_key == 'bn1.running_mean':
+            new_key = 'initial.1.running_mean'
+        elif new_key == 'bn1.running_var':
+            new_key = 'initial.1.running_var'
+        elif new_key == 'bn1.num_batches_tracked':
+            new_key = 'initial.1.num_batches_tracked'
                 
-            new_weights[new_key] = weights[key]
+        new_weights[new_key] = weights[key]
         
     return new_weights
 

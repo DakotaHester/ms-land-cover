@@ -163,14 +163,28 @@ class RandomGamma:
         return torch.clamp(out, 0, 1)
 
 
+
+class RandomBandDrop:
+    
+    def __init__(self, drop_prob=0.1):
+        self.drop_prob = drop_prob
+    
+    def __call__(self, img):
+        for c in range(img.shape[0]):
+            if np.random.rand() < self.drop_prob:
+                img[c] = 0
+        
+        return img
+
+
 def get_multispectral_augmentations(s=1.0):
     """
     Returns a composition of augmentations suitable for 4-band multispectral data.
     """
     return transforms.Compose([
-        RandomGamma(gamma_range=(0.5, 2.0)),
-        RandomPerBandJitter(brightness=0.3*s, contrast=0.3*s),
-        # transforms.RandomGrayscale(p=0.2),
+        RandomGamma(gamma_range=((1/2.5), 2.5)),
+        RandomPerBandJitter(brightness=0.4*s, contrast=0.4*s),
+        RandomBandDrop(drop_prob=0.1*s),
     ])
 
 

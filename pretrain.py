@@ -307,7 +307,7 @@ def main():
         transform=transform,
         noisy_input=noisy_input,
         noise_std=1.0,
-        # noise_pct=0.5,
+        # noise_pct=0.5,n
         preload=args.preload_data,
         n_bands=args.n_bands,
     )
@@ -485,8 +485,16 @@ def main():
         
         logger.log(f'Loaded checkpoint from epoch {starting_epoch - 1}.')
     
+    # warmup for first 10 epochs or 10% of total epochs, whichever is smaller
+    warmup_epochs = min(10, args.num_epochs // 10) 
+    
     logger.log(f'Starting training at epoch {starting_epoch}...')
     for epoch in range(starting_epoch, args.num_epochs+1):
+        
+        if epoch < warmup_epochs:
+            # NOTE - this overrides the ReduceLROnPlateau scheduler
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = args.init_lr * epoch / warmup_epochs
         
         lr = optimizer.param_groups[0]['lr']
         history_dict['learning_rate'].append(lr)
@@ -568,12 +576,12 @@ def main():
                     
                     elif is_byol:
                         # BYOL training with gradient accumulation using mixed precision
-                        X_0, X_1 = batch
-                        X_0, X_1 = X_0[0].to(device), X_1[0].to(device)
+                        v, v_prime = batch
+                        v, v_prime = v[0].to(device), v_prime[0].to(device)
 
                         with autocast(str(device)):
-                            proj1, proj2, target_proj1, target_proj2 = model(X_0, X_1)
-                            loss = byol_loss_fn(proj1, target_proj2, reduction='sum') + byol_loss_fn(proj2, target_proj1, reduction='sum')
+                            q, q_prime, z, z_prime = model(v, v_prime)
+                            loss = byol_loss_fn(q, z_prime) + byol_loss_fn(q_prime, z)
                             loss = loss / grad_accum_steps
 
                         loss_values.append(loss.item() * grad_accum_steps)  # store unscaled loss for logging

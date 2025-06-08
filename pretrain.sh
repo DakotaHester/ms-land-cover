@@ -9,11 +9,11 @@ TEMPERATURE=0.1
 NUM_WORKERS=48
 SEED=1701
 MINI_BATCH_SIZE=128
-FULL_BATCH_SIZE=2048
+FULL_BATCH_SIZE=4096
 # ====================================
 
 # PRETRAIN_SCHEMES=("hires_simclr" "simclr")
-PRETRAIN_SCHEMES=("byol" "hires_byol")
+PRETRAIN_SCHEMES=("hires_byol" "byol")
 # IMAGE_SIZES=(256 192 128)
 # BATCH_SIZES=(128 256 512)
 BANDS=(4 3)
@@ -40,6 +40,9 @@ for rand_init in "${RAND_INIT_OPTIONS[@]}"; do
       for band in "${BANDS[@]}"; do
         if [ "$scheme" == "byol" ] && [[ "$band" -eq 4 ]]; then
           # echo "Skipping: $scheme with 3 bands (not supported)"
+          continue
+        elif [ "$scheme" == "hires_byol" ] && [[ "$band" -eq 3 ]]; then
+          # echo "Skipping: $scheme with 4 bands (not supported)"
           continue
         fi
         
