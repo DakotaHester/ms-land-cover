@@ -26,7 +26,7 @@ class PreTrainDataset(Dataset):
         data_paths: Optional[Iterable[str]]=None, # Only needed to calculate mean and std, may be removed in the future
         mean: Optional[np.ndarray]=None,
         std: Optional[np.ndarray]=None,
-        transform: Optional[transforms.Compose]=T.SimCLRDataAugmentation(),
+        transform: Union[Optional[transforms.Compose], List[transforms.Compose]]=T.SimCLRDataAugmentation(),
         return_hsv: bool=False,
         return_lab: bool=False,
         return_spectral_indices: bool=False,
@@ -76,6 +76,9 @@ class PreTrainDataset(Dataset):
         self.return_metadata = return_metadata
         self.device = device
         self.preload = preload
+        
+        if isinstance(transform, list) and len(transform) != n_views:
+            raise ValueError(f'If transform is a list, it must have length == n_views ({n_views}). Got {len(transform)}.')
         
         if mean is not None:
             if isinstance(mean, np.ndarray):
@@ -185,8 +188,12 @@ class PreTrainDataset(Dataset):
                 img = torch.stack([red_band, green_band, nir_band], dim=0)
                 
         returns = []
-        for _ in range(self.n_views): 
-            view = self.transform(img) if self.transform is not None else img
+        for i in range(self.n_views):
+            if isinstance(self.transform, list):
+                view = self.transform[i](img) if self.transform[i] is not None else img 
+            else:
+                view = self.transform(img) if self.transform is not None else img
+            
             norm_view = T.normalize(view, mean=self.mean, std=self.std)
             
             if self.noisy_input:

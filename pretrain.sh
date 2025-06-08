@@ -8,9 +8,12 @@ REDUCE_LR_PATIENCE=0 # tolerate 0 bad epochs, reduce lr after 1 epochs of no imp
 TEMPERATURE=0.1 
 NUM_WORKERS=48
 SEED=1701
+MINI_BATCH_SIZE=256
+FULL_BATCH_SIZE=4096
 # ====================================
 
-PRETRAIN_SCHEMES=("hires_simclr" "simclr")
+# PRETRAIN_SCHEMES=("hires_simclr" "simclr")
+PRETRAIN_SCHEMES=("byol" "hires_byol")
 # IMAGE_SIZES=(256 192 128)
 # BATCH_SIZES=(128 256 512)
 BANDS=(4 3)
@@ -24,28 +27,28 @@ COUNT=0
 for rand_init in "${RAND_INIT_OPTIONS[@]}"; do
   for batch in "${BATCH_SIZES[@]}"; do
 
-  if [[ "$batch" -eq 128 ]]; then
-    size=256
-  elif [[ "$batch" -eq 256 ]]; then
-    size=192
-  elif [[ "$batch" -eq 512 ]]; then
-    size=128
-  fi
+  # if [[ "$batch" -eq 128 ]]; then
+  #   size=256
+  # elif [[ "$batch" -eq 256 ]]; then
+  #   size=192
+  # elif [[ "$batch" -eq 512 ]]; then
+  #   size=128
+  # fi
 
     for scheme in "${PRETRAIN_SCHEMES[@]}"; do
 
-      # for band in "${BANDS[@]}"; do
-      #   if [ "$scheme" == "simclr" ] && [[ "$band" -eq 4 ]]; then
-      #     # echo "Skipping: $scheme with 3 bands (not supported)"
-      #     continue
-      #   fi
+      for band in "${BANDS[@]}"; do
+        if [ "$scheme" == "byol" ] && [[ "$band" -eq 4 ]]; then
+          # echo "Skipping: $scheme with 3 bands (not supported)"
+          continue
+        fi
 
       #   bands=$band
-      if [[ "$scheme" == "hires_simclr" ]]; then
-        bands=4
+      if [[ "$scheme" == "hires_byol" ]]; then
+        # bands=4
         size=192
-      elif [[ "$scheme" == "simclr" ]]; then
-        bands=3
+      elif [[ "$scheme" == "byol" ]]; then
+        # bands=3
         size=256
       fi
 

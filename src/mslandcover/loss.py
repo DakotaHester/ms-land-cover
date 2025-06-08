@@ -503,3 +503,27 @@ def deep_supervision_loss(
         y_true_resized = F.interpolate(y_true, size=y.shape[2:], mode='bilinear', align_corners=False)
         loss += criterion(y, y_true_resized) * weights[i]
     return loss
+
+
+
+def byol_loss_fn(p, z, reduction='sum'):
+    """
+    BYOL loss: negative cosine similarity with reduction.
+    Args:
+        p: predictions (batch_size, dim)
+        z: targets (batch_size, dim)
+        reduction: 'mean', 'sum', or 'none'
+    Returns:
+        Loss value (scalar or tensor)
+    """
+    p = F.normalize(p, dim=-1)
+    z = F.normalize(z, dim=-1)
+    loss = 2 - 2 * (p * z).sum(dim=-1)
+    if reduction == 'mean':
+        return loss.mean()
+    elif reduction == 'sum':
+        return loss.sum()
+    elif reduction == 'none':
+        return loss
+    else:
+        raise ValueError(f'Invalid reduction: {reduction}')
