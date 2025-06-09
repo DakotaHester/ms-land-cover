@@ -495,6 +495,9 @@ def main():
             # NOTE - this overrides the ReduceLROnPlateau scheduler
             for param_group in optimizer.param_groups:
                 param_group['lr'] = args.init_lr * epoch / warmup_epochs
+        elif epoch == warmup_epochs:
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = args.init_lr
         
         lr = optimizer.param_groups[0]['lr']
         history_dict['learning_rate'].append(lr)

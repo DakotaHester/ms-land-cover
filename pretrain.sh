@@ -2,7 +2,7 @@
 
 # ======= Adjustable Constants =======
 NUM_EPOCHS=50
-INIT_LR=0.0001 # 1e-4
+INIT_LR=0.00001 # 1e-5
 EARLY_STOPPING_PATIENCE=5
 REDUCE_LR_PATIENCE=0 # tolerate 0 bad epochs, reduce lr after 1 epochs of no improvement
 TEMPERATURE=0.1 
@@ -62,7 +62,7 @@ for rand_init in "${RAND_INIT_OPTIONS[@]}"; do
         if [[ -f "$LOG_DIR/resnet101/$scheme/finished.txt" ]]; then
           echo "Skipping: $scheme bands=$band size=$size rand_init=$rand_init (already finished)"
           continue
-        elif [ "$LOAD_CHECKPOINT" == true ] && [[ -f "$LOG_DIR/resnet152/$scheme/checkpoint.pth" ]]; then
+        elif [ "$LOAD_CHECKPOINT" == true ] && [[ -f "$LOG_DIR/resnet101/$scheme/checkpoint.pth" ]]; then
           echo "Loading checkpoint for: $scheme bands=$band size=$size rand_init=$rand_init"
           python pretrain.py \
             --pretrain_scheme "$scheme" \

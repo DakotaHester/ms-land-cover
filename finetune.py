@@ -32,7 +32,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--encoder_weights',
         type=str,
-        default=None,
+        default='imagenet',
         help='The path to the encoder weights to load for the full model. If `imagenet`, will load ImageNet weights.',
     )
     
@@ -368,11 +368,12 @@ def main() -> None:
             pretrained=args.encoder_weights == 'imagenet',
         )
         
-        if args.encoder_weights not in [None, 'imagenet']:
+        if args.encoder_weights not in [None, 'none', 'imagenet']:
             if os.path.exists(args.encoder_weights):
                 logger.log(f'Loading encoder weights from {args.encoder_weights}')
                 encoder_weights = load_pth(args.encoder_weights, map_location=device)
                 encoder_weights = adjust_backbone_weights(encoder_weights)
+                backbone.load_state_dict(encoder_weights, strict=True)
             else:
                 raise FileNotFoundError(f'Encoder weights not found at {args.encoder_weights}')
         
@@ -389,11 +390,12 @@ def main() -> None:
             pretrained=args.encoder_weights == 'imagenet',
         )
         
-        if args.encoder_weights not in [None, 'imagenet']:
+        if args.encoder_weights not in [None, 'none', 'imagenet']:
             if os.path.exists(args.encoder_weights):
                 logger.log(f'Loading encoder weights from {args.encoder_weights}')
                 encoder_weights = load_pth(args.encoder_weights, map_location=device)
                 encoder_weights = adjust_backbone_weights(encoder_weights)
+                backbone.load_state_dict(encoder_weights, strict=True)
             else:
                 raise FileNotFoundError(f'Encoder weights not found at {args.encoder_weights}')
         
