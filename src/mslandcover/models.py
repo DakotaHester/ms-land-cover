@@ -1924,12 +1924,12 @@ class ResNetBackbone(nn.Module):
         super().__init__()
         if isinstance(pretrained, bool):
             # resnet = resnet152(weights=ResNet152_Weights.DEFAULT if pretrained else None)
-            resnet = resnet101(weights=ResNet101_Weights.IMAGENET1K_V2 if pretrained else None)
+            resnet = resnet152(weights=ResNet152_Weights.IMAGENET1K_V2 if pretrained else None)
             if in_channels != 3:
                 resnet.conv1 = nn.Conv2d(in_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
         else:
             # resnet = resnet152()
-            resnet = resnet101()
+            resnet = resnet152()
             if in_channels != 3:
                 resnet.conv1 = nn.Conv2d(in_channels, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
             if pretrained is not None:
@@ -2010,7 +2010,7 @@ class ResNetBackboneUNet(nn.Module):
     def __init__(self, in_channels=4, pretrained=True):
         super(ResNetBackboneUNet, self).__init__()
         # resnet = resnet152(weights=ResNet152_Weights.DEFAULT if pretrained else None)
-        resnet = resnet101(weights=ResNet101_Weights.IMAGENET1K_V2 if pretrained else None)
+        resnet = resnet152(weights=ResNet152_Weights.IMAGENET1K_V2 if pretrained else None)
 
         if in_channels != 3:
             resnet.conv1 = nn.Conv2d(in_channels, 64, kernel_size=7, stride=2, padding=3, bias=False)

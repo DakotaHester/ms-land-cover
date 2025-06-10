@@ -12,9 +12,9 @@ GRES="gpu:a100_1g.10gb:1"
 MAIL_USER="dh2306@msstate.edu"
 PYTHON_ENV=".env/bin/activate"
 SCRIPT_NAME="finetune.py"
-BASE_LOG_DIR="./logs/finetune_20250607"
-BASE_WEIGHTS_DIR="./weights/finetune_20250607"
-SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250607"
+BASE_LOG_DIR="./logs/finetune_20250610"
+BASE_WEIGHTS_DIR="./weights/finetune_20250610"
+SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250610"
 SPLIT_DIR="./data/splits"
 MAX_JOBS=10
 
@@ -46,10 +46,10 @@ mkdir -p "$SLURM_SCRIPT_DIR"
 # =========================
 # PRETRAIN SCHEMES TO TEST
 # =========================
-MODELS=("unet" "deeplabv3plus" "attention_unet")
+MODELS=("unet" "deeplabv3plus")
 # PRETRAIN_SCHEMES=("hires_simclr" "simclr" "imagenet")
-PRETRAIN_SCHEMES=("imagenet")
-BANDS=(4 3)  # 4 bands for hires_simclr, 3 bands for simclr
+PRETRAIN_SCHEMES=("imagenet" "simclr")
+BANDS=(3)  # 4 bands for hires_simclr, 3 bands for simclr
 PRETRAIN_SIZES=(256)
 FREEZE_ENCODERS=(false true) # Freeze encoder options
 

@@ -177,14 +177,50 @@ class RandomBandDrop:
         return img
 
 
+class MultispectralRandomGrayscale:
+    
+    def __init__(self, p=0.2):
+        """
+        Randomly convert the input image tensor to grayscale with a probability of p.
+        
+        Parameters
+        ----------
+        p : float, optional
+            Probability of converting to grayscale, by default 0.2.
+        """
+        self.p = p
+    
+    def __call__(self, img):
+        """
+        Convert the input image tensor to grayscale with a probability of p.
+        
+        Parameters
+        ----------
+        img : torch.Tensor
+            Input image tensor of shape (C, H, W).
+        
+        Returns
+        -------
+        torch.Tensor
+            Grayscale image tensor of shape (C, H, W) or original image tensor.
+        """
+        
+        if np.random.rand() < self.p:
+            # Convert to grayscale by averaging across channels
+            gray_img = img.mean(dim=0, keepdim=True)
+            return gray_img.expand_as(img)
+        return img
+
+
 def get_multispectral_augmentations(s=1.0):
     """
     Returns a composition of augmentations suitable for 4-band multispectral data.
     """
     return transforms.Compose([
-        RandomGamma(gamma_range=((1/2.5), 2.5)),
-        RandomPerBandJitter(brightness=0.4*s, contrast=0.4*s),
+        RandomGamma(gamma_range=((1/(2 * s)), 2 * s)),
+        RandomPerBandJitter(brightness=0.2*s, contrast=0.2*s),
         RandomBandDrop(drop_prob=0.1*s),
+        MultispectralRandomGrayscale(p=0.2*s),
     ])
 
 
@@ -508,7 +544,7 @@ class HiResDataAugmentation:
     Also, add VerticalFlip and random 90 degree rotation.
     """
     
-    def __init__(self, size: int=192, s: float=1.0, alt_transform: bool=False):
+    def __init__(self, size: int=192, s: float=2.0, alt_transform: bool=False):
         
         
         kernel_size = int(size*0.1)
@@ -519,20 +555,22 @@ class HiResDataAugmentation:
         
         self.size = size
         # self.resize_transform = ResizeTransform(size=size)
-        # self.random_resize_crop = transforms.RandomResizedCrop(size=size)
-        self.random_crop = SimpleRandomCrop(size=size)
+        self.random_resize_crop = transforms.RandomResizedCrop(size=size)
+        # self.random_crop = SimpleRandomCrop(size=size)
         self.random_horizontal_flip = transforms.RandomHorizontalFlip()
         self.random_vertical_flip = transforms.RandomVerticalFlip()
         self.random_90_degree_rotation = Random90DegreeRotation()
         # self.elastic_transform = transforms.ElasticTransform(alpha=((size/256)*50.0)*5*s, sigma=((size/256)*5.0)*5*s)
         # self.color_transforms = get_color_transforms(s=s, kernel_size=int(size*0.1), scale_sigma_by_s=True)
-        self.multispectral_augmentations = get_multispectral_augmentations()
+        self.multispectral_augmentations = get_multispectral_augmentations(s=s)
         # self.gaussian_noise = transforms.Lambda(lambda x: add_gaussian_noise(x, std=0.1*s)) # gaussian noise handled by Dataset
         self.blur = transforms.RandomApply([transforms.GaussianBlur(kernel_size=kernel_size, sigma=(0.1*s, 2.0*s))], p=1.0 if not alt_transform else 0.1)
         self.solarize = MultispectralSolarize(threshold=0.5, p=0.2 if alt_transform else 0.0)
         
         self.composed_transforms = transforms.Compose([
-            self.random_crop,
+            # self.random_crop,
+            # self.resize_transform,
+            self.random_resize_crop,
             self.random_horizontal_flip,
             self.random_vertical_flip,
             self.random_90_degree_rotation,

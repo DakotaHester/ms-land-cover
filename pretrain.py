@@ -258,9 +258,9 @@ def main():
             transform = transforms.SimCLRDataAugmentation(size=args.image_size, s=1.0)
     elif is_byol:
         if args.pretrain_scheme == 'hires_byol':
-            transform = [transforms.HiResDataAugmentation(size=args.image_size, s=1.0), transforms.HiResDataAugmentation(size=args.image_size, s=1.0, alt_transform=True)]
+            transform = [transforms.HiResDataAugmentation(size=args.image_size, s=2.0), transforms.HiResDataAugmentation(size=args.image_size, s=2.0, alt_transform=True)]
         else:
-            transform = [transforms.BYOLDataAugmentation(size=args.image_size, s=1.0), transforms.BYOLDataAugmentation(size=args.image_size, s=1.0, alt_transform=True)]
+            transform = [transforms.BYOLDataAugmentation(size=args.image_size, s=2.0), transforms.BYOLDataAugmentation(size=args.image_size, s=2.0, alt_transform=True)]
     else:
         transform = transforms.StandardDataAugmentations(size=args.image_size, use_color_transforms=False)
 
