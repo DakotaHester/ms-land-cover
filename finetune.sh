@@ -6,15 +6,15 @@
 PARTITION="gpu-a100"
 ACCOUNT="research-abe"
 MEMORY="16G"
-N_TASKS="2"
+N_TASKS="4"
 TIME="48:00:00"
 GRES="gpu:a100_1g.10gb:1"
 MAIL_USER="dh2306@msstate.edu"
 PYTHON_ENV=".env/bin/activate"
 SCRIPT_NAME="finetune.py"
-BASE_LOG_DIR="./logs/finetune_20250610"
-BASE_WEIGHTS_DIR="./weights/finetune_20250610"
-SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250610"
+BASE_LOG_DIR="./logs/finetune_20250612"
+BASE_WEIGHTS_DIR="./weights/finetune_20250612"
+SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250612"
 SPLIT_DIR="./data/splits"
 MAX_JOBS=10
 
@@ -37,7 +37,7 @@ LOAD_CHECKPOINT=false        # --load_checkpoint
 MINIMUM_CLASS_PROPORTION=0.0         # --minimum_class_proportion
 OVERSAMPLE_FACTOR=2                  # --oversample_factor
 MINIMUM_OVERSAMPLE_RATIO_FACTOR=2.0  # --minimum_oversample_ratio_factor
-ALPHA_POWER=2.0                      # --alpha_power
+ALPHA_POWER=0.0                      # --alpha_power
 FOCAL_GAMMA=2.0                      # --focal_gamma
 
 # Ensure script directory exists
@@ -48,7 +48,8 @@ mkdir -p "$SLURM_SCRIPT_DIR"
 # =========================
 MODELS=("unet" "deeplabv3plus")
 # PRETRAIN_SCHEMES=("hires_simclr" "simclr" "imagenet")
-PRETRAIN_SCHEMES=("imagenet" "simclr")
+# PRETRAIN_SCHEMES=("imagenet" "simclr")
+PRETRAIN_SCHEMES=("hires_byol" "imagenet" "byol")
 BANDS=(3)  # 4 bands for hires_simclr, 3 bands for simclr
 PRETRAIN_SIZES=(256)
 FREEZE_ENCODERS=(false true) # Freeze encoder options
@@ -100,7 +101,7 @@ for model in "${MODELS[@]}"; do
                             if [[ "$scheme" == "imagenet" ]]; then
                                 ENCODER_WEIGHTS="imagenet"
                             else
-                                ENCODER_WEIGHTS="./weights/resnet152_202505/${scheme}_bands${bands}_size${pre_size}_batch${pre_batch}_randinitfalse/resnet152/${scheme}.pth"
+                                ENCODER_WEIGHTS="./weights/resnet101_202506/${scheme}_bands${bands}_size${pre_size}_randinitfalse/resnet101/${scheme}.pth"
                             fi
 
                             # Unique log/output directories for this job
@@ -191,7 +192,6 @@ $( [[ "$LOAD_CHECKPOINT" == true ]] && echo "--load_checkpoint" ) \
 --minimum_oversample_ratio_factor $MINIMUM_OVERSAMPLE_RATIO_FACTOR \
 --alpha_power $ALPHA_POWER \
 --focal_gamma $FOCAL_GAMMA
-
 EOL
 
                             # Submit the job
