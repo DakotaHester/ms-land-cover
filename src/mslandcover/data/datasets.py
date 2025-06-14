@@ -436,3 +436,58 @@ class FineTuneDataset(Dataset):
                             self.target_paths.append(self.target_paths[i])
                             self.data_paths.append(self.data_paths[i])
                         self.len += 1
+
+
+
+
+class PointAnnotationDataset(Dataset):
+    """Dataset for loading raster tiles and extracting predictions at point locations."""
+    
+    def __init__(self, geopackage_path, raster_dir, n_bands=4, mean=None, std=None):
+        """
+        Args:
+            geopackage_path: Path to geopackage with point annotations
+            raster_dir: Directory containing raster tiles
+            n_bands: Number of bands in raster data
+            mean: Mean values for normalization
+            std: Standard deviation values for normalization
+        """
+        self.geopackage_path = geopackage_path
+        self.raster_dir = raster_dir
+        self.n_bands = n_bands
+        self.mean = mean
+        self.std = std
+        
+        # Load point annotations
+        self.points_gdf = gpd.read_file(geopackage_path)
+    
+    def __len__(self):
+        return len(self.samples)
+    
+    def __getitem__(self, idx):
+        sample = self.samples[idx]
+        
+        # Load raster data
+        with rasterio.open(sample['raster_file']) as src:
+            # Read all bands
+            if self.n_bands == 3:
+                # Assume RGB or similar 3-band data
+                data = src.read([1, 2, 3])
+            else:
+                # Read first n_bands
+                data = src.read(list(range(1, self.n_bands + 1)))
+        
+        # Convert to float32 and normalize
+        data = data.astype(np.float32)
+        
+        if self.mean is not None and self.std is not None:
+            data = (data - self.mean.numpy().reshape(-1, 1, 1)) / self.std.numpy().reshape(-1, 1, 1)
+        
+        return {
+            'image': torch.from_numpy(data),
+            'row': sample['row'],
+            'col': sample['col'],
+            'label': torch.tensor(sample['label'], dtype=torch.long),
+            'point_id': sample['point_id'],
+            'raster_file': sample['raster_file']
+        }
