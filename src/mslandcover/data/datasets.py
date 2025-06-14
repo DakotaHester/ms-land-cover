@@ -7,6 +7,7 @@ import rasterio as rio
 import numpy as np
 from torch.utils.data import Dataset
 from torchvision import transforms
+import geopandas as gpd
 from . import transforms as T
 from . import utils
 import h5py
@@ -440,54 +441,56 @@ class FineTuneDataset(Dataset):
 
 
 
-class PointAnnotationDataset(Dataset):
-    """Dataset for loading raster tiles and extracting predictions at point locations."""
-    
-    def __init__(self, geopackage_path, raster_dir, n_bands=4, mean=None, std=None):
-        """
-        Args:
-            geopackage_path: Path to geopackage with point annotations
-            raster_dir: Directory containing raster tiles
-            n_bands: Number of bands in raster data
-            mean: Mean values for normalization
-            std: Standard deviation values for normalization
-        """
-        self.geopackage_path = geopackage_path
-        self.raster_dir = raster_dir
+class TestDataset(Dataset):
+    def __init__(self, points_gdf: gpd.GeoDataFrame, raster_paths: List[str], n_bands: int = 3, mean: Optional[torch.Tensor] = None, std: Optional[torch.Tensor] = None):
+        self.raster_paths = raster_paths
         self.n_bands = n_bands
         self.mean = mean
         self.std = std
         
-        # Load point annotations
-        self.points_gdf = gpd.read_file(geopackage_path)
+        self.points_gdf = points_gdf.loc[points_gdf['ground_truth'] != 0]
     
     def __len__(self):
-        return len(self.samples)
+        return len(self.points_gdf)
     
     def __getitem__(self, idx):
-        sample = self.samples[idx]
         
-        # Load raster data
-        with rasterio.open(sample['raster_file']) as src:
-            # Read all bands
-            if self.n_bands == 3:
-                # Assume RGB or similar 3-band data
-                data = src.read([1, 2, 3])
-            else:
-                # Read first n_bands
-                data = src.read(list(range(1, self.n_bands + 1)))
+        point = self.points_gdf.iloc[idx]
         
-        # Convert to float32 and normalize
-        data = data.astype(np.float32)
+        raster_id = point['id']
+        raster_path = [path for path in self.raster_paths if raster_id + '.tif' == os.path.basename(path)]
+        
+        assert len(raster_path) == 1, f"Raster path not found for point index {idx}"
+        raster_path = raster_path[0]
+        
+        img, meta = utils.read_image(raster_path, as_float=True, as_tensor=True, return_metadata=True)
+        
+        if self.n_bands == 3:
+            nir_band = img[3, :, :]
+            red_band = img[0, :, :]
+            green_band = img[1, :, :]
+            img = torch.stack([red_band, green_band, nir_band], dim=0)
         
         if self.mean is not None and self.std is not None:
-            data = (data - self.mean.numpy().reshape(-1, 1, 1)) / self.std.numpy().reshape(-1, 1, 1)
+            img = T.normalize(img, mean=self.mean, std=self.std)
         
-        return {
-            'image': torch.from_numpy(data),
-            'row': sample['row'],
-            'col': sample['col'],
-            'label': torch.tensor(sample['label'], dtype=torch.long),
-            'point_id': sample['point_id'],
-            'raster_file': sample['raster_file']
+        x, y = point.geometry.x, point.geometry.y
+        # row, col = meta['transform'].index(x, y, op='round')
+        row, col = rio.transform.rowcol(meta['transform'], x, y)
+        row, col = int(row), int(col)
+        
+        class_idx = point['ground_truth']
+        class_name = point['ground_truth_class_name']
+        
+        return_dict = {
+            'image': img,
+            'row': row,
+            'col': col,
+            'class_idx': class_idx,
+            'class_name': class_name,
+            'point_id': point['id'],
         }
+        for key, value in return_dict.items():
+            if value is None:
+                raise ValueError(f"Missing value for key: {key} in point index {idx}")
+        
