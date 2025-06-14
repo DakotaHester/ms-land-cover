@@ -19,9 +19,9 @@ def parse_args() -> ArgumentParser:
     parser = ArgumentParser()
     
     parser.add_argument(
-        '--grount_truth_shapefile',
+        '--ground_truth_shapefile',
         type=str,
-        default='./data/shapefiles/assessment_points/assesment_points.shp',
+        default='./data/shapefiles/assessment_points',
         help='Path to the ground truth shapefile containing assessment points.'
     )
     
@@ -77,7 +77,7 @@ def main():
     parser = parse_args()
     args = parser.parse_args()
     
-    points_gdf = gpd.read_file('/Volumes/dhester_ssd/new_mslc_data/assessment_points/')
+    points_gdf = gpd.read_file(args.ground_truth_shapefile)
     points_gdf = points_gdf.rename(columns={'ground_tru': 'ground_truth', 'ground_t_1': 'ground_truth_class_name'})
     points_gdf = points_gdf[points_gdf['ground_truth'] != 0]
     

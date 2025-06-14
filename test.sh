@@ -30,7 +30,7 @@ MODELS=("unet" "deeplabv3plus")
 # PRETRAIN_SCHEMES=("imagenet" "simclr")
 PRETRAIN_SCHEMES=("hires_byol" "imagenet" "byol")
 BANDS=(3)  # 4 bands for hires_simclr, 3 bands for simclr
-# PRETRAIN_SIZES=(256)
+PRETRAIN_SIZES=(256)
 FREEZE_ENCODERS=(false true) # Freeze encoder options
 
 # Dataset sizes and folds
@@ -135,7 +135,7 @@ python $SCRIPT_NAME \
     --model_weights "$JOB_WEIGHTS_PATH" \
     --n_bands "$bands" \
     --output_dir "$JOB_LOG_DIR" \
-    --batch_size "$BATCH_SIZE" \
+    --batch_size "$BATCH_SIZE"
 EOL
 
                             # Submit the job
