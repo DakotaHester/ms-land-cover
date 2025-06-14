@@ -122,11 +122,11 @@ def main():
     else:
         raise ValueError(f"Unsupported model type: {args.model}. Choose 'deeplabv3plus' or 'unet'.")
     
-    if not args.model_weights:
-        raise ValueError("Model weights path must be provided with --model_weights argument.")
-    
-    weights = load_pth(args.model_weights)
-    model.load_state_dict(weights)
+    if args.model_weights is not None:
+        if not os.path.exists(args.model_weights):
+            raise FileNotFoundError(f"Model weights file not found: {args.model_weights}")
+        weights = load_pth(args.model_weights)
+        model.load_state_dict(weights)
     
     device = get_torch_device()
     model.to(device)

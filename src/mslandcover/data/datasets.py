@@ -493,4 +493,4 @@ class TestDataset(Dataset):
         for key, value in return_dict.items():
             if value is None:
                 raise ValueError(f"Missing value for key: {key} in point index {idx}")
-        
+        return return_dict
