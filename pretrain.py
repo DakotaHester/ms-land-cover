@@ -6,7 +6,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
-from torch.optim.lr_scheduler import ReduceLROnPlateau
+from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR, SequentialLR
 from torch.amp import autocast, GradScaler
 from torchvision.models import resnet152, ResNet152_Weights, resnet101, ResNet101_Weights
 import numpy as np
@@ -67,29 +67,43 @@ def parse_arguments():
     parser.add_argument(
         '--early_stopping_patience',
         type=int,
-        default=5,
-        help='The number of epochs to wait for validation loss improvement before stopping training.',
+        default=-1,
+        help='The number of epochs to wait for validation loss improvement before stopping training. Set to -1 to disable early stopping.',
     )
     
     parser.add_argument(
-        '--reduce_lr_patience',
+        '--warmup_epochs',
         type=int,
-        default=0,
-        help='The number of epochs to wait for validation loss improvement before reducing the learning rate.',
+        default=10,
+        help='The number of epochs to use for learning rate warmup. If None, no warmup is applied.',
     )
+    
+    # parser.add_argument(
+    #     '--reduce_lr_patience',
+    #     type=int,
+    #     default=0,
+    #     help='The number of epochs to wait for validation loss improvement before reducing the learning rate.',
+    # )
     
     parser.add_argument(
         '--init_lr',
         type=float,
-        default=1e-5, # NOTE: TYPICALLY SET TO 1e-6, setting to 1e-7 for uresnetd
+        default=1e-5,
         help='The initial learning rate to use for training.',
     )
     
     parser.add_argument(
         '--temperature',
         type=float,
-        default=0.05,
-        help='The temperature to use for the NT-Xent loss.',
+        default=0.1,
+        help='The temperature to use for the NT-Xent loss during SimCLR training.',
+    )
+    
+    parser.add_argument(
+        '--tau_base',
+        type=float,
+        default=0.996,
+        help='The base value for the temperature in BYOL training.',
     )
     
     parser.add_argument(
@@ -380,7 +394,7 @@ def main():
                 ('projection_head', SimCLRProjectionHead(in_channels=2048))
             ]))
         elif is_byol:
-            model = BYOLWrapper(encoder)
+            model = BYOLWrapper(encoder, tau_base=args.tau_base, total_steps=args.num_epochs * len(train_loader) // grad_accum_steps)
     
     elif args.model == 'resnet101':
         encoder = resnet101(weights=ResNet101_Weights.IMAGENET1K_V2 if not args.rand_init else None)
@@ -394,7 +408,7 @@ def main():
                 ('projection_head', SimCLRProjectionHead(in_channels=2048))
             ]))
         elif is_byol:
-            model = BYOLWrapper(encoder)
+            model = BYOLWrapper(encoder, tau_base=args.tau_base, total_steps=args.num_epochs * len(train_loader) // grad_accum_steps)
     
     elif args.model == 'deeplabv3p':
         raise NotImplementedError('DeepLabV3+ not implemented yet.')
@@ -446,12 +460,35 @@ def main():
     # Initialize mixed precision scaler
     scaler = GradScaler()
     
-    reduce_lr_on_plateau = ReduceLROnPlateau(
-        optimizer=optimizer,
-        patience=args.reduce_lr_patience,
-        factor=0.1,
-        eps=0,
-    )
+    # reduce_lr_on_plateau = ReduceLROnPlateau(
+    #     optimizer=optimizer,
+    #     patience=args.reduce_lr_patience,
+    #     factor=0.1,
+    #     eps=0,
+    # )
+    
+    if args.warmup_epochs is not None:
+        
+        warmup_scheduler = LambdaLR(
+            optimizer,
+            lr_lambda=lambda epoch: epoch / args.warmup_epochs if epoch < args.warmup_epochs else 1.0
+        )
+        cosine_scheduler = CosineAnnealingLR(
+            optimizer=optimizer,
+            T_max=args.num_epochs - args.warmup_epochs,
+            eta_min=0,
+        )
+        scheduler = SequentialLR(
+            optimizer=optimizer,
+            schedulers=[warmup_scheduler, cosine_scheduler],
+            milestones=[args.warmup_epochs],
+        )
+    else:
+        scheduler = CosineAnnealingLR(
+            optimizer=optimizer,
+            T_max=args.num_epochs,
+            eta_min=0,
+        )
     
     history_dict = {
         'learning_rate': [],
@@ -474,7 +511,8 @@ def main():
         model.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         scaler.load_state_dict(checkpoint['scaler'])
-        reduce_lr_on_plateau.load_state_dict(checkpoint['reduce_lr_on_plateau'])
+        # # reduce_lr_on_plateau.load_state_dict(checkpoint['reduce_lr_on_plateau'])
+        scheduler.load_state_dict(checkpoint['scheduler'])
         
         starting_epoch = checkpoint['epoch']  + 1 # start from the next epoch (checkpoints are saved at the end of the epoch)
         best_val_loss = checkpoint['best_val_loss']
@@ -485,19 +523,8 @@ def main():
         
         logger.log(f'Loaded checkpoint from epoch {starting_epoch - 1}.')
     
-    # warmup for first 10 epochs or 10% of total epochs, whichever is smaller
-    warmup_epochs = min(10, args.num_epochs // 10) 
-    
     logger.log(f'Starting training at epoch {starting_epoch}...')
     for epoch in range(starting_epoch, args.num_epochs+1):
-        
-        if epoch < warmup_epochs:
-            # NOTE - this overrides the ReduceLROnPlateau scheduler
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = args.init_lr * epoch / warmup_epochs
-        elif epoch == warmup_epochs:
-            for param_group in optimizer.param_groups:
-                param_group['lr'] = args.init_lr
         
         lr = optimizer.param_groups[0]['lr']
         history_dict['learning_rate'].append(lr)
@@ -599,7 +626,7 @@ def main():
                                 scaler.step(optimizer)
                                 scaler.update()
                                 optimizer.zero_grad()
-                                model._update_target_encoder()
+                                model.update_target_encoder()  # Updated method name
 
                             pbar.update(1)
 
@@ -673,13 +700,15 @@ def main():
             best_epoch = epoch
             torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}.pth'))
         
-        reduce_lr_on_plateau.step(epoch_loss)
+        # reduce_lr_on_plateau.step(epoch_loss)
+        scheduler.step()
         checkpoint = {
             'epoch': epoch,
             'model': model.state_dict(),
             'optimizer': optimizer.state_dict(),
             'scaler': scaler.state_dict(),
-            'reduce_lr_on_plateau': reduce_lr_on_plateau.state_dict(),
+            # # 'reduce_lr_on_plateau': reduce_lr_on_plateau.state_dict(),
+            'scheduler': scheduler.state_dict(),
             'history': history_dict,
             'profiler': profiler.profiler_history_dict,
             'best_epoch': best_epoch,
@@ -693,7 +722,7 @@ def main():
         history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(num_epochs_total)))
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
                 
-        if epoch - best_epoch > args.early_stopping_patience:
+        if epoch - best_epoch > args.early_stopping_patience and args.early_stopping_patience > 0:
             logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
             break
     

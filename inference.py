@@ -4,7 +4,7 @@ import xarray as xr
 import rioxarray as rxr
 import rasterio as rio
 from mslandcover.models import UNet, ResNetBackboneUNet
-from mslandcover.inference import RasterProcessor, mode_filter
+from mslandcover.inference import process_single_raster
 from mslandcover.config import LEGEND_COLORS_RGBA
 from mslandcover.utils import load_pth, get_torch_device
 from tqdm import tqdm
@@ -20,88 +20,6 @@ mp.set_start_method('spawn', force=True)
 # torch.set_num_threads(1)
 
 
-# def process_single_raster(path, args):
-#     """Process a single raster file"""
-#     filename = os.path.basename(path)
-#     out_path = os.path.join(args.output_dir, filename)
-    
-#     # Skip if output already exists
-#     if os.path.exists(out_path):
-#         return f"Skipped {filename} (already exists)"
-    
-#     try:
-#         # Load model for this process
-#         weights = load_pth(args.weights_path, map_location='cpu')
-#         model = UNet(
-#             backbone=ResNetBackboneUNet(in_channels=3, pretrained=False),
-#             num_classes=8,
-#         )
-#         model.load_state_dict(weights, strict=True)
-        
-#         # Load normalization parameters
-#         mean = load_pth(args.mean_path)
-#         std = load_pth(args.std_path)
-        
-#         processor = RasterProcessor(
-#             model=model,
-#             tile_size=256,
-#             stride=128,
-#             gaussian_sigma=64,
-#             batch_size=64,
-#             mean=mean,
-#             std=std,
-#             device=get_torch_device()
-#         )
-        
-#         # Process the raster
-#         in_data = rxr.open_rasterio(path).sel(band=[1, 2, 4])
-#         out = processor.process_raster(in_data.values / 255.0) + 1
-        
-#         # Apply nodata mask and mode filter
-#         out[(in_data == in_data.rio.nodata).all(dim='band').values] = 0
-#         out = out.astype(np.uint8)
-#         out = mode_filter(out, size=3, nodata=0)
-        
-#         # Create output DataArray
-#         out_da = xr.DataArray(
-#             out,
-#             dims=['y', 'x'],
-#             coords={
-#                 'y': in_data.y,
-#                 'x': in_data.x,
-#             },
-#             attrs={
-#                 'long_name': 'Land Cover Class',
-#                 'units': '1',
-#                 'crs': in_data.rio.crs.to_proj4(),
-#             },
-#         )
-        
-#         # Save to file
-#         os.makedirs(args.output_dir, exist_ok=True)
-#         out_da.rio.to_raster(
-#             out_path,
-#             driver='GTiff',
-#             dtype='uint8',
-#             compress='lzw',
-#             blockxsize=256,
-#             blockysize=256,
-#             tiled=True,
-#             bigTiff=True,
-#         )
-        
-#         # Add colormap
-#         with rio.open(out_path, 'r+') as dst:
-#             dst.write_colormap(1, LEGEND_COLORS_RGBA)
-            
-#         return f"Processed {filename}"
-        
-#     except Exception as e:
-#         # return f"Error processing {filename}: {str(e)}"
-#         raise e
-        
-
-
 def parse_arguments():
     """Parse command line arguments for land cover inference."""
     parser = ArgumentParser(
@@ -113,14 +31,14 @@ def parse_arguments():
     parser.add_argument(
         '--input_dir',
         type=str,
-        default='/scratch/dhester/ms_naip/2016',
+        default='/home/dhester/server/dbcenter/images/naip/scenes/2023/AL/al_c',
         help='Directory containing input raster files (.tif format). Default: /scratch/dhester/ms_naip/2016'
     )
     
     parser.add_argument(
         '--output_dir', 
         type=str,
-        default='/scratch/dhester/ms_lc/2016',
+        default='/scratch/dhester/ms_lc/al_2023',
         help='Directory where classified land cover rasters will be saved. Default: /scratch/dhester/ms_lc/2016'
     )
     
@@ -128,8 +46,8 @@ def parse_arguments():
     parser.add_argument(
         '--weights_path',
         type=str,
-        default='./weights/finetune_20250607/unet_fe.pth',
-        help='Path to the trained model weights file (.pth format). Default: ./weights/finetune_20250607/unet_fe.pth'
+        default='./weights/finetune_20250612/unet/byol/3_bands/presize_256/prebatch_128/randinit_false/frozenencoder_false/750/fold_3/best_model.pth',
+        help='Path to the trained model weights file'
     )
     
     parser.add_argument(
@@ -256,117 +174,31 @@ def parse_arguments():
     parser.add_argument(
         '--file_pattern',
         type=str,
-        default='*.tif',
+        default='*/*.sid',
         help='File pattern to match input files (glob pattern). Default: *.tif'
     )
     
+    parser.add_argument(
+        '--match_histograms',
+        action='store_true',
+        default=False,
+        help='Adjust MS 2016 imagery to match histograms of 2023 MS imagery.'
+    )
+    
+    # parser.add_argument(
+    #     '--state',
+    #     type=str,
+    #     default='',
+    #     help=''
+    # )
+    
+    # parser.add_argument(
+    #     '--states_shapefile',
+    #     type=str,
+    #     default='/home/dhester/server/dbcenter/'
+    # )
+    
     return parser.parse_args()
-
-
-def process_single_raster(path, args):
-    """Process a single raster file with proper CUDA handling"""
-    filename = os.path.basename(path)
-    out_path = os.path.join(args.output_dir, filename)
-    
-    # Skip if output already exists (unless overwrite is specified)
-    if os.path.exists(out_path) and not args.overwrite:
-        if args.skip_existing:
-            return f"Skipped {filename} (already exists)"
-    
-    try:
-        # Clear any existing CUDA context in this process
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-        
-        # Load model for this process
-        weights = load_pth(args.weights_path, map_location='cpu')
-        model = UNet(
-            backbone=ResNetBackboneUNet(in_channels=args.in_channels, pretrained=False),
-            num_classes=args.num_classes,
-        )
-        model.load_state_dict(weights, strict=True)
-        
-        # Load normalization parameters
-        mean = load_pth(args.mean_path)
-        std = load_pth(args.std_path)
-        
-        # Get device for this worker process
-        device = get_torch_device()
-        
-        processor = RasterProcessor(
-            model=model,
-            tile_size=args.tile_size,
-            stride=args.stride,
-            gaussian_sigma=args.gaussian_sigma,
-            batch_size=args.batch_size,
-            mean=mean,
-            std=std,
-            device=device
-        )
-        
-        # Process the raster
-        in_data = rxr.open_rasterio(path).sel(band=args.bands)
-        probs = processor.process_raster(in_data.values / args.scale_factor)
-        
-        lc_class = (np.argmax(probs, axis=0) + 1).astype(np.uint8)  # Convert to class indices (1-indexed)
-        # lc_prob = np.clip(np.round(probs.max(axis=0) * 100), 1, 100).astype(np.uint8)  # Convert to percentage
-        
-        # Apply nodata mask before mode filter
-        nodata_mask = (in_data == in_data.rio.nodata).all(dim='band').values
-        lc_class[nodata_mask] = 0
-        # lc_prob[nodata_mask] = 0
-        
-        # Apply mode filter only to land cover class
-        if args.mode_filter_size > 0:
-            lc_class = mode_filter(lc_class, size=args.mode_filter_size, nodata=0)
-        
-        # Stack class and confidence
-        # out = np.stack([lc_class, lc_prob], axis=0)
-        out = lc_class
-        
-        # Create output DataArray
-        out_da = xr.DataArray(
-            out,
-            dims=['y', 'x'],
-            coords={
-                # 'band': ['land_cover_class'],
-                'y': in_data.y,
-                'x': in_data.x,
-            },
-            attrs={
-                'long_name': 'Land Cover Classification',
-                'units': '1',
-                'crs': in_data.rio.crs.to_proj4(),
-            },
-        )
-        out_da = out_da.rio.write_nodata(0)
-        
-        # Save to file
-        os.makedirs(args.output_dir, exist_ok=True)
-        out_da.rio.to_raster(
-            out_path,
-            driver='GTiff',
-            dtype='uint8',
-            compress=args.compress,
-            blockxsize=args.block_size,
-            blockysize=args.block_size,
-            tiled=True,
-            bigTiff=True,
-        )
-        
-        # Add colormap to the first band (land cover class)
-        with rio.open(out_path, 'r+') as dst:
-            dst.write_colormap(1, LEGEND_COLORS_RGBA)
-        
-        # Clean up CUDA memory for this process
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-            
-        return f"Processed {filename}"
-        
-    except Exception as e:
-        # return f"Error processing {filename}: {str(e)}"
-        raise e
 
 
 def main():
@@ -375,6 +207,9 @@ def main():
         mp.set_start_method('spawn', force=True)
     
     args = parse_arguments()
+    
+    # if args.state is not None:
+    #     states_gdf = gpd.rea
     
     # Print configuration
     print("Land Cover Inference Configuration:")
@@ -437,7 +272,8 @@ def main():
         for path in tqdm(paths, desc="Processing rasters"):
             try:
                 result = process_single_raster(path, args)
-                print(result)
+                if not result.startswith("Processed"):
+                    print(result)
             except Exception as e:
                 print(f"Error processing {os.path.basename(path)}: {str(e)}")
     

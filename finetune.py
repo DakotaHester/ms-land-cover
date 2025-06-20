@@ -14,7 +14,7 @@ from mslandcover.utils import Logger, get_torch_device, ProfilerHistory, load_pt
 from mslandcover.data.datasets import FineTuneDataset
 from mslandcover.data.transforms import StandardDataAugmentations 
 from mslandcover.loss import FocalLoss
-from mslandcover.models import DeepLabV3Plus, ResNetBackbone, UNet, AttentionUNet, ResNetBackboneUNet
+from mslandcover.models import DeepLabV3Plus, ResNetBackbone, UNet, AttentionUNet, ResNetBackboneUNet, LinearProbingResNet
 from mslandcover import metrics
 
 
@@ -24,8 +24,8 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--model',
         type=str,
-        choices=['deeplabv3plus', 'unet', 'attention_unet'],
-        default='deeplabv3plus',
+        choices=['deeplabv3plus', 'unet', 'attention_unet', 'linear_probe'],
+        default='linear_probe',
         help='The model to use for training',
     )
     
@@ -213,7 +213,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--alpha_power',
         type=float,
-        default=2.0,
+        default=0.0,
         help='The inverse power to raise the class distribution to for class weighting in the focal loss (i.e., 2.0 ~ sqrt(1 / class_distribution) to balance the loss for each class)',
     )
     
@@ -383,7 +383,7 @@ def main() -> None:
         )
         model = model.to(device)
     
-    elif args.model in ['unet', 'attention_unet']:
+    elif args.model in ['unet', 'attention_unet', 'linear_probe']:
         
         backbone = ResNetBackboneUNet(
             in_channels=args.n_bands,
@@ -406,6 +406,12 @@ def main() -> None:
             )
         elif args.model == 'attention_unet':
             model = AttentionUNet(
+                backbone=backbone,
+                num_classes=num_classes,
+            )
+            
+        elif args.model == 'linear_probe':
+            model = LinearProbingResNet(
                 backbone=backbone,
                 num_classes=num_classes,
             )

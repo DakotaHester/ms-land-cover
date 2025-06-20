@@ -186,7 +186,7 @@ class PreTrainDataset(Dataset):
                 nir_band = img[3, :, :]
                 red_band = img[0, :, :]
                 green_band = img[1, :, :]
-                img = torch.stack([red_band, green_band, nir_band], dim=0)
+                img = torch.stack([nir_band, red_band, green_band], dim=0)
                 
         returns = []
         for i in range(self.n_views):
@@ -374,7 +374,7 @@ class FineTuneDataset(Dataset):
             nir_band = img[3, :, :]
             red_band = img[0, :, :]
             green_band = img[1, :, :]
-            img = torch.stack([red_band, green_band, nir_band], dim=0)
+            img = torch.stack([nir_band, red_band, green_band], dim=0)
             
         if self.transform is not None: # color transform expects data in [0, 1] range
             img, target = self.transform(img, target)
@@ -469,7 +469,7 @@ class TestDataset(Dataset):
             nir_band = img[3, :, :]
             red_band = img[0, :, :]
             green_band = img[1, :, :]
-            img = torch.stack([red_band, green_band, nir_band], dim=0)
+            img = torch.stack([nir_band, red_band, green_band], dim=0)
         
         if self.mean is not None and self.std is not None:
             img = T.normalize(img, mean=self.mean, std=self.std)

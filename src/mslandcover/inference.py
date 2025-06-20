@@ -1,14 +1,23 @@
+from argparse import ArgumentParser
+import os
+import tempfile
 import numpy as np
+from shapely import Polygon, unary_union
 import torch
 import torch.nn as nn
 from numpy.lib.stride_tricks import sliding_window_view
-from tqdm import tqdm
 from typing import List, Tuple, Optional
-import logging
-import sys
-from datetime import datetime
-from zoneinfo import ZoneInfo
+import xarray as xr
+import rioxarray as rxr
+from scipy.interpolate import interp1d
+import rasterio as rio
+import geopandas as gpd
+from subprocess import Popen
 
+from mslandcover.config import LEGEND_COLORS_RGBA
+from mslandcover.data.utils import load_histogram_data
+from mslandcover.models import ResNetBackboneUNet, UNet
+from mslandcover.utils import get_torch_device, load_pth
 
 
 class RasterProcessor:
@@ -130,10 +139,11 @@ class RasterProcessor:
         outputs = torch.zeros((num_classes, height, width))
         # weights_sum = torch.zeros((height, width))
         
+        
         # determine total number of batches
         # total_batches = 0
         # for _ in self.generate_tile_batches(raster_data):
-        #     total_batches += 1
+            # total_batches += 1
         
         # Process batches
         # for batch_tiles, batch_coords in tqdm(self.generate_tile_batches(raster_data), total=total_batches, desc='Processing', unit='batches', disable=True):
@@ -149,35 +159,343 @@ class RasterProcessor:
         # return outputs / weights_sum.unsqueeze(0)
         # return torch.argmax(outputs, dim=0)  # Return the class with the highest probability
         outputs = outputs / torch.clamp(outputs.sum(dim=0, keepdim=True), min=1e-8)  # Normalize to get probabilities
+        return outputs.numpy()
+
+
+def histogram_match_image(image_data, source_histograms, target_histograms, output_path=None, 
+                            bins=255, value_range=(1, 255), chunks=None):
+    """
+    Apply histogram matching to an image using precomputed source and target histograms.
+    
+    Parameters
+    ----------
+    image_data : xarray.DataArray
+        Input image data
+    source_histograms : np.ndarray
+        Source histograms for each band, shape (n_bands, n_bins)
+    target_histograms : np.ndarray  
+        Target histograms for each band, shape (n_bands, n_bins)
+    output_path : str, optional
+        Path to save output. If None, returns xarray.DataArray
+    bins : int, default 255
+        Number of histogram bins
+    value_range : tuple, default (1, 255)
+        Range of values for histogram bins
+    chunks : dict, optional
+        Chunk sizes for dask arrays, e.g. {'x': 2048, 'y': 2048}
+        
+    Returns
+    -------
+    xarray.DataArray or str
+        Matched image data or output path if saved
+    """
+    
+    # Default chunking
+    if chunks is None:
+        chunks = {'x': 2048, 'y': 2048}
+    
+    # Convert histograms to numpy arrays if needed
+    if isinstance(source_histograms, list):
+        source_histograms = np.array(source_histograms)
+    if isinstance(target_histograms, list):
+        target_histograms = np.array(target_histograms)
+    
+    # Create bin edges
+    bin_edges = np.linspace(value_range[0], value_range[1], bins)
+    
+    def create_lut_for_band(source_hist, target_hist):
+        """Create lookup table for a single band using provided histograms"""
+        # Convert to CDFs
+        source_cdf = source_hist.cumsum() / source_hist.sum()
+        target_cdf = target_hist.cumsum() / target_hist.sum()
+        
+        # Handle edge cases
+        source_cdf = np.clip(source_cdf, 1e-10, 1.0)
+        target_cdf = np.clip(target_cdf, 1e-10, 1.0)
+        
+        # Create interpolation function
+        interp_func = interp1d(target_cdf, bin_edges, bounds_error=False, 
+                                fill_value=(bin_edges[0], bin_edges[-1]))
+        
+        # Create lookup table
+        lut_values = interp_func(source_cdf)
+        
+        return bin_edges, lut_values
+    
+    def apply_lut(chunk, bin_edges, lut_values):
+        """Apply lookup table to a chunk"""
+        indices = np.searchsorted(bin_edges, chunk, side='right') - 1
+        indices = np.clip(indices, 0, len(lut_values) - 1)
+        result = lut_values[indices]
+        # Ensure the output has the same shape as input
+        return result.astype(chunk.dtype)
+    
+    # Process each band
+    matched_bands = []
+    for band_idx in range(image_data.sizes['band']):
+        band = image_data.isel(band=band_idx)
+        
+        # Create LUT for this band using provided histograms
+        bin_edges_band, lut_values = create_lut_for_band(
+            source_histograms[band_idx], 
+            target_histograms[band_idx]
+        )
+        
+        # Apply LUT using xr.apply_ufunc as an alternative to map_blocks
+        matched_band = xr.apply_ufunc(
+            lambda chunk: apply_lut(chunk, bin_edges_band, lut_values),
+            band,
+            dask='allowed',
+            output_dtypes=[band.dtype]
+        )
+        # Convert to uint8 while preserving DataArray structure
+        matched_band = matched_band.astype(np.uint8)
+        matched_bands.append(matched_band)
+    
+    # Combine bands
+    matched_image = xr.concat(matched_bands, dim='band')
+    matched_image = matched_image.rio.write_crs(image_data.rio.crs)
+    matched_image = matched_image.rio.write_transform(image_data.rio.transform())
+    matched_image = matched_image.rio.write_nodata(image_data.rio.nodata)
+    
+    # Save or return
+    if output_path:
+        matched_image.rio.to_raster(
+            output_path,
+            compress='LZW',
+            bigtiff=True,
+            tiled=True,
+            blockxsize=512,
+            blockysize=512
+        )
+        return output_path
+    else:
+        return matched_image
+    
+
+
+def process_single_raster(path, args, gdf: Optional[gpd.GeoDataFrame]=None):
+    """Process a single raster file with proper CUDA handling"""
+    filename = os.path.basename(path)
+    out_path = os.path.join(args.output_dir, filename)
+    
+    # Skip if output already exists (unless overwrite is specified)
+    if os.path.exists(out_path) and not args.overwrite:
+        if args.skip_existing:
+            return f"Skipped {filename} (already exists)"
+    
+    try:
+        # Clear any existing CUDA context in this process
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+        
+        # Load model for this process
+        weights = load_pth(args.weights_path, map_location='cpu')
+        model = UNet(
+            backbone=ResNetBackboneUNet(in_channels=args.in_channels, pretrained=False),
+            num_classes=args.num_classes,
+        )
+        model.load_state_dict(weights, strict=True)
+        
+        # Load normalization parameters
+        mean = load_pth(args.mean_path)
+        std = load_pth(args.std_path)
+        
+        # Get device for this worker process
+        device = get_torch_device()
+        
+        processor = RasterProcessor(
+            model=model,
+            tile_size=args.tile_size,
+            stride=args.stride,
+            gaussian_sigma=args.gaussian_sigma,
+            batch_size=args.batch_size,
+            mean=mean,
+            std=std,
+            device=device
+        )
+        
+        in_data = load_raster_for_processing(path, args, gdf)
+        
+        # # Process the raster
+        # in_data = rxr.open_rasterio(path)
+        
+        # if args.match_histograms:
+        #     source_histograms = load_histogram_data(state='MS', year=2016)
+        #     target_histograms = load_histogram_data(state='MS', year=2023)
+            
+        #     in_data = histogram_match_image(
+        #         in_data,
+        #         source_histograms=source_histograms,
+        #         target_histograms=target_histograms,
+        #         output_path=None,  # Return as xarray.DataArray
+        #         bins=255,
+        #         value_range=(1, 255),
+        #         # chunks={'x': args.tile_size, 'y': args.tile_size}
+        #     )
+        
+        # in_data = in_data.sel(band=args.bands)
+        
+        probs = processor.process_raster(in_data.values / args.scale_factor)
+        
+        lc_class = (np.argmax(probs, axis=0) + 1).astype(np.uint8)  # Convert to class indices (1-indexed)
+        # lc_prob = np.clip(np.round(probs.max(axis=0) * 100), 1, 100).astype(np.uint8)  # Convert to percentage
+        
+        # Apply nodata mask before mode filter
+        nodata_mask = (in_data == in_data.rio.nodata).all(dim='band').values
+        lc_class[nodata_mask] = 0
+        # lc_prob[nodata_mask] = 0
+        
+        # Apply mode filter only to land cover class
+        if args.mode_filter_size > 0:
+            lc_class = mode_filter(lc_class, size=args.mode_filter_size, nodata=0)
+        
+        # Stack class and confidence
+        # out = np.stack([lc_class, lc_prob], axis=0)
+        out = lc_class
+        
+        # Create output DataArray
+        out_da = xr.DataArray(
+            out,
+            dims=['y', 'x'],
+            coords={
+                # 'band': ['land_cover_class'],
+                'y': in_data.y,
+                'x': in_data.x,
+            },
+            attrs={
+                'long_name': 'Land Cover Classification',
+                'units': '1',
+                'crs': in_data.rio.crs.to_proj4(),
+            },
+        )
+        out_da = out_da.rio.write_nodata(0)
+        
+        # Save to file
+        os.makedirs(args.output_dir, exist_ok=True)
+        out_da.rio.to_raster(
+            out_path,
+            driver='GTiff',
+            dtype='uint8',
+            compress=args.compress,
+            blockxsize=args.block_size,
+            blockysize=args.block_size,
+            tiled=True,
+            bigTiff=True,
+        )
+        
+        # Add colormap to the first band (land cover class)
+        with rio.open(out_path, 'r+') as dst:
+            dst.write_colormap(1, LEGEND_COLORS_RGBA)
+        
+        # Clean up CUDA memory for this process
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
+            
+        return f"Processed {filename}"
+        
+    except Exception as e:
+        # return f"Error processing {filename}: {str(e)}"
+        raise e
 
 
 
-class CSTFormatter(logging.Formatter):
-    def formatTime(self, record, datefmt=None):
-        # Convert to CST (UTC-6 / UTC-5 for DST)
-        # Assumes system time is UTC
-        cst_time = datetime.fromtimestamp(record.created, tz=ZoneInfo("America/Chicago"))
-        return cst_time.strftime('%Y-%m-%d %H:%M:%S %Z')
-
-    def format(self, record):
-        timestamp = self.formatTime(record)
-        message = super().format(record)
-        return f"[ {timestamp} ] {message}"
-
-
-
-def create_stdout_logger(name: str = "stdout_logger", level: int = logging.INFO) -> logging.Logger:
-    logger = logging.getLogger(name)
-    logger.setLevel(level)
-
-    if not logger.handlers:
-        handler = logging.StreamHandler(sys.stdout)
-        formatter = CSTFormatter('%(message)s')
-        handler.setFormatter(formatter)
-        logger.addHandler(handler)
-        logger.propagate = False  # Prevents duplicate logs if root logger has handlers
-
-    return logger
+def load_raster_for_processing(path: str, args: ArgumentParser, gdf: Optional[gpd.GeoDataFrame]=None):
+    
+    if path.endswith('.sid'):
+        
+        if args.match_histograms:
+            raise ValueError("Histogram matching is not supported for .sid files.")
+        
+        # first - convret mrsid to tiff
+        with tempfile.NamedTemporaryFile(suffix='.tif', delete=True) as tmp_file:
+            
+            env = os.environ.copy()
+            env['PATH'] = '/home/dhester/.local/bin:' + env.get('PATH', '')
+            env['LD_LIBRARY_PATH'] = '/home/dhester/etc/mrsid_sdk/Raster_DSDK/bin:/home/dhester/etc/mrsid_sdk/Raster_DSDK/lib' + env.get('LD_LIBRARY_PATH', '')
+            Popen([
+                'mrsiddecode', 
+                '-i', path, 
+                '-o', tmp_file.name,
+                '-of', 'tifg', 
+                '-quiet',
+            ], env=env).wait()
+            
+            # check resolution - if not 1m, resample to 1m
+            with rio.open(tmp_file.name) as src:
+                resolution = src.res
+            
+            if resolution != (1.0, 1.0):
+                
+                with tempfile.NamedTemporaryFile(suffix='.tif', delete=True) as tmp_resampled_file:
+                    Popen([
+                        'gdalwarp',
+                        '-q',
+                        '-tr', '1.0', '1.0',
+                        '-r', 'bilinear',
+                        # '-t_srs', crs,
+                        # input_path,
+                        tmp_file.name,
+                        # output_path,
+                        tmp_resampled_file.name,
+                        '-co', 'COMPRESS=LZW',
+                        '-co', 'TILED=YES',
+                        '-co', 'BIGTIFF=YES',
+                        '-co', 'BLOCKXSIZE=256',
+                        '-co', 'BLOCKYSIZE=256',
+                        '-wo', 'NUM_THREADS=ALL_CPUS',
+                        '-wm', '4096', # 4 GiB
+                    ]).wait()
+                                        
+                    in_data = rxr.open_rasterio(tmp_resampled_file.name)
+            
+            else:
+                in_data = rxr.open_rasterio(tmp_file.name)
+                
+            # if gdf is not None:
+            #     in_data = rxr.open_rasterio(tmp_file.name).rio.clip_box(**gdf.buffer(args.tile_size).bounds, crs=gdf.crs)
+            #     in_data = in_data.rio.clip(gdf.buffer(args.tile_size), crs=gdf.crs, all_touched=True)
+            # else:
+            #     in_data = rxr.open_rasterio(tmp_file.name)
+        
+        # NOTE: Only here due to issue with ban ordering - remove later
+        if args.bands == [1, 2, 4]:
+            in_data = in_data.sel(band=[2, 3, 1])
+        
+        # # check and resample to 1m 
+        # if in_data.rio.resolution() != (1.0, 1.0):
+        #     in_data = in_data.rio.reproject(
+        #         in_data.rio.crs,
+        #         resolution=(1.0, 1.0),
+        #         resampling=rio.enums.Resampling.bilinear,
+        #         num_threads=8,
+        #     )
+    
+    elif path.endswith('.tif'):
+        
+        if gdf is not None:
+            in_data = rxr.open_rasterio(tmp_file.name).rio.clip_box(*unary_union(buffered_geoms).bounds)
+            in_data = in_data.rio.clip(geoms=buffered_geoms, all_touched=True)
+        else:
+            in_data = rxr.open_rasterio(tmp_file.name)
+        
+        if args.match_histograms:
+            source_histograms = load_histogram_data(state='MS', year=2016)
+            target_histograms = load_histogram_data(state='MS', year=2023)
+            
+            in_data = histogram_match_image(
+                in_data,
+                source_histograms=source_histograms,
+                target_histograms=target_histograms,
+                output_path=None,  # Return as xarray.DataArray
+                bins=255,
+                value_range=(1, 255),
+                # chunks={'x': args.tile_size, 'y': args.tile_size}
+            )
+            
+        in_data = in_data.sel(band=args.bands)
+    
+    return in_data
 
 
 
