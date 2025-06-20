@@ -100,7 +100,7 @@ for model in "${MODELS[@]}"; do
                             # Set encoder weights path or keyword
                             if [[ "$scheme" == "imagenet" ]]; then
                                 ENCODER_WEIGHTS="imagenet"
-                            elif ENCODER_WEIGHTS="none"; then
+                            elif [[ "$scheme" == "none" ]]; then
                                 ENCODER_WEIGHTS="none"
                             else
                                 ENCODER_WEIGHTS="./weights/resnet101_20250616_BACKUP/${scheme}_bands${bands}_size${pre_size}_randinitfalse/resnet101/${scheme}_last.pth"
