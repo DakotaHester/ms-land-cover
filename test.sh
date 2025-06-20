@@ -5,19 +5,19 @@
 # =========================
 PARTITION="gpu-a100"
 ACCOUNT="research-abe"
-MEMORY="16G"
+MEMORY="8G"
 N_TASKS="4"
 TIME="48:00:00"
 GRES="gpu:a100_1g.10gb:1"
 MAIL_USER="dh2306@msstate.edu"
 PYTHON_ENV=".env/bin/activate"
 SCRIPT_NAME="test.py"
-BASE_LOG_DIR="./logs/finetune_20250607"
-BASE_WEIGHTS_DIR="./weights/finetune_20250607"
-SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250607"
+BASE_LOG_DIR="./logs/finetune_20250612"
+BASE_WEIGHTS_DIR="./weights/finetune_20250612"
+SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250612"
 MAX_JOBS=10
 
-BATCH_SIZE=16  # --batch_size
+BATCH_SIZE=32  # --batch_size
 
 # Ensure script directory exists
 mkdir -p "$SLURM_SCRIPT_DIR"

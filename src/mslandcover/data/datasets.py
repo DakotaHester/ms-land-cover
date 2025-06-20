@@ -473,7 +473,9 @@ class TestDataset(Dataset):
         
         if self.mean is not None and self.std is not None:
             img = T.normalize(img, mean=self.mean, std=self.std)
-        
+       
+        # print(point)
+        # print(point['geometry']
         x, y = point.geometry.x, point.geometry.y
         # row, col = meta['transform'].index(x, y, op='round')
         row, col = rio.transform.rowcol(meta['transform'], x, y)
