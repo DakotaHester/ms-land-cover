@@ -101,7 +101,7 @@ for model in "${MODELS[@]}"; do
                             if [[ "$scheme" == "imagenet" ]]; then
                                 ENCODER_WEIGHTS="imagenet"
                             else
-                                ENCODER_WEIGHTS="./weights/resnet101_202516_BACKUP/${scheme}_bands${bands}_size${pre_size}_randinitfalse/resnet101/${scheme}_last.pth"
+                                ENCODER_WEIGHTS="./weights/resnet101_20250616_BACKUP/${scheme}_bands${bands}_size${pre_size}_randinitfalse/resnet101/${scheme}_last.pth"
                             fi
 
                             # Unique log/output directories for this job
