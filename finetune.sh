@@ -1,6 +1,18 @@
 #!/bin/bash
 
 # =========================
+# HOSTNAME CHECK & EXECUTION MODE
+# =========================
+CURRENT_HOSTNAME=$(hostname)
+if [[ "$CURRENT_HOSTNAME" == "ptolemy-login-1.arc.msstate.edu" ]]; then
+    EXECUTION_MODE="slurm"
+    echo "Running on SLURM cluster: $CURRENT_HOSTNAME"
+else
+    EXECUTION_MODE="direct"
+    echo "Running directly on: $CURRENT_HOSTNAME"
+fi
+
+# =========================
 # SLURM & ENVIRONMENT SETUP
 # =========================
 PARTITION="gpu-a100"
@@ -40,15 +52,15 @@ MINIMUM_OVERSAMPLE_RATIO_FACTOR=2.0  # --minimum_oversample_ratio_factor
 ALPHA_POWER=0.0                      # --alpha_power
 FOCAL_GAMMA=2.0                      # --focal_gamma
 
-# Ensure script directory exists
-mkdir -p "$SLURM_SCRIPT_DIR"
+# Ensure script directory exists (only for SLURM mode)
+if [[ "$EXECUTION_MODE" == "slurm" ]]; then
+    mkdir -p "$SLURM_SCRIPT_DIR"
+fi
 
 # =========================
 # PRETRAIN SCHEMES TO TEST
 # =========================
-MODELS=("linear_probe" "deeplabv3plus" "unet")
-# PRETRAIN_SCHEMES=("hires_simclr" "simclr" "imagenet")
-# PRETRAIN_SCHEMES=("imagenet" "simclr")
+MODELS=("linear_probe")
 PRETRAIN_SCHEMES=("none" "imagenet" "byol")
 BANDS=(3)  # 4 bands for hires_simclr, 3 bands for simclr
 PRETRAIN_SIZES=(256)
@@ -64,20 +76,81 @@ pre_size=256
 pre_batch=128
 
 # =========================
+# FUNCTION TO RUN PYTHON SCRIPT
+# =========================
+run_python_job() {
+    local model=$1
+    local scheme=$2
+    local bands=$3
+    local pre_size=$4
+    local pre_batch=$5
+    local n_train=$6
+    local fold=$7
+    local freeze_encoder=$8
+    local encoder_weights=$9
+    local job_log_dir=${10}
+    local job_weights_dir=${11}
+    
+    echo "========== RUNNING JOB DIRECTLY =========="
+    echo "Model: $model"
+    echo "Pretrain scheme: $scheme"
+    echo "Bands: $bands"
+    echo "n_train: $n_train"
+    echo "fold: $fold"
+    echo "Encoder weights: $encoder_weights"
+    echo "Log dir: $job_log_dir"
+    echo "Weights dir: $job_weights_dir"
+    echo "=========================================="
+    
+    # Activate Python environment if not on SLURM
+    if [[ -f "$PYTHON_ENV" ]]; then
+        source "$PYTHON_ENV"
+    fi
+    
+    # Run the Python script directly
+    python "$SCRIPT_NAME" \
+        --model "$model" \
+        --encoder_weights "$encoder_weights" \
+        --split_dir "$SPLIT_DIR" \
+        --n_train_samples "$n_train" \
+        --fold "$fold" \
+        --n_bands "$bands" \
+        --mini_batch_size "$MINI_BATCH_SIZE" \
+        --full_batch_size "$FULL_BATCH_SIZE" \
+        --lr "$LR" \
+        --num_epochs "$NUM_EPOCHS" \
+        --early_stopping_patience "$EARLY_STOPPING_PATIENCE" \
+        --reduce_lr_patience "$REDUCE_LR_PATIENCE" \
+        --log_dir "$job_log_dir" \
+        --output_dir "$job_weights_dir" \
+        --num_workers "$NUM_WORKERS" \
+        --seed "$SEED" \
+        $( [[ "$freeze_encoder" == true ]] && echo "--freeze_encoder" ) \
+        $( [[ "$FREEZE_DECODER" == true ]] && echo "--freeze_decoder" ) \
+        $( [[ "$PRELOAD" == true ]] && echo "--preload" ) \
+        $( [[ "$LOAD_CHECKPOINT" == true ]] && echo "--load_checkpoint" ) \
+        --minimum_class_proportion "$MINIMUM_CLASS_PROPORTION" \
+        --oversample_factor "$OVERSAMPLE_FACTOR" \
+        --minimum_oversample_ratio_factor "$MINIMUM_OVERSAMPLE_RATIO_FACTOR" \
+        --alpha_power "$ALPHA_POWER" \
+        --focal_gamma "$FOCAL_GAMMA"
+}
+
+# =========================
 # JOB SUBMISSION LOOP
 # =========================
 COUNT=0
 
 for model in "${MODELS[@]}"; do
     for n_train in 250 500 750; do
-    n_folds=${FOLDS[$n_train]}
+        n_folds=${FOLDS[$n_train]}
 
         for fold in $(seq 1 $n_folds); do
             for scheme in "${PRETRAIN_SCHEMES[@]}"; do
                 for pre_size in "${PRETRAIN_SIZES[@]}"; do
                     
-                    if [[ "$scheme" -eq "imagenet" ]]; then
-                        pre_size=256  # Imagenet always uses 256 (imagenet technically uses 224, but we use 256 for simplicity here)
+                    if [[ "$scheme" == "imagenet" ]]; then
+                        pre_size=256  # Imagenet always uses 256
                     fi
 
                     if [[ "$pre_size" -eq 256 ]]; then
@@ -113,8 +186,6 @@ for model in "${MODELS[@]}"; do
                             JOB_WEIGHTS_DIR="${BASE_WEIGHTS_DIR}/${BASE_DIR}"
                             mkdir -p "$JOB_LOG_DIR" "$JOB_WEIGHTS_DIR"
 
-                            SLURM_SCRIPT="${JOB_LOG_DIR}/job.slurm"
-                            LOG_FILE="${JOB_LOG_DIR}/slurm.out"
                             FINISHED_FILE="${JOB_LOG_DIR}/finished.txt"
 
                             if [[ -f "$FINISHED_FILE" ]]; then
@@ -122,19 +193,24 @@ for model in "${MODELS[@]}"; do
                                 continue
                             fi
 
-                            # Wait if too many jobs are queued or running
-                            while true; do
-                                TOTAL_JOBS=$(squeue -u "$USER" | tail -n +2 | wc -l)
-                                if [[ "$TOTAL_JOBS" -lt "$MAX_JOBS" ]]; then
-                                    break
-                                else
-                                    echo "[$(date)] $TOTAL_JOBS jobs in queue. Waiting to submit $JOB_NAME..."
-                                    sleep 60
-                                fi
-                            done
+                            if [[ "$EXECUTION_MODE" == "slurm" ]]; then
+                                # SLURM EXECUTION MODE
+                                SLURM_SCRIPT="${JOB_LOG_DIR}/job.slurm"
+                                LOG_FILE="${JOB_LOG_DIR}/slurm.out"
 
-                            # Create SLURM script
-                            cat > "$SLURM_SCRIPT" <<EOL
+                                # Wait if too many jobs are queued or running
+                                while true; do
+                                    TOTAL_JOBS=$(squeue -u "$USER" | tail -n +2 | wc -l)
+                                    if [[ "$TOTAL_JOBS" -lt "$MAX_JOBS" ]]; then
+                                        break
+                                    else
+                                        echo "[$(date)] $TOTAL_JOBS jobs in queue. Waiting to submit $JOB_NAME..."
+                                        sleep 60
+                                    fi
+                                done
+
+                                # Create SLURM script
+                                cat > "$SLURM_SCRIPT" <<EOL
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -n $N_TASKS
@@ -168,41 +244,49 @@ echo "SLURM_SUBMIT_DIR: \$SLURM_SUBMIT_DIR"
 echo "SLURM_JOB_NODELIST: \$SLURM_JOB_NODELIST"
 echo "===================================="
 
-python $SCRIPT_NAME \
---model $model \
---encoder_weights "$ENCODER_WEIGHTS" \
---split_dir "$SPLIT_DIR" \
---n_train_samples $n_train \
---fold $fold \
---n_bands $bands \
---mini_batch_size $MINI_BATCH_SIZE \
---full_batch_size $FULL_BATCH_SIZE \
---lr $LR \
---num_epochs $NUM_EPOCHS \
---early_stopping_patience $EARLY_STOPPING_PATIENCE \
---reduce_lr_patience $REDUCE_LR_PATIENCE \
---log_dir "$JOB_LOG_DIR" \
---output_dir "$JOB_WEIGHTS_DIR" \
---num_workers $NUM_WORKERS \
---seed $SEED \
-$( [[ "$freeze_encoder" == true ]] && echo "--freeze_encoder" ) \
-$( [[ "$FREEZE_DECODER" == true ]] && echo "--freeze_decoder" ) \
-$( [[ "$PRELOAD" == true ]] && echo "--preload" ) \
-$( [[ "$LOAD_CHECKPOINT" == true ]] && echo "--load_checkpoint" ) \
---minimum_class_proportion $MINIMUM_CLASS_PROPORTION \
---oversample_factor $OVERSAMPLE_FACTOR \
---minimum_oversample_ratio_factor $MINIMUM_OVERSAMPLE_RATIO_FACTOR \
---alpha_power $ALPHA_POWER \
+python $SCRIPT_NAME \\
+--model $model \\
+--encoder_weights "$ENCODER_WEIGHTS" \\
+--split_dir "$SPLIT_DIR" \\
+--n_train_samples $n_train \\
+--fold $fold \\
+--n_bands $bands \\
+--mini_batch_size $MINI_BATCH_SIZE \\
+--full_batch_size $FULL_BATCH_SIZE \\
+--lr $LR \\
+--num_epochs $NUM_EPOCHS \\
+--early_stopping_patience $EARLY_STOPPING_PATIENCE \\
+--reduce_lr_patience $REDUCE_LR_PATIENCE \\
+--log_dir "$JOB_LOG_DIR" \\
+--output_dir "$JOB_WEIGHTS_DIR" \\
+--num_workers $NUM_WORKERS \\
+--seed $SEED \\
+\$( [[ "$freeze_encoder" == true ]] && echo "--freeze_encoder" ) \\
+\$( [[ "$FREEZE_DECODER" == true ]] && echo "--freeze_decoder" ) \\
+\$( [[ "$PRELOAD" == true ]] && echo "--preload" ) \\
+\$( [[ "$LOAD_CHECKPOINT" == true ]] && echo "--load_checkpoint" ) \\
+--minimum_class_proportion $MINIMUM_CLASS_PROPORTION \\
+--oversample_factor $OVERSAMPLE_FACTOR \\
+--minimum_oversample_ratio_factor $MINIMUM_OVERSAMPLE_RATIO_FACTOR \\
+--alpha_power $ALPHA_POWER \\
 --focal_gamma $FOCAL_GAMMA
 EOL
 
-                            # Submit the job
-                            sbatch "$SLURM_SCRIPT"
-                            echo "Submitted $JOB_NAME (log: $LOG_FILE)"
-                            COUNT=$((COUNT+1))
-                            sleep 5 # Slight delay to avoid race conditions
+                                # Submit the job
+                                sbatch "$SLURM_SCRIPT"
+                                echo "Submitted $JOB_NAME (log: $LOG_FILE)"
+                                COUNT=$((COUNT+1))
+                                sleep 5 # Slight delay to avoid race conditions
 
-                            done
+                            else
+                                # DIRECT EXECUTION MODE
+                                run_python_job "$model" "$scheme" "$bands" "$pre_size" "$pre_batch" "$n_train" "$fold" "$freeze_encoder" "$ENCODER_WEIGHTS" "$JOB_LOG_DIR" "$JOB_WEIGHTS_DIR"
+                                COUNT=$((COUNT+1))
+                                
+                                # Create finished file to mark completion
+                                echo "$(date): Job completed successfully" > "$FINISHED_FILE"
+                            fi
+
                         done
                     done
                 done
@@ -211,4 +295,8 @@ EOL
     done
 done
 
-echo "Total jobs submitted: $COUNT"
+if [[ "$EXECUTION_MODE" == "slurm" ]]; then
+    echo "Total SLURM jobs submitted: $COUNT"
+else
+    echo "Total jobs run directly: $COUNT"
+fi

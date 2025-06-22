@@ -2111,48 +2111,36 @@ class LinearProbingResNet(nn.Module):
         self.activation = nn.Softmax(dim=1) if num_classes > 1 else nn.Identity()
 
     def forward(self, x):
-        input_size = x.shape[-2:]
+        input_size = x.shape[-2:]  # Store original input size
         features = self.backbone(x)
         
-        # Process features in-place to save memory
-        target_size = features[0].shape[-2:]
+        # Interpolate all features to match the largest feature map size
+        target_size = features[0].shape[-2:]  # Use first (largest) feature map size
+        # interpolated_features = [features[0]]  # First feature doesn't need interpolation
         
-        # Interpolate in-place and clear unused features immediately
         for i in range(1, len(features)):
-            # Store original feature temporarily
-            original_feature = features[i]
-            
-            # Interpolate and replace in-place
+            if i == 0:
+                continue
             features[i] = F.interpolate(
-                original_feature, 
+                features[i], 
                 size=target_size, 
                 mode='bilinear', 
                 align_corners=False
             )
-            
-            # Explicitly delete the original to free memory
-            del original_feature
         
-        # Use gradient checkpointing for the concatenation if needed
-        if self.training:
-            features = torch.utils.checkpoint.checkpoint(
-                lambda *feats: torch.cat(feats, dim=1), 
-                *features
-            )
-        else:
-            features = torch.cat(features, dim=1)
+        # Concatenate all features
+        features = torch.cat(features, dim=1)
         
         # Apply classifier
         x = self.classifier(features)
         
-        # Clear features tensor immediately after use
-        del features
-        
-        # Interpolate to original input size
+        # Interpolate to original input size AFTER classification
         if x.shape[-2:] != input_size:
             x = F.interpolate(x, size=input_size, mode='bilinear', align_corners=False)
         
-        return self.activation(x)
+        # Apply activation last
+        x = self.activation(x)
+        return x
 
 
 class BYOLProjectionHead(nn.Module):
