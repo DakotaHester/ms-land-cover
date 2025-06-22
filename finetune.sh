@@ -7,7 +7,7 @@ PARTITION="gpu-a100"
 ACCOUNT="research-abe"
 MEMORY="16G"
 N_TASKS="4"
-TIME="48:00:00"
+TIME="10:00:00"
 GRES="gpu:a100_1g.10gb:1"
 MAIL_USER="dh2306@msstate.edu"
 PYTHON_ENV=".env/bin/activate"
@@ -46,7 +46,7 @@ mkdir -p "$SLURM_SCRIPT_DIR"
 # =========================
 # PRETRAIN SCHEMES TO TEST
 # =========================
-MODELS=("unet" "deeplabv3plus" "linear_probe")
+MODELS=("linear_probe" "deeplabv3plus" "unet")
 # PRETRAIN_SCHEMES=("hires_simclr" "simclr" "imagenet")
 # PRETRAIN_SCHEMES=("imagenet" "simclr")
 PRETRAIN_SCHEMES=("none" "imagenet" "byol")
