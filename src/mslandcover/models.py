@@ -2112,7 +2112,8 @@ class LinearProbingResNet(nn.Module):
 
     def forward(self, x):
         input_size = x.shape[-2:]  # Store original input size
-        features = self.backbone(x)
+        features = torch.utils.checkpoint.checkpoint(self.backbone, x)  # Use checkpointing for memory efficiency
+        # features = self.backbone(x)
         
         # Interpolate all features to match the largest feature map size
         target_size = features[0].shape[-2:]  # Use first (largest) feature map size
@@ -2129,8 +2130,7 @@ class LinearProbingResNet(nn.Module):
             )
         
         # Concatenate all features
-        # features = 
-        features = torch.utils.checkpoint.checkpoint(torch.cat(features, dim=1))
+        features = torch.cat(features, dim=1)
         
         # Apply classifier
         x = self.classifier(features)
