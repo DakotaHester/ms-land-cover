@@ -16,6 +16,7 @@ import torch.nn as nn
 import torch._utils
 import torch.nn.functional as F
 
+import torch.utils.checkpoint
 from torchvision.models import ConvNeXt_Tiny_Weights, convnext_tiny
 from torchvision.models import ResNet152_Weights, resnet152, ResNet101_Weights, resnet101
 from timm.models import convnext
@@ -2128,7 +2129,8 @@ class LinearProbingResNet(nn.Module):
             )
         
         # Concatenate all features
-        features = torch.cat(features, dim=1)
+        # features = 
+        features = torch.utils.checkpoint.checkpoint(torch.cat(features, dim=1))
         
         # Apply classifier
         x = self.classifier(features)
