@@ -2115,22 +2115,23 @@ class LinearProbingResNet(nn.Module):
         
         # Interpolate all features to match the largest feature map size
         target_size = features[0].shape[-2:]  # Use first (largest) feature map size
-        interpolated_features = [features[0]]  # First feature doesn't need interpolation
+        # interpolated_features = [features[0]]  # First feature doesn't need interpolation
         
         for i in range(1, len(features)):
-            upsampled = F.interpolate(
+            if i == 0:
+                continue
+            features[i] = F.interpolate(
                 features[i], 
                 size=target_size, 
                 mode='bilinear', 
                 align_corners=False
             )
-            interpolated_features.append(upsampled)
         
         # Concatenate all features
-        features_concat = torch.cat(interpolated_features, dim=1)
+        features = torch.cat(features, dim=1)
         
         # Apply classifier
-        x = self.classifier(features_concat)
+        x = self.classifier(features)
         
         # Interpolate to original input size AFTER classification
         if x.shape[-2:] != input_size:

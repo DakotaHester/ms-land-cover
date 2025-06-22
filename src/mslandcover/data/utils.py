@@ -6,6 +6,7 @@ from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 import h5py
 import torch.nn.functional as F
+from importlib import resources
 
 from typing import Iterable, Union, Tuple
 
@@ -273,3 +274,16 @@ def batched_min_max(
     return min_val, max_val
 
 
+def load_histogram_data(state: str, year: int):
+    
+    # mslandcover
+    # | assets
+    # | | histograms
+    # | | | {state}
+    # | | | | {year}.npy
+    
+    with resources.path('mslandcover.assets.histograms', f'{state}/{year}.npy') as path:
+        if path.exists():
+            return np.load(path, allow_pickle=True).item()
+        else:
+            raise FileNotFoundError(f"Histogram data for {state} in {year} not found at {path}")
