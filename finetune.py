@@ -284,7 +284,7 @@ def main() -> None:
     
     splits_df = pd.read_csv(os.path.join(args.split_dir, 'splits.csv'))
     splits_df = splits_df.loc[splits_df['n_train'] == args.n_train_samples]
-    splits_df.loc[splits_df['fold'] == args.fold]
+    splits_df = splits_df.loc[splits_df['fold'] == args.fold]
     train_splits = [split for split in splits_df.columns if splits_df[split].iloc[0] == 'train']
     val_splits = [split for split in splits_df.columns if splits_df[split].iloc[0] == 'val']
     

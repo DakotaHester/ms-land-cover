@@ -7,6 +7,7 @@ from __future__ import print_function
 import os
 import logging
 import functools
+import math
 from typing import Dict, List, Optional, Union, Tuple
 
 import numpy as np
@@ -2180,11 +2181,14 @@ class BYOLPredictionHead(nn.Module):
 class BYOLWrapper(nn.Module):
     """
     BYOL wrapper for online and target encoders, with prediction head on online branch only.
+    Implements adjustable momentum parameter with cosine schedule: τ = 1 - (1 - τ_base) * (cos(πk/K) + 1)/2
     """
-    def __init__(self, encoder, proj_in_dim=2048, proj_hidden_dim=4096, proj_out_dim=256, pred_hidden_dim=4096, moving_average_decay=0.99):
+    def __init__(self, encoder, proj_in_dim=2048, proj_hidden_dim=4096, proj_out_dim=256, pred_hidden_dim=4096, tau_base=0.996, total_steps=None):
         super().__init__()
         
-        self.moving_average_decay = moving_average_decay
+        self.tau_base = tau_base
+        self.total_steps = total_steps
+        self.current_step = 0
         
         # Online encoder: encoder -> projection head -> prediction head
         self.online_encoder = nn.Sequential(
@@ -2200,10 +2204,24 @@ class BYOLWrapper(nn.Module):
         for param in self.target_encoder.parameters():
             param.requires_grad = False
 
+    def _get_current_tau(self):
+        """Calculate current momentum parameter using cosine schedule."""
+        if self.total_steps is None or self.total_steps == 0:
+            return self.tau_base
+        
+        # τ = 1 - (1 - τ_base) * (cos(πk/K) + 1)/2
+        k = min(self.current_step, self.total_steps)  # Clamp to total_steps
+        cosine_term = (math.cos(math.pi * k / self.total_steps) + 1) / 2
+        tau = 1 - (1 - self.tau_base) * cosine_term
+        return tau
+
     @torch.no_grad()
-    def _update_target_encoder(self):
+    def update_target_encoder(self):
+        """Update target encoder parameters with current momentum."""
+        tau = self._get_current_tau()
         for online, target in zip(self.online_encoder.parameters(), self.target_encoder.parameters()):
-            target.data = target.data * self.moving_average_decay + online.data * (1.0 - self.moving_average_decay)
+            target.data = target.data * tau + online.data * (1.0 - tau)
+        self.current_step += 1
 
     def forward(self, v, v_prime):
         # Online branch: encoder -> projection -> prediction

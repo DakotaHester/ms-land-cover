@@ -2,7 +2,7 @@
 
 # ======= Adjustable Constants =======
 NUM_EPOCHS=100
-INIT_LR=0.00001 # 1e-5
+INIT_LR=0.001 # 1e-3
 EARLY_STOPPING_PATIENCE=-1
 WARMUP_EPOCHS=10 # 0 epochs of warmup
 # REDUCE_LR_PATIENCE=0 # tolerate 4 bad epochs, reduce lr after 5 epochs of no improvement
@@ -57,8 +57,8 @@ for rand_init in "${RAND_INIT_OPTIONS[@]}"; do
           size=256
         fi
 
-        LOG_DIR="./logs/pretrain/resnet101_202516/${scheme}_bands${band}_size${size}_randinit${rand_init}"
-        WEIGHTS_DIR="./weights/resnet101_202516/${scheme}_bands${band}_size${size}_randinit${rand_init}"
+        LOG_DIR="./logs/pretrain/resnet101_20250624/${scheme}_bands${band}_size${size}_randinit${rand_init}"
+        WEIGHTS_DIR="./weights/resnet101_20250624/${scheme}_bands${band}_size${size}_randinit${rand_init}"
 
         if [[ -f "$LOG_DIR/resnet101/$scheme/finished.txt" ]]; then
           echo "Skipping: $scheme bands=$band size=$size rand_init=$rand_init (already finished)"
@@ -87,7 +87,8 @@ for rand_init in "${RAND_INIT_OPTIONS[@]}"; do
         mkdir -p "$LOG_DIR" "$WEIGHTS_DIR"
         echo "Run $COUNT | Running: $scheme bands=$band size=$size"
         # continue
-          --pretrain_scheme "$scheme" \
+        python pretrain.py \
+            --pretrain_scheme "$scheme" \
             --n_bands "$band" \
             --image_size "$size" \
             --full_batch_size "$FULL_BATCH_SIZE" \
@@ -99,9 +100,7 @@ for rand_init in "${RAND_INIT_OPTIONS[@]}"; do
             --warmup_epochs "$WARMUP_EPOCHS" \
             --num_workers "$NUM_WORKERS" \
             --seed "$SEED" \
-            --load_checkpoint \
-          --seed "$SEED" \
-          $( [[ "$rand_init" == "true" ]] && echo "--rand_init" )
+            $( [[ "$rand_init" == "true" ]] && echo "--rand_init" )
         COUNT=$((COUNT+1))
       # done
     done
