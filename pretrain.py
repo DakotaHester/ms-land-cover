@@ -721,6 +721,8 @@ def main():
         num_epochs_total = len(history_dict['learning_rate'])
         history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(num_epochs_total)))
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
+        
+        torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}_last.pth'))
                 
         if epoch - best_epoch > args.early_stopping_patience and args.early_stopping_patience > 0:
             logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
