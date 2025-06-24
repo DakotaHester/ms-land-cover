@@ -6,6 +6,7 @@ from time import time
 import numpy as np
 import pandas as pd
 import torch
+from torch.amp import autocast, GradScaler
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
@@ -110,14 +111,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=8,
+        default=16,
         help='The mini-batch size to use for training (for gradient accumulation)',
     )
     
     parser.add_argument(
         '--full_batch_size',
         type=int,
-        default=8,
+        default=16,
         help='The effective batch size to use for training',
     )
     
@@ -445,6 +446,9 @@ def main() -> None:
         lr=args.lr,
     )
     
+    # Initialize mixed precision scaler
+    scaler = GradScaler()
+    
     scheduler = ReduceLROnPlateau(
         optimizer=optimizer,
         patience=args.reduce_lr_patience,
@@ -484,6 +488,7 @@ def main() -> None:
             model.load_state_dict(checkpoint['model'])
             criterion.load_state_dict(checkpoint['criterion'])
             optimizer.load_state_dict(checkpoint['optimizer'])
+            scaler.load_state_dict(checkpoint['scaler'])
             scheduler.load_state_dict(checkpoint['scheduler'])
             starting_epoch = checkpoint['epoch'] + 1
             best_epoch = checkpoint['best_epoch']
@@ -532,15 +537,21 @@ def main() -> None:
                 for step, (X, y) in enumerate(loader):
                     
                     X, y = X.to(device), y.to(device)
-                    y_hat = model(X)
-                    loss = criterion(y_hat, y)
+                    
+                    # Mixed precision forward pass
+                    with autocast(device_type=device.type):
+                        y_hat = model(X)
+                        loss = criterion(y_hat, y)
                     
                     if torch.is_grad_enabled():
-                        loss.backward()
+                        # Mixed precision backward pass
+                        scaler.scale(loss).backward()
                 
                     phase_stats['loss'].append(loss.detach().cpu().item())
                     for metric_fn in metric_fns:
-                        phase_stats[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X)) # multiple by samples seen to get true average later
+                        y_true_flat = y.cpu().numpy().flatten()
+                        y_pred_flat = torch.argmax(y_hat, dim=1).cpu().numpy().flatten()
+                        phase_stats[metric_fn.__name__].append(metric_fn(y_true_flat, y_pred_flat) * len(X)) # multiple by samples seen to get true average later
 
                     running_metrics = {
                         'loss': sum(phase_stats['loss']) / ((step * loader.batch_size) + len(X)),
@@ -550,7 +561,9 @@ def main() -> None:
                     
                     if (step + 1) % args.grad_accumulation_steps == 0 :
                         if torch.is_grad_enabled():
-                            optimizer.step()
+                            # Mixed precision optimizer step
+                            scaler.step(optimizer)
+                            scaler.update()
                             optimizer.zero_grad(set_to_none=True)
                         pbar.update(1)
                     
@@ -587,9 +600,9 @@ def main() -> None:
             'epoch': epoch,
             'model': model.state_dict(),
             'optimizer': optimizer.state_dict(),
+            'scaler': scaler.state_dict(),
             'scheduler': scheduler.state_dict(),
             'criterion': criterion.state_dict(),
-            'epoch': epoch,
             'best_epoch': best_epoch,
             'best_val_loss': best_val_loss,
             'history_dict': history_dict,
