@@ -31,14 +31,14 @@ def parse_arguments():
     parser.add_argument(
         '--input_dir',
         type=str,
-        default='/home/dhester/server/dbcenter/images/naip/scenes/2023/AL/al_c',
+        default='/home/dhester/server/dbcenter/images/naip/scenes/2023/LA/la_c',
         help='Directory containing input raster files (.tif format). Default: /scratch/dhester/ms_naip/2016'
     )
     
     parser.add_argument(
         '--output_dir', 
         type=str,
-        default='/scratch/dhester/ms_lc/al_2023',
+        default='/scratch/dhester/ms_lc/la_2023',
         help='Directory where classified land cover rasters will be saved. Default: /scratch/dhester/ms_lc/2016'
     )
     

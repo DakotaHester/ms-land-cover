@@ -15,7 +15,7 @@ from mslandcover.utils import Logger, get_torch_device, ProfilerHistory, load_pt
 from mslandcover.data.datasets import FineTuneDataset
 from mslandcover.data.transforms import StandardDataAugmentations 
 from mslandcover.loss import FocalLoss
-from mslandcover.models import DeepLabV3Plus, ResNetBackbone, UNet, AttentionUNet, ResNetBackboneUNet, LinearProbingResNet
+from mslandcover.models import DeepLabV3Plus, ResNetBackbone, UNet, AttentionUNet, ResNetBackboneUNet, SimpleLinearProbingResNet, MultiScaleLinearProbingResNet
 from mslandcover import metrics
 
 
@@ -25,7 +25,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--model',
         type=str,
-        choices=['deeplabv3plus', 'unet', 'attention_unet', 'linear_probe'],
+        choices=['deeplabv3plus', 'unet', 'attention_unet', 'linear_probe', 'multiscale_linear_probe'],
         default='linear_probe',
         help='The model to use for training',
     )
@@ -384,7 +384,7 @@ def main() -> None:
         )
         model = model.to(device)
     
-    elif args.model in ['unet', 'attention_unet', 'linear_probe']:
+    elif args.model in ['unet', 'attention_unet', 'multiscale_linear_probe', 'linear_probe']:
         
         backbone = ResNetBackboneUNet(
             in_channels=args.n_bands,
@@ -405,14 +405,21 @@ def main() -> None:
                 backbone=backbone,
                 num_classes=num_classes,
             )
+            
         elif args.model == 'attention_unet':
             model = AttentionUNet(
                 backbone=backbone,
                 num_classes=num_classes,
             )
             
+        elif args.model == 'multiscale_linear_probe':
+            model = MultiScaleLinearProbingResNet(
+                backbone=backbone,
+                num_classes=num_classes,
+            )
+        
         elif args.model == 'linear_probe':
-            model = LinearProbingResNet(
+            model = SimpleLinearProbingResNet(
                 backbone=backbone,
                 num_classes=num_classes,
             )

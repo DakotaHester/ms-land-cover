@@ -2104,9 +2104,9 @@ class AttentionUNet(UNet):
 
 
 
-class LinearProbingResNet(nn.Module):
+class MultiScaleLinearProbingResNet(nn.Module):
     def __init__(self, backbone, num_classes=8):
-        super(LinearProbingResNet, self).__init__()
+        super(MultiScaleLinearProbingResNet, self).__init__()
         self.backbone = backbone
         self.classifier = nn.Conv2d(3904, num_classes, kernel_size=1, stride=1, padding=0)
         self.activation = nn.Softmax(dim=1) if num_classes > 1 else nn.Identity()
@@ -2131,6 +2131,47 @@ class LinearProbingResNet(nn.Module):
         
         # Concatenate all features
         features = torch.cat(features, dim=1)
+        
+        # Apply classifier
+        x = self.classifier(features)
+        
+        # Interpolate to original input size AFTER classification
+        if x.shape[-2:] != input_size:
+            x = F.interpolate(x, size=input_size, mode='bilinear', align_corners=False)
+        
+        # Apply activation last
+        x = self.activation(x)
+        return x
+
+
+
+class SimpleLinearProbingResNet(nn.Module):
+    def __init__(self, backbone, num_classes=8):
+        super(SimpleLinearProbingResNet, self).__init__()
+        self.backbone = backbone
+        self.classifier = nn.Conv2d(2048, num_classes, kernel_size=1, stride=1, padding=0)
+        self.activation = nn.Softmax(dim=1) if num_classes > 1 else nn.Identity()
+
+    def forward(self, x):
+        input_size = x.shape[-2:]  # Store original input size
+        features = self.backbone(x)[-1]
+        
+        # # Interpolate all features to match the largest feature map size
+        # target_size = features[0].shape[-2:]  # Use first (largest) feature map size
+        # # interpolated_features = [features[0]]  # First feature doesn't need interpolation
+        
+        # for i in range(1, len(features)):
+        #     if i == 0:
+        #         continue
+        #     features[i] = F.interpolate(
+        #         features[i], 
+        #         size=target_size, 
+        #         mode='bilinear', 
+        #         align_corners=False
+        #     )
+        
+        # # Concatenate all features
+        # features = torch.cat(features, dim=1)
         
         # Apply classifier
         x = self.classifier(features)
