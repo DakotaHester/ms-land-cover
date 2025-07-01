@@ -15,18 +15,19 @@ fi
 # =========================
 # SLURM & ENVIRONMENT SETUP
 # =========================
-PARTITION="gpu-a100"
+PARTITION="gpu-a100-mig7"
 ACCOUNT="research-abe"
 MEMORY="16G"
 N_TASKS="4"
-TIME="10:00:00"
+TIME="12:00:00"
 GRES="gpu:a100_1g.10gb:1"
+#GRESs="gpu:nvidia_a100_80gb_pcie_1g.10gb:1"
 MAIL_USER="dh2306@msstate.edu"
 PYTHON_ENV=".env/bin/activate"
 SCRIPT_NAME="finetune.py"
-BASE_LOG_DIR="./logs/finetune_20250620"
-BASE_WEIGHTS_DIR="./weights/finetune_20250620"
-SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250620"
+BASE_LOG_DIR="./logs/finetune_20250624"
+BASE_WEIGHTS_DIR="./weights/finetune_20250624"
+SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250624"
 SPLIT_DIR="./data/splits"
 MAX_JOBS=10
 
@@ -60,7 +61,7 @@ fi
 # =========================
 # PRETRAIN SCHEMES TO TEST
 # =========================
-MODELS=("linear_probe")
+MODELS=("unet" "deeplabv3plus" "linear_probe")
 PRETRAIN_SCHEMES=("none" "imagenet" "byol")
 BANDS=(3)  # 4 bands for hires_simclr, 3 bands for simclr
 PRETRAIN_SIZES=(256)
@@ -176,7 +177,7 @@ for model in "${MODELS[@]}"; do
                             elif [[ "$scheme" == "none" ]]; then
                                 ENCODER_WEIGHTS="none"
                             else
-                                ENCODER_WEIGHTS="./weights/resnet101_20250616_BACKUP/${scheme}_bands${bands}_size${pre_size}_randinitfalse/resnet101/${scheme}_last.pth"
+                                ENCODER_WEIGHTS="./weights/resnet101_20250624/${scheme}_bands${bands}_size${pre_size}_randinitfalse/resnet101/${scheme}_last.pth"
                             fi
 
                             # Unique log/output directories for this job

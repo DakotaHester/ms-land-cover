@@ -35,7 +35,7 @@ def parse_args() -> ArgumentParser:
     parser.add_argument(
         '--model',
         type=str,
-        choices=['deeplabv3plus', 'unet'],
+        choices=['deeplabv3plus', 'unet', 'linear_probe'],
         default='unet',
         help='Model architecture to use for the assessment.'
     )
@@ -119,6 +119,15 @@ def main():
             num_classes=8
         )
     
+    elif args.model == 'linear_probe':
+        model = SimpleLinearProbingResNet(
+            backbone=ResnetBackboneUnet(
+                in_channels=args.n_bands,
+                pretrained=False,
+            ),
+            num_classes=8
+        )
+     
     else:
         raise ValueError(f"Unsupported model type: {args.model}. Choose 'deeplabv3plus' or 'unet'.")
     

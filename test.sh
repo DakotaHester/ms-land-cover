@@ -3,7 +3,7 @@
 # =========================
 # SLURM & ENVIRONMENT SETUP
 # =========================
-PARTITION="gpu-a100"
+PARTITION="gpu-a100-mig7"
 ACCOUNT="research-abe"
 MEMORY="8G"
 N_TASKS="4"
@@ -12,9 +12,9 @@ GRES="gpu:a100_1g.10gb:1"
 MAIL_USER="dh2306@msstate.edu"
 PYTHON_ENV=".env/bin/activate"
 SCRIPT_NAME="test.py"
-BASE_LOG_DIR="./logs/finetune_20250612"
-BASE_WEIGHTS_DIR="./weights/finetune_20250612"
-SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250612"
+BASE_LOG_DIR="./logs/finetune_20250624"
+BASE_WEIGHTS_DIR="./weights/finetune_20250624"
+SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250624"
 MAX_JOBS=10
 
 BATCH_SIZE=32  # --batch_size
@@ -25,10 +25,10 @@ mkdir -p "$SLURM_SCRIPT_DIR"
 # =========================
 # PRETRAIN SCHEMES TO TEST
 # =========================
-MODELS=("unet" "deeplabv3plus")
+MODELS=("unet" "deeplabv3plus" "linear_probe")
 # PRETRAIN_SCHEMES=("hires_simclr" "simclr" "imagenet")
 # PRETRAIN_SCHEMES=("imagenet" "simclr")
-PRETRAIN_SCHEMES=("hires_byol" "imagenet" "byol")
+PRETRAIN_SCHEMES=("none" "imagenet" "byol")
 BANDS=(3)  # 4 bands for hires_simclr, 3 bands for simclr
 PRETRAIN_SIZES=(256)
 FREEZE_ENCODERS=(false true) # Freeze encoder options
@@ -77,11 +77,9 @@ for model in "${MODELS[@]}"; do
                             fi
 
                             # Set encoder weights path or keyword
-                            if [[ "$scheme" == "imagenet" ]]; then
-                                ENCODER_WEIGHTS="imagenet"
-                            else
-                                ENCODER_WEIGHTS="./weights/resnet101_202506/${scheme}_bands${bands}_size${pre_size}_randinitfalse/resnet101/${scheme}.pth"
-                            fi
+#                             if [[ "$scheme" == "imagenet" ]]; then
+#                               ENCODER_WEIGHTS="./weights/resnet101_202506/${scheme}_bands${bands}_size${pre_size}_randinitfalse/resnet101/${scheme}.pth"
+#                             fi
 
                             # Unique log/output directories for this job
                             JOB_NAME="${model}_test_${scheme}_bands${bands}_size${pre_size}_batch${pre_batch}_randinitfalse_frozenencoder${freeze_encoder}_n${n_train}_fold${fold}"
