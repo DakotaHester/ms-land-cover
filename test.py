@@ -164,13 +164,16 @@ def main():
             ground_truth_class_idx = batch['class_idx'][i].item()
             ground_truth_class_name = batch['class_name'][i]
             
-            pred_idx = preds[i][batch['row'][i], batch['col'][i]].item()
+            
             # hacky way to calculate cross-entropy loss for the specific pixel
-            target = torch.tensor([ground_truth_class_idx - 1])
+            pred_pixel = outputs[i][:, batch['row'][i], batch['col'][i]].unsqueeze(0).to('cpu')
+            target = torch.tensor([ground_truth_class_idx - 1]).astype(torch.long)
             target = F.one_hot(target, num_classes=8).float().to('cpu')
-            cross_entropy = F.cross_entropy(outputs[i][:, batch['row'][i], batch['col'][i]].unsqueeze(0).to('cpu'), target).item()
+            cross_entropy = F.cross_entropy(pred_pixel, target).item()
             # another hacky way to calculate Brier score for the specific pixel (mean squared error between predicted and ground truth)
-            brier_score = F.mse_loss(outputs[i][:, batch['row'][i], batch['col'][i]].unsqueeze(0).to('cpu'), target).item()
+            brier_score = F.mse_loss(pred_pixel, target).item()
+            
+            pred_idx = preds[i][batch['row'][i], batch['col'][i]].item()
             pred_idx = pred_idx + 1  # Adjusting for zero-based index after calculation
             
             preds_dict['point_id'].append(point_id)
