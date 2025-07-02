@@ -1,7 +1,7 @@
 import os
 from mslandcover.config import LEGEND_CLASSES
 from mslandcover.data.datasets import TestDataset
-from mslandcover.models import UNet, DeepLabV3Plus, ResNetBackboneUNet, ResNetBackbone
+from mslandcover.models import UNet, DeepLabV3Plus, ResNetBackboneUNet, ResNetBackbone, SimpleLinearProbingResNet
 from mslandcover.utils import load_pth, get_torch_device
 from argparse import ArgumentParser
 import geopandas as gpd
@@ -121,13 +121,13 @@ def main():
     
     elif args.model == 'linear_probe':
         model = SimpleLinearProbingResNet(
-            backbone=ResnetBackboneUnet(
+            backbone=ResNetBackboneUNet(
                 in_channels=args.n_bands,
                 pretrained=False,
             ),
             num_classes=8
         )
-     
+    
     else:
         raise ValueError(f"Unsupported model type: {args.model}. Choose 'deeplabv3plus' or 'unet'.")
     
