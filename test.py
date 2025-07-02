@@ -167,7 +167,7 @@ def main():
             
             # hacky way to calculate cross-entropy loss for the specific pixel
             pred_pixel = outputs[i][:, batch['row'][i], batch['col'][i]].unsqueeze(0).to('cpu')
-            target = torch.tensor([ground_truth_class_idx - 1]).astype(torch.long)
+            target = torch.tensor([ground_truth_class_idx - 1], dtype=torch.long)
             target = F.one_hot(target, num_classes=8).float().to('cpu')
             cross_entropy = F.cross_entropy(pred_pixel, target).item()
             # another hacky way to calculate Brier score for the specific pixel (mean squared error between predicted and ground truth)
