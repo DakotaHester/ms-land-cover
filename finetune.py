@@ -305,7 +305,7 @@ def main() -> None:
         n_bands=args.n_bands,
         mean=mean,
         std=std,
-        noise_std=0.1,
+        noise_std=0.2,
         transform=StandardDataAugmentations(s=1.0),
         preload=args.preload,
         n_threads=args.num_workers,

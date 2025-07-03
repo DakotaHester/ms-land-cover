@@ -617,9 +617,9 @@ class StandardDataAugmentations:
         self.s = s
         if s > 0:
             self.color_jitter = transforms.ColorJitter(
-                brightness=0.2*s,
-                contrast=0.2*s,
-                saturation=0.2*s,
+                brightness=0.4*s,
+                contrast=0.4*s,
+                saturation=0.4*s,
                 hue=0.1*s
             )
 
