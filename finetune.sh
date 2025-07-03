@@ -143,7 +143,7 @@ for model in "${MODELS[@]}"; do
 
                     # Set encoder weights path or keyword
                     if [[ "$scheme" == "byol" ]]; then
-                        ENCODER_WEIGHTS="./weights/resnet101_20250624/${scheme}_randinitfalse/resnet101/${scheme}_last.pth"
+                        ENCODER_WEIGHTS="./weights/resnet101_20250624/byol_bands3_size256_randinitfalse/resnet101/byol_last.pth"
                     else
                         ENCODER_WEIGHTS="$scheme"
                     fi
