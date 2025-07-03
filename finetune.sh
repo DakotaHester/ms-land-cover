@@ -18,8 +18,8 @@ fi
 PARTITION="gpu-a100-mig7"
 ACCOUNT="research-abe"
 MEMORY="16G"
-N_TASKS="4"
-TIME="12:00:00"
+N_TASKS="8"
+TIME="24:00:00"
 GRES="gpu:a100_1g.10gb:1"
 #GRESs="gpu:nvidia_a100_80gb_pcie_1g.10gb:1"
 MAIL_USER="dh2306@msstate.edu"
@@ -35,12 +35,12 @@ MAX_JOBS=10
 # MODEL & TRAINING CONFIGURATION
 # =========================
 FREEZE_DECODER=false         # --freeze_decoder (not supported atm)
-MINI_BATCH_SIZE=16           # --mini_batch_size
-FULL_BATCH_SIZE=16           # --full_batch_size
+MINI_BATCH_SIZE=32           # --mini_batch_size
+FULL_BATCH_SIZE=32           # --full_batch_size
 LR=1e-5                      # --lr
 NUM_EPOCHS=1000              # --num_epochs
 EARLY_STOPPING_PATIENCE=50   # --early_stopping_patience
-REDUCE_LR_PATIENCE=10        # --reduce_lr_patience
+REDUCE_LR_PATIENCE=15        # --reduce_lr_patience
 PRELOAD=false                # --load_data_from_disk
 NUM_WORKERS=2                # --num_workers
 SEED=1701                    # --seed
@@ -172,12 +172,10 @@ for model in "${MODELS[@]}"; do
                             fi
 
                             # Set encoder weights path or keyword
-                            if [[ "$scheme" == "imagenet" ]]; then
-                                ENCODER_WEIGHTS="imagenet"
-                            elif [[ "$scheme" == "none" ]]; then
-                                ENCODER_WEIGHTS="none"
-                            else
+                            if [[ "$scheme" == "byol" ]]; then
                                 ENCODER_WEIGHTS="./weights/resnet101_20250624/${scheme}_bands${bands}_size${pre_size}_randinitfalse/resnet101/${scheme}_last.pth"
+                            else
+                                ENCODER_WEIGHTS="$scheme"
                             fi
 
                             # Unique log/output directories for this job
@@ -271,6 +269,13 @@ python $SCRIPT_NAME \\
 --minimum_oversample_ratio_factor $MINIMUM_OVERSAMPLE_RATIO_FACTOR \\
 --alpha_power $ALPHA_POWER \\
 --focal_gamma $FOCAL_GAMMA
+
+python test.py \\
+    --model "$model" \\
+    --model_weights "$JOB_WEIGHTS_DIR/best_model.pth" \\
+    --n_bands "$bands" \\
+    --output_dir "$JOB_LOG_DIR/test" \\
+    --batch_size $FULL_BATCH_SIZE
 EOL
 
                                 # Submit the job
@@ -283,6 +288,14 @@ EOL
                                 # DIRECT EXECUTION MODE
                                 run_python_job "$model" "$scheme" "$bands" "$pre_size" "$pre_batch" "$n_train" "$fold" "$freeze_encoder" "$ENCODER_WEIGHTS" "$JOB_LOG_DIR" "$JOB_WEIGHTS_DIR"
                                 COUNT=$((COUNT+1))
+
+                                # Run test.py immediately after finetune.py in direct mode
+                                python test.py \
+                                    --model "$model" \
+                                    --model_weights "$JOB_WEIGHTS_DIR/best_model.pth" \
+                                    --n_bands "$bands" \
+                                    --output_dir "$JOB_LOG_DIR/test" \
+                                    --batch_size $FULL_BATCH_SIZE
                                 
                                 # Create finished file to mark completion
                                 echo "$(date): Job completed successfully" > "$FINISHED_FILE"
