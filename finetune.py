@@ -520,7 +520,7 @@ def main() -> None:
     def get_warmup_lr(epoch, base_lr, warmup_epochs):
         if epoch >= warmup_epochs:
             return base_lr
-        return base_lr * (epoch + 1) / warmup_epochs
+        return base_lr * (epoch) / warmup_epochs
     
     for epoch in range(starting_epoch, args.num_epochs+1):
         # --- Linear LR Warmup ---
@@ -577,6 +577,11 @@ def main() -> None:
                     for metric_fn in metric_fns:
                         y_true_flat = y.cpu().numpy().flatten()
                         y_pred_flat = torch.argmax(y_hat, dim=1).cpu().numpy().flatten()
+                        # For validation, ensure y and y_hat are the same shape and type
+                        # Also, check if y is being normalized or offset incorrectly
+                        # If y is float, cast to int
+                        if y_true_flat.dtype != np.int64:
+                            y_true_flat = y_true_flat.astype(np.int64)
                         phase_stats[metric_fn.__name__].append(metric_fn(y_true_flat, y_pred_flat) * len(X)) # multiple by samples seen to get true average later
 
                     running_metrics = {
@@ -733,11 +738,6 @@ def main() -> None:
             
     #         if (step + 1) % args.grad_accumulation_steps == 0 or step == len(test_loader) - 1:
     #             tqdm_postfix = {
-    #                 'loss': f"{test_metrics['loss']:.3e}",
-    #                 'f1': f"{test_metrics['f1_score']:.3f}",
-    #                 'macro_f1': f"{test_metrics['macro_f1_score']:.3f}",
-    #             }
-    #             pbar.set_postfix(tqdm_postfix)
     #             pbar.update(1)
     
     # logger.log(f'Test loss: {test_metrics["loss"]:.5f}')

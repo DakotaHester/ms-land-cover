@@ -282,7 +282,7 @@ EOL
                                 sbatch "$SLURM_SCRIPT"
                                 echo "Submitted $JOB_NAME (log: $LOG_FILE)"
                                 COUNT=$((COUNT+1))
-                                sleep 5 # Slight delay to avoid race conditions
+                                sleep 1 # Slight delay to avoid race conditions
 
                             else
                                 # DIRECT EXECUTION MODE
