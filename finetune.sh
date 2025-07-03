@@ -62,9 +62,7 @@ fi
 # PRETRAIN SCHEMES TO TEST
 # =========================
 MODELS=("unet" "deeplabv3plus" "linear_probe")
-PRETRAIN_SCHEMES=("imagenet" "byol" "byol")
-BANDS=(3)  # 4 bands for hires_simclr, 3 bands for simclr
-PRETRAIN_SIZES=(256)
+PRETRAIN_SCHEMES=("imagenet" "byol")
 FREEZE_ENCODERS=(false true) # Freeze encoder options
 
 # Dataset sizes and folds
@@ -73,7 +71,6 @@ FOLDS[250]=4
 FOLDS[500]=6
 FOLDS[750]=4
 
-pre_size=256
 pre_batch=128
 
 # =========================
@@ -82,20 +79,16 @@ pre_batch=128
 run_python_job() {
     local model=$1
     local scheme=$2
-    local bands=$3
-    local pre_size=$4
-    local pre_batch=$5
-    local n_train=$6
-    local fold=$7
-    local freeze_encoder=$8
-    local encoder_weights=$9
-    local job_log_dir=${10}
-    local job_weights_dir=${11}
+    local n_train=$3
+    local fold=$4
+    local freeze_encoder=$5
+    local encoder_weights=$6
+    local job_log_dir=${7}
+    local job_weights_dir=${8}
     
     echo "========== RUNNING JOB DIRECTLY =========="
     echo "Model: $model"
     echo "Pretrain scheme: $scheme"
-    echo "Bands: $bands"
     echo "n_train: $n_train"
     echo "fold: $fold"
     echo "Encoder weights: $encoder_weights"
@@ -115,7 +108,6 @@ run_python_job() {
         --split_dir "$SPLIT_DIR" \
         --n_train_samples "$n_train" \
         --fold "$fold" \
-        --n_bands "$bands" \
         --mini_batch_size "$MINI_BATCH_SIZE" \
         --full_batch_size "$FULL_BATCH_SIZE" \
         --lr "$LR" \
@@ -145,71 +137,49 @@ COUNT=0
 for model in "${MODELS[@]}"; do
     for n_train in 250 500 750; do
         n_folds=${FOLDS[$n_train]}
-
         for fold in $(seq 1 $n_folds); do
             for scheme in "${PRETRAIN_SCHEMES[@]}"; do
-                for pre_size in "${PRETRAIN_SIZES[@]}"; do
-                    
-                    if [[ "$scheme" == "imagenet" ]]; then
-                        pre_size=256  # Imagenet always uses 256
+                for freeze_encoder in "${FREEZE_ENCODERS[@]}"; do
+
+                    # Set encoder weights path or keyword
+                    if [[ "$scheme" == "byol" ]]; then
+                        ENCODER_WEIGHTS="./weights/resnet101_20250624/${scheme}_randinitfalse/resnet101/${scheme}_last.pth"
+                    else
+                        ENCODER_WEIGHTS="$scheme"
                     fi
 
-                    if [[ "$pre_size" -eq 256 ]]; then
-                        pre_batch=128
-                    elif [[ "$pre_size" -eq 192 ]]; then
-                        pre_batch=256
-                    elif [[ "$pre_size" -eq 128 ]]; then
-                        pre_batch=512
+                    # Unique log/output directories for this job
+                    JOB_NAME="${model}_ft_${scheme}_randinitfalse_frozenencoder${freeze_encoder}_n${n_train}_fold${fold}"
+                    BASE_DIR="${model}/${scheme}/randinit_false/frozenencoder_${freeze_encoder}/${n_train}/fold_${fold}"
+                    JOB_LOG_DIR="${BASE_LOG_DIR}/${BASE_DIR}"
+                    JOB_WEIGHTS_DIR="${BASE_WEIGHTS_DIR}/${BASE_DIR}"
+                    mkdir -p "$JOB_LOG_DIR" "$JOB_WEIGHTS_DIR"
+
+                    FINISHED_FILE="${JOB_LOG_DIR}/finished.txt"
+
+                    if [[ -f "$FINISHED_FILE" ]]; then
+                        echo "Skipping $JOB_NAME (already finished)"
+                        continue
                     fi
 
-                    for bands in "${BANDS[@]}"; do
-                        for freeze_encoder in "${FREEZE_ENCODERS[@]}"; do
+                    if [[ "$EXECUTION_MODE" == "slurm" ]]; then
+                        # SLURM EXECUTION MODE
+                        SLURM_SCRIPT="${JOB_LOG_DIR}/job.slurm"
+                        LOG_FILE="${JOB_LOG_DIR}/slurm.out"
 
-                            if [[ "$scheme" == "hires_simclr" && "$bands" -ne 4 ]]; then
-                                continue
-                            elif [[ "$scheme" == "simclr" && "$bands" -ne 3 ]]; then
-                                continue
-                            fi
-
-                            # Set encoder weights path or keyword
-                            if [[ "$scheme" == "byol" ]]; then
-                                ENCODER_WEIGHTS="./weights/resnet101_20250624/${scheme}_bands${bands}_size${pre_size}_randinitfalse/resnet101/${scheme}_last.pth"
+                        # Wait if too many jobs are queued or running
+                        while true; do
+                            TOTAL_JOBS=$(squeue -u "$USER" | tail -n +2 | wc -l)
+                            if [[ "$TOTAL_JOBS" -lt "$MAX_JOBS" ]]; then
+                                break
                             else
-                                ENCODER_WEIGHTS="$scheme"
+                                echo "[$(date)] $TOTAL_JOBS jobs in queue. Waiting to submit $JOB_NAME..."
+                                sleep 60
                             fi
+                        done
 
-                            # Unique log/output directories for this job
-                            JOB_NAME="${model}_ft_${scheme}_bands${bands}_size${pre_size}_batch${pre_batch}_randinitfalse_frozenencoder${freeze_encoder}_n${n_train}_fold${fold}"
-                            BASE_DIR="${model}/${scheme}/${bands}_bands/presize_${pre_size}/prebatch_${pre_batch}/randinit_false/frozenencoder_${freeze_encoder}/${n_train}/fold_${fold}"
-                            JOB_LOG_DIR="${BASE_LOG_DIR}/${BASE_DIR}"
-                            JOB_WEIGHTS_DIR="${BASE_WEIGHTS_DIR}/${BASE_DIR}"
-                            mkdir -p "$JOB_LOG_DIR" "$JOB_WEIGHTS_DIR"
-
-                            FINISHED_FILE="${JOB_LOG_DIR}/finished.txt"
-
-                            if [[ -f "$FINISHED_FILE" ]]; then
-                                echo "Skipping $JOB_NAME (already finished)"
-                                continue
-                            fi
-
-                            if [[ "$EXECUTION_MODE" == "slurm" ]]; then
-                                # SLURM EXECUTION MODE
-                                SLURM_SCRIPT="${JOB_LOG_DIR}/job.slurm"
-                                LOG_FILE="${JOB_LOG_DIR}/slurm.out"
-
-                                # Wait if too many jobs are queued or running
-                                while true; do
-                                    TOTAL_JOBS=$(squeue -u "$USER" | tail -n +2 | wc -l)
-                                    if [[ "$TOTAL_JOBS" -lt "$MAX_JOBS" ]]; then
-                                        break
-                                    else
-                                        echo "[$(date)] $TOTAL_JOBS jobs in queue. Waiting to submit $JOB_NAME..."
-                                        sleep 60
-                                    fi
-                                done
-
-                                # Create SLURM script
-                                cat > "$SLURM_SCRIPT" <<EOL
+                        # Create SLURM script
+                        cat > "$SLURM_SCRIPT" <<EOL
 #!/bin/bash
 #SBATCH -N 1
 #SBATCH -n $N_TASKS
@@ -231,7 +201,6 @@ export CUDA_VISIBLE_DEVICES=0
 echo "========== SLURM JOB INFO =========="
 echo "Job Name: $JOB_NAME"
 echo "Pretrain scheme: $scheme"
-echo "Bands: $bands"
 echo "n_train: $n_train"
 echo "fold: $fold"
 echo "Encoder weights: $ENCODER_WEIGHTS"
@@ -249,7 +218,6 @@ python $SCRIPT_NAME \\
 --split_dir "$SPLIT_DIR" \\
 --n_train_samples $n_train \\
 --fold $fold \\
---n_bands $bands \\
 --mini_batch_size $MINI_BATCH_SIZE \\
 --full_batch_size $FULL_BATCH_SIZE \\
 --lr $LR \\
@@ -273,36 +241,32 @@ python $SCRIPT_NAME \\
 python test.py \\
     --model "$model" \\
     --model_weights "$JOB_WEIGHTS_DIR/best_model.pth" \\
-    --n_bands "$bands" \\
     --output_dir "$JOB_LOG_DIR/test" \\
     --batch_size $FULL_BATCH_SIZE
 EOL
 
-                                # Submit the job
-                                sbatch "$SLURM_SCRIPT"
-                                echo "Submitted $JOB_NAME (log: $LOG_FILE)"
-                                COUNT=$((COUNT+1))
-                                sleep 1 # Slight delay to avoid race conditions
+                        # Submit the job
+                        sbatch "$SLURM_SCRIPT"
+                        echo "Submitted $JOB_NAME (log: $LOG_FILE)"
+                        COUNT=$((COUNT+1))
+                        sleep 1 # Slight delay to avoid race conditions
 
-                            else
-                                # DIRECT EXECUTION MODE
-                                run_python_job "$model" "$scheme" "$bands" "$pre_size" "$pre_batch" "$n_train" "$fold" "$freeze_encoder" "$ENCODER_WEIGHTS" "$JOB_LOG_DIR" "$JOB_WEIGHTS_DIR"
-                                COUNT=$((COUNT+1))
+                    else
+                        # DIRECT EXECUTION MODE
+                        run_python_job "$model" "$scheme" "$n_train" "$fold" "$freeze_encoder" "$ENCODER_WEIGHTS" "$JOB_LOG_DIR" "$JOB_WEIGHTS_DIR"
+                        COUNT=$((COUNT+1))
 
-                                # Run test.py immediately after finetune.py in direct mode
-                                python test.py \
-                                    --model "$model" \
-                                    --model_weights "$JOB_WEIGHTS_DIR/best_model.pth" \
-                                    --n_bands "$bands" \
-                                    --output_dir "$JOB_LOG_DIR/test" \
-                                    --batch_size $FULL_BATCH_SIZE
-                                
-                                # Create finished file to mark completion
-                                echo "$(date): Job completed successfully" > "$FINISHED_FILE"
-                            fi
+                        # Run test.py immediately after finetune.py in direct mode
+                        python test.py \
+                            --model "$model" \
+                            --model_weights "$JOB_WEIGHTS_DIR/best_model.pth" \
+                            --output_dir "$JOB_LOG_DIR/test" \
+                            --batch_size $FULL_BATCH_SIZE
+                        
+                        # Create finished file to mark completion
+                        echo "$(date): Job completed successfully" > "$FINISHED_FILE"
+                    fi
 
-                        done
-                    done
                 done
             done
         done

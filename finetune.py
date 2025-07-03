@@ -70,7 +70,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--n_bands',
         type=int,
-        default=4,
+        default=3,
         choices=[3, 4],
         help='The number of bands in the input data. 3 for Color Infrared (CIR) and 4 for VisNIR data.',
     )
