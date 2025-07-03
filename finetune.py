@@ -225,6 +225,13 @@ def parse_arguments() -> argparse.Namespace:
         help='The gamma parameter for the focal loss',
     )
     
+    parser.add_argument(
+        '--warmup_epochs',
+        type=int,
+        default=10,
+        help='Number of epochs for linear learning rate warmup.'
+    )
+    
     args, unkown = parser.parse_known_args()
     if len(unkown) > 0:
         for arg in unkown:
@@ -452,7 +459,7 @@ def main() -> None:
 
     optimizer = AdamW(
         params=model.parameters(),
-        lr=args.lr,
+        lr=args.lr,  # This will be overridden by warmup if epoch < warmup_epochs
     )
     
     # Initialize mixed precision scaler
@@ -510,7 +517,17 @@ def main() -> None:
     
     logger.log(f'Starting training from epoch {starting_epoch}...')
     
+    def get_warmup_lr(epoch, base_lr, warmup_epochs):
+        if epoch >= warmup_epochs:
+            return base_lr
+        return base_lr * (epoch + 1) / warmup_epochs
+    
     for epoch in range(starting_epoch, args.num_epochs+1):
+        # --- Linear LR Warmup ---
+        if epoch < args.warmup_epochs:
+            warmup_lr = get_warmup_lr(epoch, args.lr, args.warmup_epochs)
+            for param_group in optimizer.param_groups:
+                param_group['lr'] = warmup_lr
         
         lr = optimizer.param_groups[0]['lr']
         history_dict['learning_rate'].append(lr)
@@ -604,7 +621,9 @@ def main() -> None:
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
         profiler.save(os.path.join(log_dir, 'profiler.csv'))
         
-        scheduler.step(epoch_loss)
+        # Only step scheduler after warmup
+        if epoch >= args.warmup_epochs:
+            scheduler.step(epoch_loss)
         checkpoint = {
             'epoch': epoch,
             'model': model.state_dict(),
