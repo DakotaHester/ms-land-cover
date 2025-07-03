@@ -35,8 +35,8 @@ MAX_JOBS=10
 # MODEL & TRAINING CONFIGURATION
 # =========================
 FREEZE_DECODER=false         # --freeze_decoder (not supported atm)
-MINI_BATCH_SIZE=32           # --mini_batch_size
-FULL_BATCH_SIZE=32           # --full_batch_size
+MINI_BATCH_SIZE=8            # --mini_batch_size
+FULL_BATCH_SIZE=8            # --full_batch_size
 LR=1e-5                      # --lr
 NUM_EPOCHS=1000              # --num_epochs
 EARLY_STOPPING_PATIENCE=50   # --early_stopping_patience
