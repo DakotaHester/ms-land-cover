@@ -305,7 +305,7 @@ def main() -> None:
         n_bands=args.n_bands,
         mean=mean,
         std=std,
-        noise_std=0.2,
+        noise_std=0.5,
         transform=StandardDataAugmentations(s=1.0),
         preload=args.preload,
         n_threads=args.num_workers,
@@ -524,7 +524,7 @@ def main() -> None:
     
     for epoch in range(starting_epoch, args.num_epochs+1):
         # --- Linear LR Warmup ---
-        if epoch < args.warmup_epochs:
+        if epoch <= args.warmup_epochs:
             warmup_lr = get_warmup_lr(epoch, args.lr, args.warmup_epochs)
             for param_group in optimizer.param_groups:
                 param_group['lr'] = warmup_lr
