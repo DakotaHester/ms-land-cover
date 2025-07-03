@@ -25,9 +25,9 @@ GRES="gpu:a100_1g.10gb:1"
 MAIL_USER="dh2306@msstate.edu"
 PYTHON_ENV=".env/bin/activate"
 SCRIPT_NAME="finetune.py"
-BASE_LOG_DIR="./logs/finetune_20250624"
-BASE_WEIGHTS_DIR="./weights/finetune_20250624"
-SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250624"
+BASE_LOG_DIR="./logs/finetune_20250703"
+BASE_WEIGHTS_DIR="./weights/finetune_20250703"
+SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250703"
 SPLIT_DIR="./data/splits"
 MAX_JOBS=10
 
@@ -62,7 +62,7 @@ fi
 # PRETRAIN SCHEMES TO TEST
 # =========================
 MODELS=("unet" "deeplabv3plus" "linear_probe")
-PRETRAIN_SCHEMES=("none" "imagenet" "byol")
+PRETRAIN_SCHEMES=("imagenet" "byol" "byol")
 BANDS=(3)  # 4 bands for hires_simclr, 3 bands for simclr
 PRETRAIN_SIZES=(256)
 FREEZE_ENCODERS=(false true) # Freeze encoder options

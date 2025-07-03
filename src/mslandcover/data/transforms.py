@@ -602,11 +602,29 @@ class HiResDataAugmentation:
 
 class StandardDataAugmentations:
     '''
-    Simple data augmentation that applies random rotation, horizontal, and vertical flips.
+    Simple data augmentation that applies random rotation, horizontal, and vertical flips, plus color distortions.
     '''
+    
+    def __init__(self, s: float=1.0):
+        """
+        Initialize the data augmentation transforms.
+        
+        Parameters
+        ----------
+        s : float, optional
+            Strength of the color augmentations, by default 1.0.
+        """
+        self.s = s
+        if s > 0:
+            self.color_jitter = transforms.ColorJitter(
+                brightness=0.4 * s,
+                contrast=0.4 * s,
+                saturation=0.4 * s,
+                hue=0.1 * s
+            )
 
-    @staticmethod
-    def __call__(X: torch.Tensor, y: Optional[torch.Tensor] = None):
+    # @staticmethod
+    def __call__(self, X: torch.Tensor, y: Optional[torch.Tensor] = None):
         
         # do not resize this time, just apply random flip and color distortions
         if torch.rand(1) > 0.5:
@@ -623,6 +641,9 @@ class StandardDataAugmentations:
         X = F.rotate(X, rot_angle * 90)
         if y is not None:
             y = F.rotate(y, rot_angle * 90)
+        
+        if self.s > 0:
+            X = self.color_jitter(X)
         
         if y is not None:
             return X, y

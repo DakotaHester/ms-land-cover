@@ -251,6 +251,7 @@ class FineTuneDataset(Dataset):
         target_paths: Optional[Iterable[str]]=None,
         mean: Optional[np.ndarray]=None,
         std: Optional[np.ndarray]=None,
+        noise_std: float=0.0, # disable noise by default
         n_bands: int=4,
         transform: Optional[transforms.Compose]=T.StandardDataAugmentations(),
         return_metadata: bool=False,
@@ -264,6 +265,7 @@ class FineTuneDataset(Dataset):
         self.return_metadata = return_metadata
         self.device = device
         self.preload = preload
+        self.noise_std = noise_std
                 
         # remove files from data paths that do not exist in target paths
         data_path_basenames = [os.path.basename(path) for path in data_paths]
@@ -380,6 +382,8 @@ class FineTuneDataset(Dataset):
             img, target = self.transform(img, target)
         
         img = T.normalize(img, mean=self.mean, std=self.std) 
+        if self.noise_std > 0:
+            img = T.add_gaussian_noise(img, std=self.noise_std)
         returns = [img]
         
         if self.target_paths is not None:
@@ -473,7 +477,7 @@ class TestDataset(Dataset):
         
         if self.mean is not None and self.std is not None:
             img = T.normalize(img, mean=self.mean, std=self.std)
-        
+
         # print(point)
         # print(point['geometry']
         x, y = point.geometry.x, point.geometry.y

@@ -298,7 +298,8 @@ def main() -> None:
         n_bands=args.n_bands,
         mean=mean,
         std=std,
-        transform=StandardDataAugmentations(),
+        noise_std=1.0,
+        transform=StandardDataAugmentations(s=1.0),
         preload=args.preload,
         n_threads=args.num_workers,
     )
@@ -309,6 +310,7 @@ def main() -> None:
         n_bands=args.n_bands,
         mean=mean,
         std=std,
+        noise_std=0.0,
         transform=None,
         preload=args.preload,
         n_threads=args.num_workers,
