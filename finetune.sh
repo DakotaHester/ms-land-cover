@@ -25,9 +25,9 @@ GRES="gpu:a100_1g.10gb:1"
 MAIL_USER="dh2306@msstate.edu"
 PYTHON_ENV=".env/bin/activate"
 SCRIPT_NAME="finetune.py"
-BASE_LOG_DIR="./logs/finetune_20250703"
-BASE_WEIGHTS_DIR="./weights/finetune_20250703"
-SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250703"
+BASE_LOG_DIR="./logs/finetune_20250704"
+BASE_WEIGHTS_DIR="./weights/finetune_20250704"
+SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250704"
 SPLIT_DIR="./data/splits"
 MAX_JOBS=10
 
@@ -35,14 +35,14 @@ MAX_JOBS=10
 # MODEL & TRAINING CONFIGURATION
 # =========================
 FREEZE_DECODER=false         # --freeze_decoder (not supported atm)
-MINI_BATCH_SIZE=8            # --mini_batch_size
-FULL_BATCH_SIZE=8            # --full_batch_size
+MINI_BATCH_SIZE=32           # --mini_batch_size
+FULL_BATCH_SIZE=32           # --full_batch_size
 LR=1e-5                      # --lr
 NUM_EPOCHS=1000              # --num_epochs
 EARLY_STOPPING_PATIENCE=50   # --early_stopping_patience
 REDUCE_LR_PATIENCE=15        # --reduce_lr_patience
 PRELOAD=false                # --load_data_from_disk
-NUM_WORKERS=2                # --num_workers
+NUM_WORKERS=$N_TASKs         # --num_workers
 SEED=1701                    # --seed
 LOAD_CHECKPOINT=false        # --load_checkpoint
 
