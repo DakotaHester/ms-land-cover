@@ -32,6 +32,7 @@ class RasterProcessor:
         batch_size: int=32,
         mean: Optional[torch.Tensor]=None,
         std: Optional[torch.Tensor]=None,
+        tta: bool=False,
         device: torch.device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
     ):
         self.tile_size = tile_size
@@ -39,6 +40,7 @@ class RasterProcessor:
         self.sigma = gaussian_sigma
         self.batch_size = batch_size
         self.device = device
+        self.tta = tta  # Test Time Augmentation flag
         
         # Move model to device and set to eval mode
         self.model = model.to(device)
@@ -85,32 +87,40 @@ class RasterProcessor:
 
 
     def process_batch(self, batch_tiles: torch.Tensor, batch_coords: List[Tuple[int, int]]) -> Tuple[torch.Tensor, List[Tuple[int, int]]]:
-        """Process a batch of tiles on GPU.
-        
-        Parameters
-        ----------
-        batch_tiles : torch.Tensor
-            Batch of tiles to process, shape (B, C, H, W)
-        batch_coords : List[Tuple[int, int]]
-            List of (y, x) coordinates for each tile
-            
-        Returns
-        -------
-        Tuple[torch.Tensor, List[Tuple[int, int]]]
-            Tuple containing:
-            - Processed tiles with weights applied, shape (B, num_classes, H, W)
-            - Original coordinates for each tile
-        """
+        """Process a batch of tiles on GPU with optional random TTA and reversal."""
         if self.mean is not None and self.std is not None:
-            batch_tiles = torch.subtract(batch_tiles, self.mean[None, :, None, None])
-            batch_tiles = torch.divide(batch_tiles, self.std[None, :, None, None])
-        
-        batch_tiles = batch_tiles.to(self.device)
-        
-        with torch.no_grad():
-            probs = self.model(batch_tiles).cpu()
+            batch_tiles_norm = torch.subtract(batch_tiles, self.mean[None, :, None, None])
+            batch_tiles_norm = torch.divide(batch_tiles_norm, self.std[None, :, None, None])
+        else:
+            batch_tiles_norm = batch_tiles.clone()
 
-        probs = torch.from_numpy(np.array(list(probs)))
+        if self.tta:
+            # randomly flip and rotate individual tiles
+            is_hflip = torch.randint(0, 2, (batch_tiles.shape[0],)).bool()
+            is_vflip = torch.randint(0, 2, (batch_tiles.shape[0],)).bool()
+            rot_angle = torch.randint(0, 4, (batch_tiles.shape[0],))
+            for i in range(batch_tiles.shape[0]):
+                if is_hflip[i]:
+                    batch_tiles_norm[i] = torch.flip(batch_tiles_norm[i], [2])
+                if is_vflip[i]:
+                    batch_tiles_norm[i] = torch.flip(batch_tiles_norm[i], [1])
+                batch_tiles_norm[i] = torch.rot90(batch_tiles_norm[i], rot_angle[i], [1, 2])
+
+        batch_tiles_norm = batch_tiles_norm.to(self.device)
+        batch_tiles = batch_tiles.to(self.device)
+
+        with torch.no_grad():
+            probs = self.model(batch_tiles_norm).cpu()
+
+        if self.tta:
+            # undo transformations
+            for i in range(batch_tiles.shape[0]):
+                probs[i] = torch.rot90(probs[i], -int(rot_angle[i]), [1, 2])
+                if is_vflip[i]:
+                    probs[i] = torch.flip(probs[i], [1])
+                if is_hflip[i]:
+                    probs[i] = torch.flip(probs[i], [2])
+
         weighted_probs = probs * self.weights
         return weighted_probs, batch_coords
 
@@ -312,7 +322,8 @@ def process_single_raster(path, args, gdf: Optional[gpd.GeoDataFrame]=None):
             batch_size=args.batch_size,
             mean=mean,
             std=std,
-            device=device
+            tta=args.tta,
+            device=device,
         )
         
         in_data = load_raster_for_processing(path, args, gdf)

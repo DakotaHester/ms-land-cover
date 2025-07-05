@@ -198,6 +198,20 @@ def parse_arguments():
     #     default='/home/dhester/server/dbcenter/'
     # )
     
+    parser.add_argument(
+        '--tta',
+        action='store_true',
+        default=True,
+        help='Enable test-time augmentation (TTA) for potentially improved accuracy. Default: True'
+    )
+    
+    parser.add_argument(
+        '--index',
+        type=int,
+        required=False,
+        help='Index of the raster to process. If specified, only this raster will be processed. Useful for HPC jobs.'
+    )
+    
     return parser.parse_args()
 
 
@@ -208,8 +222,13 @@ def main():
     
     args = parse_arguments()
     
-    # if args.state is not None:
-    #     states_gdf = gpd.rea
+    if args.index is not None:
+        # If index is specified, only process that raster
+        paths = glob(os.path.join(args.input_dir, args.file_pattern))
+        if args.index < 0 or args.index >= len(paths):
+            raise ValueError(f"Index {args.index} is out of bounds for the number of files found: {len(paths)}")
+        paths = [paths[args.index]]
+        args.num_processes = 1  # Force single process for specific raster
     
     # Print configuration
     print("Land Cover Inference Configuration:")
