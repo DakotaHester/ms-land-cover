@@ -393,7 +393,7 @@ def main() -> None:
         )
         model = model.to(device)
     
-    elif args.model in ['unet', 'attention_unet', 'multiscale_linear_probe', 'linear_probe']:
+    elif args.model in ['unet', 'attention_unet', 'multiscale_linear_probe', 'linear_probe', 'upernet', 'pspnet', 'bisenet', 'danet', 'pan']:
         
         backbone = ResNetBackboneUNet(
             in_channels=args.n_bands,
