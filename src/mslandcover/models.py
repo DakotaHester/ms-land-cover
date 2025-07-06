@@ -2333,9 +2333,12 @@ class UPerNet(nn.Module):
         feats = self.backbone(x)
         ppm_out = self.ppm(feats[-1])
         fpn_feats = self.fpn([feats[1], feats[2], feats[3], ppm_out])
-        size = x.shape[-2:]
+        # size = x.shape[-2:]
+        # instead of using x.shape[-2:], we use the size of the largest feature map
+        size = fpn_feats[0].shape[-2:]
         out = torch.cat([F.interpolate(f, size=size, mode='bilinear', align_corners=False) for f in fpn_feats], dim=1)
-        return self.head(out)
+        out = self.head(out) # now interpolate to the original input size (save some VRAM, should be pretty much the same numerically)
+        return F.interpolate(out, size=x.shape[-2:], mode='bilinear', align_corners=False)
 
 
 # ------------------ PSPNet ------------------
@@ -2363,21 +2366,30 @@ class PSPModule(nn.Module):
         return self.bottleneck(torch.cat(priors, dim=1))
 
 class PSPNet(nn.Module):
-    def __init__(self, backbone, num_classes):
+    def __init__(self, backbone, num_classes, aux_out=False):
         super().__init__()
         self.backbone = backbone
         self.psp = PSPModule(2048)
         self.classifier = nn.Conv2d(2048, num_classes, 1)
-        self.aux = nn.Conv2d(1024, num_classes, 1)
+        self.aux_out = aux_out
+        if aux_out:
+            self.aux = nn.Conv2d(1024, num_classes, 1)
 
     def forward(self, x):
-        feats = self.backbone(x)
-        x_psp = self.psp(feats[-1])
-        x_cls = self.classifier(x_psp)
-        aux_out = self.aux(feats[-2])
-        x_cls = F.interpolate(x_cls, size=x.shape[-2:], mode='bilinear', align_corners=False)
-        aux_out = F.interpolate(aux_out, size=x.shape[-2:], mode='bilinear', align_corners=False)
-        return x_cls, aux_out
+        if self.aux_out:
+            feats = self.backbone(x)
+            x_psp = self.psp(feats[-1])
+            x_cls = self.classifier(x_psp)
+            aux_out = self.aux(feats[-2])
+            x_cls = F.interpolate(x_cls, size=x.shape[-2:], mode='bilinear', align_corners=False)
+            aux_out = F.interpolate(aux_out, size=x.shape[-2:], mode='bilinear', align_corners=False)
+            return x_cls, aux_out
+        
+        else:
+            feats = self.backbone(x)[-1]
+            x_psp = self.psp(feats)
+            x_cls = self.classifier(x_psp)
+            return F.interpolate(x_cls, size=x.shape[-2:], mode='bilinear', align_corners=False)
 
 
 # ------------------ BiSeNet ------------------
@@ -2407,8 +2419,11 @@ class BiSeNet(nn.Module):
     def __init__(self, backbone, num_classes):
         super().__init__()
         self.backbone = backbone
+        
+        n_bands = backbone.n_bands if hasattr(backbone, 'n_bands') else 3
+        
         self.spatial = nn.Sequential(
-            nn.Conv2d(4, 64, 3, stride=2, padding=1),
+            nn.Conv2d(n_bands, 64, 3, stride=2, padding=1),
             nn.BatchNorm2d(64), nn.ReLU(inplace=True),
             nn.Conv2d(64, 128, 3, stride=2, padding=1),
             nn.BatchNorm2d(128), nn.ReLU(inplace=True),
