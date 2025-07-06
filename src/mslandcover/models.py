@@ -2416,9 +2416,10 @@ class FeatureFusionModule(nn.Module):
         return feat * attn + feat
 
 class BiSeNet(nn.Module):
-    def __init__(self, backbone, num_classes):
+    def __init__(self, backbone, num_classes, aux_out=False):
         super().__init__()
         self.backbone = backbone
+        self.aux_out = aux_out
         
         n_bands = backbone.n_bands if hasattr(backbone, 'n_bands') else 3
         
@@ -2438,12 +2439,20 @@ class BiSeNet(nn.Module):
     def forward(self, x):
         feats = self.backbone(x)
         sp = self.spatial(x)
-        cp1, cp2 = feats[-2], feats[-1]
-        cp1 = F.interpolate(self.aux1(cp1), size=sp.shape[-2:], mode='bilinear', align_corners=False)
-        cp2 = F.interpolate(self.aux2(cp2), size=sp.shape[-2:], mode='bilinear', align_corners=False)
-        ffm_out = self.ffm(sp, cp2)
+        cp1, cp2 = feats[-2], feats[-1]  # cp1: 1024, cp2: 2048 channels
+
+        # Upsample context features to match spatial path
+        cp2_up = F.interpolate(cp2, size=sp.shape[-2:], mode='bilinear', align_corners=False)
+        ffm_out = self.ffm(sp, cp2_up)
         out = self.head(ffm_out)
-        return F.interpolate(out, size=x.shape[-2:], mode='bilinear', align_corners=False), cp1, cp2
+        out = F.interpolate(out, size=x.shape[-2:], mode='bilinear', align_corners=False)
+
+        if self.aux_out:
+            aux1_out = F.interpolate(self.aux1(cp1), size=x.shape[-2:], mode='bilinear', align_corners=False)
+            aux2_out = F.interpolate(self.aux2(cp2), size=x.shape[-2:], mode='bilinear', align_corners=False)
+            return out, aux1_out, aux2_out
+        else:
+            return out
 
 
 # ------------------ DANet ------------------
