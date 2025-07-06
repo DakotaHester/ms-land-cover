@@ -433,10 +433,10 @@ def main() -> None:
                 num_classes=num_classes,
             )
         
-        model = model.to(device)
+        # model = model.to(device)
     
-    elif args.model in ['upernet', 'pspnet', 'bisenet', 'danet', 'pan']:
-        # Use the same backbone instance as above
+        # elif args.model in ['upernet', 'pspnet', 'bisenet', 'danet', 'pan']:
+            # Use the same backbone instance as above
         if args.model == 'upernet':
             model = UPerNet(backbone=backbone, num_classes=num_classes)
         elif args.model == 'pspnet':
@@ -447,6 +447,7 @@ def main() -> None:
             model = DANet(backbone=backbone, num_classes=num_classes)
         elif args.model == 'pan':
             model = PAN(backbone=backbone, num_classes=num_classes)
+        
         model = model.to(device)
     
     else:
