@@ -42,7 +42,7 @@ NUM_EPOCHS=1000              # --num_epochs
 EARLY_STOPPING_PATIENCE=50   # --early_stopping_patience
 REDUCE_LR_PATIENCE=15        # --reduce_lr_patience
 PRELOAD=false                # --load_data_from_disk
-NUM_WORKERS=$N_TASKs         # --num_workers
+NUM_WORKERS=$N_TASKS         # --num_workers
 SEED=1701                    # --seed
 LOAD_CHECKPOINT=false        # --load_checkpoint
 
