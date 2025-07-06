@@ -61,8 +61,8 @@ fi
 # =========================
 # PRETRAIN SCHEMES TO TEST
 # =========================
-MODELS=("unet" "deeplabv3plus" "linear_probe")
-MODELS = ('deeplabv3plus' 'unet' 'attention_unet' 'linear_probe' 'upernet' 'pspnet' 'bisenet' 'danet' 'pan')
+# MODELS=("unet" "deeplabv3plus" "linear_probe")
+MODELS=("deeplabv3plus" "unet" "attention_unet" "linear_probe" "upernet" "pspnet" "bisenet" "danet" "pan")
 PRETRAIN_SCHEMES=("imagenet" "byol")
 # FREEZE_ENCODERS=(false true) # Freeze encoder options
 
