@@ -62,8 +62,9 @@ fi
 # PRETRAIN SCHEMES TO TEST
 # =========================
 MODELS=("unet" "deeplabv3plus" "linear_probe")
+MODELS = ('deeplabv3plus' 'unet' 'attention_unet' 'linear_probe' 'upernet' 'pspnet' 'bisenet' 'danet' 'pan')
 PRETRAIN_SCHEMES=("imagenet" "byol")
-FREEZE_ENCODERS=(false true) # Freeze encoder options
+# FREEZE_ENCODERS=(false true) # Freeze encoder options
 
 # Dataset sizes and folds
 declare -A FOLDS
@@ -134,18 +135,25 @@ run_python_job() {
 # =========================
 COUNT=0
 
-for model in "${MODELS[@]}"; do
+for fold in $(seq 1 $n_folds); do
     for n_train in 250 500 750; do
         n_folds=${FOLDS[$n_train]}
-        for fold in $(seq 1 $n_folds); do
             for scheme in "${PRETRAIN_SCHEMES[@]}"; do
-                for freeze_encoder in "${FREEZE_ENCODERS[@]}"; do
+                for model in "${MODELS[@]}"; do
+                # for freeze_encoder in "${FREEZE_ENCODERS[@]}"; do
 
                     # Set encoder weights path or keyword
                     if [[ "$scheme" == "byol" ]]; then
                         ENCODER_WEIGHTS="./weights/resnet101_20250624/byol_bands3_size256_randinitfalse/resnet101/byol_last.pth"
                     else
                         ENCODER_WEIGHTS="$scheme"
+                    fi
+                    
+                    # if linear_probe, set freeze_encoder to true
+                    if [[ "$model" == "linear_probe" ]]; then
+                        freeze_encoder=true
+                    else
+                        freeze_encoder=false
                     fi
 
                     # Unique log/output directories for this job
@@ -267,7 +275,7 @@ EOL
                         echo "$(date): Job completed successfully" > "$FINISHED_FILE"
                     fi
 
-                done
+                # done
             done
         done
     done

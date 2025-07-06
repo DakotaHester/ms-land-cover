@@ -212,6 +212,14 @@ def parse_arguments():
         help='Index of the raster to process. If specified, only this raster will be processed. Useful for HPC jobs.'
     )
     
+    parser.add_argument(
+        '--model',
+        type=str,
+        choices=['deeplabv3plus', 'unet', 'attention_unet', 'linear_probe', 'multiscale_linear_probe', 'upernet', 'pspnet', 'bisenet', 'danet', 'pan'],
+        default='unet',
+        help='Model architecture to use for inference.'
+    )
+    
     return parser.parse_args()
 
 

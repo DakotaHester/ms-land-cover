@@ -2273,3 +2273,263 @@ class BYOLWrapper(nn.Module):
             z = self.target_encoder(v)
             z_prime = self.target_encoder(v_prime) 
         return q, q_prime, z, z_prime
+
+
+
+# ------------------ UPerNet ------------------
+class PPM(nn.Module):
+    def __init__(self, in_channels, out_channels, pool_sizes=(1, 2, 3, 6)):
+        super().__init__()
+        self.stages = nn.ModuleList([
+            nn.Sequential(
+                nn.AdaptiveAvgPool2d(ps),
+                nn.Conv2d(in_channels, out_channels, 1, bias=False),
+                nn.BatchNorm2d(out_channels),
+                nn.ReLU(inplace=True)
+            ) for ps in pool_sizes
+        ])
+        self.bottleneck = nn.Sequential(
+            nn.Conv2d(in_channels + len(pool_sizes) * out_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+
+    def forward(self, x):
+        h, w = x.size(2), x.size(3)
+        ppm_outs = [x] + [F.interpolate(stage(x), size=(h, w), mode='bilinear', align_corners=False) for stage in self.stages]
+        x = torch.cat(ppm_outs, dim=1)
+        return self.bottleneck(x)
+
+class FPN(nn.Module):
+    def __init__(self, in_channels_list, out_channels):
+        super().__init__()
+        self.lateral_convs = nn.ModuleList([nn.Conv2d(in_ch, out_channels, 1) for in_ch in in_channels_list])
+        self.fpn_convs = nn.ModuleList([nn.Sequential(
+            nn.Conv2d(out_channels, out_channels, 3, padding=1),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)) for _ in in_channels_list])
+
+    def forward(self, inputs):
+        laterals = [l_conv(f) for l_conv, f in zip(self.lateral_convs, inputs)]
+        for i in range(len(laterals) - 1, 0, -1):
+            laterals[i - 1] += F.interpolate(laterals[i], size=laterals[i - 1].shape[-2:], mode='bilinear', align_corners=False)
+        return [fpn_conv(l) for fpn_conv, l in zip(self.fpn_convs, laterals)]
+
+class UPerNet(nn.Module):
+    def __init__(self, backbone, num_classes):
+        super().__init__()
+        self.backbone = backbone
+        self.ppm = PPM(2048, 512)
+        self.fpn = FPN([256, 512, 1024, 512], 256)
+        self.head = nn.Sequential(
+            nn.Conv2d(256 * 4, 512, 3, padding=1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(0.1),
+            nn.Conv2d(512, num_classes, 1)
+        )
+
+    def forward(self, x):
+        feats = self.backbone(x)
+        ppm_out = self.ppm(feats[-1])
+        fpn_feats = self.fpn([feats[1], feats[2], feats[3], ppm_out])
+        size = x.shape[-2:]
+        out = torch.cat([F.interpolate(f, size=size, mode='bilinear', align_corners=False) for f in fpn_feats], dim=1)
+        return self.head(out)
+
+
+# ------------------ PSPNet ------------------
+class PSPModule(nn.Module):
+    def __init__(self, in_channels, pool_sizes=(1, 2, 3, 6)):
+        super().__init__()
+        self.stages = nn.ModuleList([
+            nn.Sequential(
+                nn.AdaptiveAvgPool2d(ps),
+                nn.Conv2d(in_channels, in_channels // 4, 1, bias=False),
+                nn.BatchNorm2d(in_channels // 4),
+                nn.ReLU(inplace=True)
+            ) for ps in pool_sizes
+        ])
+        self.bottleneck = nn.Sequential(
+            nn.Conv2d(in_channels + in_channels, in_channels, 3, padding=1, bias=False),
+            nn.BatchNorm2d(in_channels),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(0.1)
+        )
+
+    def forward(self, x):
+        h, w = x.size(2), x.size(3)
+        priors = [x] + [F.interpolate(stage(x), size=(h, w), mode='bilinear', align_corners=False) for stage in self.stages]
+        return self.bottleneck(torch.cat(priors, dim=1))
+
+class PSPNet(nn.Module):
+    def __init__(self, backbone, num_classes):
+        super().__init__()
+        self.backbone = backbone
+        self.psp = PSPModule(2048)
+        self.classifier = nn.Conv2d(2048, num_classes, 1)
+        self.aux = nn.Conv2d(1024, num_classes, 1)
+
+    def forward(self, x):
+        feats = self.backbone(x)
+        x_psp = self.psp(feats[-1])
+        x_cls = self.classifier(x_psp)
+        aux_out = self.aux(feats[-2])
+        x_cls = F.interpolate(x_cls, size=x.shape[-2:], mode='bilinear', align_corners=False)
+        aux_out = F.interpolate(aux_out, size=x.shape[-2:], mode='bilinear', align_corners=False)
+        return x_cls, aux_out
+
+
+# ------------------ BiSeNet ------------------
+class FeatureFusionModule(nn.Module):
+    def __init__(self, in_channels, out_channels):
+        super().__init__()
+        self.convblk = nn.Sequential(
+            nn.Conv2d(in_channels, out_channels, 1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+        self.attn = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(out_channels, out_channels // 4, 1),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(out_channels // 4, out_channels, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, sp, cp):
+        feat = torch.cat([sp, cp], dim=1)
+        feat = self.convblk(feat)
+        attn = self.attn(feat)
+        return feat * attn + feat
+
+class BiSeNet(nn.Module):
+    def __init__(self, backbone, num_classes):
+        super().__init__()
+        self.backbone = backbone
+        self.spatial = nn.Sequential(
+            nn.Conv2d(4, 64, 3, stride=2, padding=1),
+            nn.BatchNorm2d(64), nn.ReLU(inplace=True),
+            nn.Conv2d(64, 128, 3, stride=2, padding=1),
+            nn.BatchNorm2d(128), nn.ReLU(inplace=True),
+            nn.Conv2d(128, 256, 3, stride=2, padding=1),
+            nn.BatchNorm2d(256), nn.ReLU(inplace=True)
+        )
+        self.ffm = FeatureFusionModule(2304, 256)
+        self.head = nn.Conv2d(256, num_classes, 1)
+        self.aux1 = nn.Conv2d(1024, num_classes, 1)
+        self.aux2 = nn.Conv2d(2048, num_classes, 1)
+
+    def forward(self, x):
+        feats = self.backbone(x)
+        sp = self.spatial(x)
+        cp1, cp2 = feats[-2], feats[-1]
+        cp1 = F.interpolate(self.aux1(cp1), size=sp.shape[-2:], mode='bilinear', align_corners=False)
+        cp2 = F.interpolate(self.aux2(cp2), size=sp.shape[-2:], mode='bilinear', align_corners=False)
+        ffm_out = self.ffm(sp, cp2)
+        out = self.head(ffm_out)
+        return F.interpolate(out, size=x.shape[-2:], mode='bilinear', align_corners=False), cp1, cp2
+
+
+# ------------------ DANet ------------------
+class PAM(nn.Module):
+    def __init__(self, in_channels):
+        super().__init__()
+        self.query_conv = nn.Conv2d(in_channels, in_channels // 8, 1)
+        self.key_conv = nn.Conv2d(in_channels, in_channels // 8, 1)
+        self.value_conv = nn.Conv2d(in_channels, in_channels, 1)
+        self.gamma = nn.Parameter(torch.zeros(1))
+
+    def forward(self, x):
+        B, C, H, W = x.size()
+        query = self.query_conv(x).view(B, -1, H * W).permute(0, 2, 1)
+        key = self.key_conv(x).view(B, -1, H * W)
+        energy = torch.bmm(query, key)
+        attention = torch.softmax(energy, dim=-1)
+        value = self.value_conv(x).view(B, -1, H * W)
+        out = torch.bmm(value, attention.permute(0, 2, 1)).view(B, C, H, W)
+        return self.gamma * out + x
+
+class CAM(nn.Module):
+    def __init__(self, in_channels):
+        super().__init__()
+        self.gamma = nn.Parameter(torch.zeros(1))
+
+    def forward(self, x):
+        B, C, H, W = x.size()
+        proj_query = x.view(B, C, -1)
+        proj_key = x.view(B, C, -1).permute(0, 2, 1)
+        energy = torch.bmm(proj_query, proj_key)
+        attention = torch.softmax(energy, dim=-1)
+        proj_value = x.view(B, C, -1)
+        out = torch.bmm(attention, proj_value).view(B, C, H, W)
+        return self.gamma * out + x
+
+class DANet(nn.Module):
+    def __init__(self, backbone, num_classes):
+        super().__init__()
+        self.backbone = backbone
+        self.pam = PAM(2048)
+        self.cam = CAM(2048)
+        self.head = nn.Sequential(
+            nn.Conv2d(2048, 512, 3, padding=1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(512, num_classes, 1)
+        )
+
+    def forward(self, x):
+        feats = self.backbone(x)
+        feat = feats[-1]
+        pam_out = self.pam(feat)
+        cam_out = self.cam(feat)
+        out = pam_out + cam_out
+        out = self.head(out)
+        return F.interpolate(out, size=x.shape[-2:], mode='bilinear', align_corners=False)
+
+
+# ------------------ PAN ------------------
+class FPABlock(nn.Module):
+    def __init__(self, in_channels):
+        super().__init__()
+        self.pool1 = nn.AdaptiveAvgPool2d(1)
+        self.pool2 = nn.AdaptiveAvgPool2d(2)
+        self.pool3 = nn.AdaptiveAvgPool2d(3)
+        self.conv1 = nn.Conv2d(in_channels, in_channels, 1)
+        self.mid = nn.Conv2d(in_channels, in_channels, 1)
+
+    def forward(self, x):
+        h, w = x.shape[2:]
+        x1 = F.interpolate(self.conv1(self.pool1(x)), size=(h, w), mode='bilinear', align_corners=False)
+        x2 = F.interpolate(self.conv1(self.pool2(x)), size=(h, w), mode='bilinear', align_corners=False)
+        x3 = F.interpolate(self.conv1(self.pool3(x)), size=(h, w), mode='bilinear', align_corners=False)
+        x_mid = self.mid(x)
+        return x_mid + x1 + x2 + x3
+
+class GAU(nn.Module):
+    def __init__(self, low_channels, high_channels):
+        super().__init__()
+        self.conv1x1 = nn.Conv2d(high_channels, low_channels, 1)
+        self.bn = nn.BatchNorm2d(low_channels)
+        self.relu = nn.ReLU(inplace=True)
+        self.conv = nn.Conv2d(low_channels, low_channels, 3, padding=1)
+
+    def forward(self, low, high):
+        high = self.relu(self.bn(self.conv1x1(high)))
+        high = F.interpolate(high, size=low.shape[-2:], mode='bilinear', align_corners=False)
+        return self.conv(low * high)
+
+class PAN(nn.Module):
+    def __init__(self, backbone, num_classes):
+        super().__init__()
+        self.backbone = backbone
+        self.fpa = FPABlock(2048)
+        self.gau = GAU(1024, 2048)
+        self.final = nn.Conv2d(1024, num_classes, 1)
+
+    def forward(self, x):
+        feats = self.backbone(x)
+        f5 = self.fpa(feats[-1])
+        f4 = self.gau(feats[-2], f5)
+        out = self.final(f4)
+        return F.interpolate(out, size=x.shape[-2:], mode='bilinear', align_corners=False)

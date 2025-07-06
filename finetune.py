@@ -15,7 +15,7 @@ from mslandcover.utils import Logger, get_torch_device, ProfilerHistory, load_pt
 from mslandcover.data.datasets import FineTuneDataset
 from mslandcover.data.transforms import StandardDataAugmentations 
 from mslandcover.loss import FocalLoss
-from mslandcover.models import DeepLabV3Plus, ResNetBackbone, UNet, AttentionUNet, ResNetBackboneUNet, SimpleLinearProbingResNet, MultiScaleLinearProbingResNet
+from mslandcover.models import DeepLabV3Plus, ResNetBackbone, UNet, AttentionUNet, ResNetBackboneUNet, SimpleLinearProbingResNet, MultiScaleLinearProbingResNet, UPerNet, PSPNet, BiSeNet, DANet, PAN
 from mslandcover import metrics
 
 
@@ -25,7 +25,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--model',
         type=str,
-        choices=['deeplabv3plus', 'unet', 'attention_unet', 'linear_probe', 'multiscale_linear_probe'],
+        choices=['deeplabv3plus', 'unet', 'attention_unet', 'linear_probe', 'multiscale_linear_probe', 'upernet', 'pspnet', 'bisenet', 'danet', 'pan'],
         default='linear_probe',
         help='The model to use for training',
     )
@@ -434,7 +434,20 @@ def main() -> None:
             )
         
         model = model.to(device)
-        
+    
+    elif args.model in ['upernet', 'pspnet', 'bisenet', 'danet', 'pan']:
+        # Use the same backbone instance as above
+        if args.model == 'upernet':
+            model = UPerNet(backbone=backbone, num_classes=num_classes)
+        elif args.model == 'pspnet':
+            model = PSPNet(backbone=backbone, num_classes=num_classes)
+        elif args.model == 'bisenet':
+            model = BiSeNet(backbone=backbone, num_classes=num_classes)
+        elif args.model == 'danet':
+            model = DANet(backbone=backbone, num_classes=num_classes)
+        elif args.model == 'pan':
+            model = PAN(backbone=backbone, num_classes=num_classes)
+        model = model.to(device)
     
     else:
         raise ValueError(f'Unknown model: {args.model}')

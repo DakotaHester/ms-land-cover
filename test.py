@@ -1,7 +1,7 @@
 import os
 from mslandcover.config import LEGEND_CLASSES
 from mslandcover.data.datasets import TestDataset
-from mslandcover.models import UNet, DeepLabV3Plus, ResNetBackboneUNet, ResNetBackbone, SimpleLinearProbingResNet
+from mslandcover.models import UNet, DeepLabV3Plus, ResNetBackboneUNet, ResNetBackbone, SimpleLinearProbingResNet, UPerNet, PSPNet, BiSeNet, DANet, PAN
 from mslandcover.utils import load_pth, get_torch_device
 from argparse import ArgumentParser
 import geopandas as gpd
@@ -35,7 +35,7 @@ def parse_args() -> ArgumentParser:
     parser.add_argument(
         '--model',
         type=str,
-        choices=['deeplabv3plus', 'unet', 'linear_probe'],
+        choices=['deeplabv3plus', 'unet', 'linear_probe', 'upernet', 'pspnet', 'bisenet', 'danet', 'pan'],
         default='unet',
         help='Model architecture to use for the assessment.'
     )
@@ -109,7 +109,6 @@ def main():
             ),
             num_classes=8
         )
-        
     elif args.model == 'unet':
         model = UNet(
             backbone=ResNetBackboneUNet(
@@ -118,7 +117,6 @@ def main():
             ),
             num_classes=8
         )
-    
     elif args.model == 'linear_probe':
         model = SimpleLinearProbingResNet(
             backbone=ResNetBackboneUNet(
@@ -127,9 +125,48 @@ def main():
             ),
             num_classes=8
         )
-    
+    elif args.model == 'upernet':
+        model = UPerNet(
+            backbone=ResNetBackboneUNet(
+                in_channels=args.n_bands,
+                pretrained=False,
+            ),
+            num_classes=8
+        )
+    elif args.model == 'pspnet':
+        model = PSPNet(
+            backbone=ResNetBackboneUNet(
+                in_channels=args.n_bands,
+                pretrained=False,
+            ),
+            num_classes=8
+        )
+    elif args.model == 'bisenet':
+        model = BiSeNet(
+            backbone=ResNetBackboneUNet(
+                in_channels=args.n_bands,
+                pretrained=False,
+            ),
+            num_classes=8
+        )
+    elif args.model == 'danet':
+        model = DANet(
+            backbone=ResNetBackboneUNet(
+                in_channels=args.n_bands,
+                pretrained=False,
+            ),
+            num_classes=8
+        )
+    elif args.model == 'pan':
+        model = PAN(
+            backbone=ResNetBackboneUNet(
+                in_channels=args.n_bands,
+                pretrained=False,
+            ),
+            num_classes=8
+        )
     else:
-        raise ValueError(f"Unsupported model type: {args.model}. Choose 'deeplabv3plus' or 'unet'.")
+        raise ValueError(f"Unsupported model type: {args.model}. Choose from the available options.")
     
     if args.model_weights is not None:
         if not os.path.exists(args.model_weights):
