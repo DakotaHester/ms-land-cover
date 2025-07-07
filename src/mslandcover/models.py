@@ -2328,6 +2328,7 @@ class UPerNet(nn.Module):
             nn.Dropout2d(0.1),
             nn.Conv2d(512, num_classes, 1)
         )
+        self.activation = nn.Softmax(dim=1) if num_classes > 1 else nn.Identity()
 
     def forward(self, x):
         feats = self.backbone(x)
@@ -2338,7 +2339,8 @@ class UPerNet(nn.Module):
         size = fpn_feats[0].shape[-2:]
         out = torch.cat([F.interpolate(f, size=size, mode='bilinear', align_corners=False) for f in fpn_feats], dim=1)
         out = self.head(out) # now interpolate to the original input size (save some VRAM, should be pretty much the same numerically)
-        return F.interpolate(out, size=x.shape[-2:], mode='bilinear', align_corners=False)
+        out = F.interpolate(out, size=x.shape[-2:], mode='bilinear', align_corners=False)
+        return self.activation(out)
 
 
 # ------------------ PSPNet ------------------
@@ -2374,6 +2376,7 @@ class PSPNet(nn.Module):
         self.aux_out = aux_out
         if aux_out:
             self.aux = nn.Conv2d(1024, num_classes, 1)
+        self.activation = nn.Softmax(dim=1) if num_classes > 1 else nn.Identity()
 
     def forward(self, x):
         if self.aux_out:
@@ -2383,16 +2386,30 @@ class PSPNet(nn.Module):
             aux_out = self.aux(feats[-2])
             x_cls = F.interpolate(x_cls, size=x.shape[-2:], mode='bilinear', align_corners=False)
             aux_out = F.interpolate(aux_out, size=x.shape[-2:], mode='bilinear', align_corners=False)
-            return x_cls, aux_out
+            return self.activation(x_cls), aux_out
         
         else:
             feats = self.backbone(x)[-1]
             x_psp = self.psp(feats)
             x_cls = self.classifier(x_psp)
-            return F.interpolate(x_cls, size=x.shape[-2:], mode='bilinear', align_corners=False)
+            x_cls = F.interpolate(x_cls, size=x.shape[-2:], mode='bilinear', align_corners=False)
+            return self.activation(x_cls)
 
 
 # ------------------ BiSeNet ------------------
+class AttentionRefinementModule(nn.Module):
+    def __init__(self, channels):
+        super().__init__()
+        self.attn = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1),
+            nn.Conv2d(channels, channels, 1),
+            nn.BatchNorm2d(channels),
+            nn.Sigmoid()
+        )
+
+    def forward(self, x):
+        return x * self.attn(x)
+
 class FeatureFusionModule(nn.Module):
     def __init__(self, in_channels, out_channels):
         super().__init__()
@@ -2416,10 +2433,10 @@ class FeatureFusionModule(nn.Module):
         return feat * attn + feat
 
 class BiSeNet(nn.Module):
-    def __init__(self, backbone, num_classes, aux_out=False):
+    def __init__(self, backbone, num_classes):
         super().__init__()
         self.backbone = backbone
-        self.aux_out = aux_out
+        # self.aux_out = aux_out
         
         n_bands = backbone.n_bands if hasattr(backbone, 'n_bands') else 3
         
@@ -2431,28 +2448,40 @@ class BiSeNet(nn.Module):
             nn.Conv2d(128, 256, 3, stride=2, padding=1),
             nn.BatchNorm2d(256), nn.ReLU(inplace=True)
         )
-        self.ffm = FeatureFusionModule(2304, 256)
+        self.gap = nn.AdaptiveAvgPool2d(1)  # Global Average Pooling
+        self.ffm = FeatureFusionModule(2048 + 1024 + 2048, 256)  # Concatenate and reduce channels
+        self.arm1 = AttentionRefinementModule(1024)
+        self.arm2 = AttentionRefinementModule(2048)
         self.head = nn.Conv2d(256, num_classes, 1)
-        self.aux1 = nn.Conv2d(1024, num_classes, 1)
-        self.aux2 = nn.Conv2d(2048, num_classes, 1)
+        # self.aux1 = nn.Conv2d(1024, num_classes, 1)
+        # self.aux2 = nn.Conv2d(2048, num_classes, 1)
+
+        self.activation = nn.Softmax(dim=1) if num_classes > 1 else nn.Identity()
 
     def forward(self, x):
         feats = self.backbone(x)
+        global_feats = self.gap(feats[-1])  # Global Average Pooling on last feature map
         sp = self.spatial(x)
         cp1, cp2 = feats[-2], feats[-1]  # cp1: 1024, cp2: 2048 channels
+        cp1 = self.arm1(cp1)  # Apply attention refinement
+        cp2 = self.arm2(cp2)  # Apply attention refinement
 
         # Upsample context features to match spatial path
+        feats_up = [F.interpolate(global_feats, size=sp.shape[-2:], mode='bilinear', align_corners=False)]
+        cp1_up = F.interpolate(cp1, size=sp.shape[-2:], mode='bilinear', align_corners=False)
         cp2_up = F.interpolate(cp2, size=sp.shape[-2:], mode='bilinear', align_corners=False)
-        ffm_out = self.ffm(sp, cp2_up)
+        cp_final = torch.cat(feats_up + [cp1_up, cp2_up], dim=1)  # Concatenate upsampled features
+        
+        ffm_out = self.ffm(sp, cp_final)
         out = self.head(ffm_out)
         out = F.interpolate(out, size=x.shape[-2:], mode='bilinear', align_corners=False)
 
-        if self.aux_out:
-            aux1_out = F.interpolate(self.aux1(cp1), size=x.shape[-2:], mode='bilinear', align_corners=False)
-            aux2_out = F.interpolate(self.aux2(cp2), size=x.shape[-2:], mode='bilinear', align_corners=False)
-            return out, aux1_out, aux2_out
-        else:
-            return out
+        # if self.aux_out:
+        #     aux1_out = F.interpolate(self.aux1(cp1), size=x.shape[-2:], mode='bilinear', align_corners=False)
+        #     aux2_out = F.interpolate(self.aux2(cp2), size=x.shape[-2:], mode='bilinear', align_corners=False)
+        #     return out, aux1_out, aux2_out
+        # else:
+        return self.activation(out)
 
 
 # ------------------ DANet ------------------
@@ -2501,6 +2530,7 @@ class DANet(nn.Module):
             nn.ReLU(inplace=True),
             nn.Conv2d(512, num_classes, 1)
         )
+        self.activation = nn.Softmax(dim=1) if num_classes > 1 else nn.Identity()
 
     def forward(self, x):
         feats = self.backbone(x)
@@ -2509,7 +2539,8 @@ class DANet(nn.Module):
         cam_out = self.cam(feat)
         out = pam_out + cam_out
         out = self.head(out)
-        return F.interpolate(out, size=x.shape[-2:], mode='bilinear', align_corners=False)
+        out = F.interpolate(out, size=x.shape[-2:], mode='bilinear', align_corners=False)
+        return self.activation(out)
 
 
 # ------------------ PAN ------------------
@@ -2550,10 +2581,12 @@ class PAN(nn.Module):
         self.fpa = FPABlock(2048)
         self.gau = GAU(1024, 2048)
         self.final = nn.Conv2d(1024, num_classes, 1)
+        self.activation = nn.Softmax(dim=1) if num_classes > 1 else nn.Identity()
 
     def forward(self, x):
         feats = self.backbone(x)
         f5 = self.fpa(feats[-1])
         f4 = self.gau(feats[-2], f5)
         out = self.final(f4)
-        return F.interpolate(out, size=x.shape[-2:], mode='bilinear', align_corners=False)
+        out = F.interpolate(out, size=x.shape[-2:], mode='bilinear', align_corners=False)
+        return self.activation(out)

@@ -25,9 +25,9 @@ GRES="gpu:a100_1g.10gb:1"
 MAIL_USER="dh2306@msstate.edu"
 PYTHON_ENV=".env/bin/activate"
 SCRIPT_NAME="finetune.py"
-BASE_LOG_DIR="./logs/finetune_20250704"
-BASE_WEIGHTS_DIR="./weights/finetune_20250704"
-SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250704"
+BASE_LOG_DIR="./logs/finetune_20250707"
+BASE_WEIGHTS_DIR="./weights/finetune_20250707"
+SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250707"
 SPLIT_DIR="./data/splits"
 MAX_JOBS=10
 
@@ -37,7 +37,7 @@ MAX_JOBS=10
 FREEZE_DECODER=false         # --freeze_decoder (not supported atm)
 MINI_BATCH_SIZE=32           # --mini_batch_size
 FULL_BATCH_SIZE=32           # --full_batch_size
-LR=1e-5                      # --lr
+LR=1e-4                      # --lr
 NUM_EPOCHS=1000              # --num_epochs
 EARLY_STOPPING_PATIENCE=50   # --early_stopping_patience
 REDUCE_LR_PATIENCE=15        # --reduce_lr_patience
@@ -135,9 +135,14 @@ run_python_job() {
 # =========================
 COUNT=0
 
+n_folds=6
 for fold in $(seq 1 $n_folds); do
     for n_train in 250 500 750; do
-        n_folds=${FOLDS[$n_train]}
+        # if fold > 4 and n_train != 500, skip
+        if [[ $fold -gt 4 && $n_train -ne 500 ]]; then
+            # echo "Skipping fold $fold for n_train $n_train (only 500 samples allowed
+            continue
+        fi
             for scheme in "${PRETRAIN_SCHEMES[@]}"; do
                 for model in "${MODELS[@]}"; do
                 # for freeze_encoder in "${FREEZE_ENCODERS[@]}"; do

@@ -616,15 +616,11 @@ class StandardDataAugmentations:
         """
         self.s = s
         if s > 0:
-            self.color_jitter = transforms.RandomApply(
-                [transforms.ColorJitter(0.8*s, 0.8*s, 0.8*s, 0.2*s)],
-                p=0.8 if s > 0 else 0.0
-            )
-            self.gaussian_blur = transforms.GaussianBlur(
-                kernel_size=25, 
-                sigma=(0.1*s, 2.0*s),
-            )
-
+            self.color_augmentations = transforms.Compose([
+                transforms.RandomApply([transforms.ColorJitter(0.4*s, 0.4*s, 0.2*s, 0.2*s)], p=0.8),
+                transforms.RandomGrayscale(p=0.2*s),
+                transforms.GaussianBlur(kernel_size=256, sigma=(0.1*s, 2.0*s))
+            ])
     # @staticmethod
     def __call__(self, X: torch.Tensor, y: Optional[torch.Tensor] = None):
         
@@ -645,8 +641,7 @@ class StandardDataAugmentations:
             y = F.rotate(y, rot_angle * 90)
         
         if self.s > 0:
-            X = self.color_jitter(X)
-            X = self.gaussian_blur(X)
+            X = self.color_augmentations(X)
         
         if y is not None:
             return X, y
