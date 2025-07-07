@@ -619,7 +619,7 @@ class StandardDataAugmentations:
             self.color_augmentations = transforms.Compose([
                 transforms.RandomApply([transforms.ColorJitter(0.4*s, 0.4*s, 0.2*s, 0.2*s)], p=0.8),
                 transforms.RandomGrayscale(p=0.2*s),
-                transforms.GaussianBlur(kernel_size=256, sigma=(0.1*s, 2.0*s))
+                transforms.GaussianBlur(kernel_size=25, sigma=(0.1*s, 2.0*s))
             ])
     # @staticmethod
     def __call__(self, X: torch.Tensor, y: Optional[torch.Tensor] = None):
