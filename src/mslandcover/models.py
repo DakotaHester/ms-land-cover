@@ -2449,7 +2449,7 @@ class BiSeNet(nn.Module):
             nn.BatchNorm2d(256), nn.ReLU(inplace=True)
         )
         self.gap = nn.AdaptiveAvgPool2d(1)  # Global Average Pooling
-        self.ffm = FeatureFusionModule(2048 + 1024 + 2048, 256)  # Concatenate and reduce channels
+        self.ffm = FeatureFusionModule(2048 + 1024 + 2048 + 256, 256)  # Concatenate and reduce channels
         self.arm1 = AttentionRefinementModule(1024)
         self.arm2 = AttentionRefinementModule(2048)
         self.head = nn.Conv2d(256, num_classes, 1)
@@ -2467,10 +2467,10 @@ class BiSeNet(nn.Module):
         cp2 = self.arm2(cp2)  # Apply attention refinement
 
         # Upsample context features to match spatial path
-        feats_up = [F.interpolate(global_feats, size=sp.shape[-2:], mode='bilinear', align_corners=False)]
+        feats_up = F.interpolate(global_feats, size=sp.shape[-2:], mode='bilinear', align_corners=False)
         cp1_up = F.interpolate(cp1, size=sp.shape[-2:], mode='bilinear', align_corners=False)
         cp2_up = F.interpolate(cp2, size=sp.shape[-2:], mode='bilinear', align_corners=False)
-        cp_final = torch.cat(feats_up + [cp1_up, cp2_up], dim=1)  # Concatenate upsampled features
+        cp_final = torch.cat([feats_up, cp1_up, cp2_up], dim=1)  # Concatenate upsampled features
         
         ffm_out = self.ffm(sp, cp_final)
         out = self.head(ffm_out)
