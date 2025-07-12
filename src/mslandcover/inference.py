@@ -486,10 +486,11 @@ def load_raster_for_processing(path: str, args: ArgumentParser, gdf: Optional[gp
     elif path.endswith('.tif'):
         
         if gdf is not None:
-            in_data = rxr.open_rasterio(tmp_file.name).rio.clip_box(*unary_union(buffered_geoms).bounds)
+            raise NotImplementedError("Clipping with GeoDataFrame is not implemented for .tif files just yet.")
+            in_data = rxr.open_rasterio(path).rio.clip_box(*unary_union(buffered_geoms).bounds)
             in_data = in_data.rio.clip(geoms=buffered_geoms, all_touched=True)
         else:
-            in_data = rxr.open_rasterio(tmp_file.name)
+            in_data = rxr.open_rasterio(path)
         
         if args.match_histograms:
             source_histograms = load_histogram_data(state='MS', year=2016)
