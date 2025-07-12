@@ -61,22 +61,22 @@ for state in "${states[@]}"; do
             cat > "${SLURM_SCRIPT}" <<EOL
 #!/bin/bash
 
-# #SBATCH -N 1
-# #SBATCH -n $N_TASKS
-# #SBATCH --mem=$MEMORY
-# #SBATCH -p $PARTITION
-# #SBATCH -A $ACCOUNT
-# #SBATCH -t $TIME
-# #SBATCH --gres=$GRES
-# #SBATCH --job-name=$JOB_NAME
-# #SBATCH --output=$LOG_FILE
-# #SBATCH --mail-type=FAIL
-# #SBATCH --mail-user=$MAIL_USER
+#SBATCH -N 1
+#SBATCH -n $N_TASKS
+#SBATCH --mem=$MEMORY
+#SBATCH -p $PARTITION
+#SBATCH -A $ACCOUNT
+#SBATCH -t $TIME
+#SBATCH --gres=$GRES
+#SBATCH --job-name=$JOB_NAME
+#SBATCH --output=$LOG_FILE
+#SBATCH --mail-type=FAIL
+#SBATCH --mail-user=$MAIL_USER
 
-# ml cuda
-# ml python/3.10.8
-# source $PYTHON_ENV
-# export CUDA_VISIBLE_DEVICES=0
+ml cuda
+ml python/3.10.8
+source $PYTHON_ENV
+export CUDA_VISIBLE_DEVICES=0
 
 python $SCRIPT_NAME \ 
     --input_dir "${INPUT_DIR}" \
