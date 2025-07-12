@@ -56,7 +56,7 @@ for state in "${states[@]}"; do
                 fi
             done
             cat > "${SLURM_SCRIPT}" <<EOL
-            
+
 #!/bin/bash
 
 # #SBATCH -N 1
@@ -89,7 +89,6 @@ EOL
             echo "Submitted job $JOB_NAME for tile ${i} in ${state} ${year}. Log: ${LOG_FILE}"
             sleep 1
 
-            if 
         done
     done
 done    
