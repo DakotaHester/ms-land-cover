@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 from numpy.lib.stride_tricks import sliding_window_view
 from typing import List, Tuple, Optional
+from tqdm import tqdm
 import xarray as xr
 import rioxarray as rxr
 from scipy.interpolate import interp1d
@@ -34,6 +35,7 @@ class RasterProcessor:
         std: Optional[torch.Tensor]=None,
         tta: bool=False,
         device: torch.device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
+        enable_pbar: bool=False,
     ):
         self.tile_size = tile_size
         self.stride = stride
@@ -41,6 +43,7 @@ class RasterProcessor:
         self.batch_size = batch_size
         self.device = device
         self.tta = tta  # Test Time Augmentation flag
+        self.enable_pbar = enable_pbarå
         
         # Move model to device and set to eval mode
         self.model = model.to(device)
@@ -156,8 +159,7 @@ class RasterProcessor:
             # total_batches += 1
         
         # Process batches
-        # for batch_tiles, batch_coords in tqdm(self.generate_tile_batches(raster_data), total=total_batches, desc='Processing', unit='batches', disable=True):
-        for batch_tiles, batch_coords in self.generate_tile_batches(raster_data):
+        for batch_tiles, batch_coords in tqdm(self.generate_tile_batches(raster_data), total=total_batches, desc='Processing', unit='batches', disable=not self.enable_pbar):
             weighted_probs, coords = self.process_batch(batch_tiles, batch_coords)
 
             # Accumulate results

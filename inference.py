@@ -266,10 +266,13 @@ def main():
             raise ValueError(f"Index {args.index} is out of bounds for the number of files found: {len(paths)}")
         paths = [paths[args.index]]
         args.num_processes = 1  # Force single process for specific raster
+        args.enable_pbar = True  # Enable progress bar for single raster
         print(f"Processing single raster: {os.path.basename(paths[0])} at index {args.index}")
+        
         
     else:
         # If no index, process all matching rasters
+        args.enable_pbar = False # Disable progress bar for multiple files
         paths = glob(os.path.join(args.input_dir, args.file_pattern))
         print(f"Found {len(paths)} files to process")
     
