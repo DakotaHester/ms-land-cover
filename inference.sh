@@ -78,7 +78,7 @@ ml python/3.10.8
 source $PYTHON_ENV
 export CUDA_VISIBLE_DEVICES=0
 
-python $SCRIPT_NAME \ 
+python "${SCRIPT_NAME}" \
     --input_dir "${INPUT_DIR}" \
     --output_dir "${OUTPUT_DIR}" \
     --weights_path "${WEIGHTS_PATH}" \
