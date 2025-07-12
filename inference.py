@@ -319,7 +319,7 @@ def main():
                     print(f"  {result}")
     
     else:
-        for path in tqdm(paths, desc="Processing rasters", disable=args.index is None):
+        for path in tqdm(paths, desc="Processing rasters"):
             try:
                 result = process_single_raster(path, args)
                 if not result.startswith("Processed"):

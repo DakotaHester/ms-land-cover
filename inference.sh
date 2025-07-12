@@ -54,7 +54,7 @@ for state in "${states[@]}"; do
                     break
                 else
                     # echo "[$(date)] $TOTAL_JOBS jobs in queue. Waiting to submit $JOB_NAME..."
-                    sleep 20
+                    sleep 5
                 fi
             done
 

@@ -156,6 +156,7 @@ class RasterProcessor:
         # estimate total batches based on raster size, tile size, and stride
         total_batches = ((height - self.tile_size) // self.stride + 1)
         total_batches *= ((width - self.tile_size) // self.stride + 1)
+        total_batches = (total_batches / self.batch_size) + 1
         
         # Process batches
         for batch_tiles, batch_coords in tqdm(self.generate_tile_batches(raster_data), total=total_batches, desc='Processing', unit='batches', disable=not self.enable_pbar):
