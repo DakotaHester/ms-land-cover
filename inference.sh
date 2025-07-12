@@ -38,7 +38,7 @@ for state in "${states[@]}"; do
         fi
 
         INPUT_TOTAL=$(find "${INPUT_DIR}" -type d | wc -l)
-        for ((i=0; i<INPUT_DIR; i+=1)); do
+        for ((i=0; i<INPUT_TOTAL; i+=1)); do
             echo "${STATE} ${YEAR} - Processing tile ${i}"
 
             JOB_NAME="inference_${state}_${year}_tile_${i}"
