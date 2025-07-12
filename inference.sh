@@ -38,12 +38,14 @@ for state in "${states[@]}"; do
         fi
 
         INPUT_TOTAL=$(find "${INPUT_DIR}" -type d | wc -l)
+        echo "Total input directories for ${state} ${year}: ${INPUT_TOTAL}"
         for ((i=0; i<INPUT_TOTAL; i+=1)); do
             echo "${STATE} ${YEAR} - Processing tile ${i}"
 
             JOB_NAME="inference_${state}_${year}_tile_${i}"
             LOG_FILE="${LOG_DIR}/${i}.out"
             SLURM_SCRIPT="${SLURM_SCRIPT_DIR}/${JOB_NAME}.slurm"
+            mkdir -p "${SLURM_SCRIPT_DIR}"
 
             # Wait if too many jobs are queued or running
             while true; do
@@ -55,6 +57,7 @@ for state in "${states[@]}"; do
                     sleep 20
                 fi
             done
+
             cat > "${SLURM_SCRIPT}" <<EOL
 
 #!/bin/bash
@@ -85,6 +88,7 @@ python $SCRIPT_NAME \
     "${MATCH_HISTOGRAMS}"
 
 EOL
+
             sbatch "${SLURM_SCRIPT}"
             echo "Submitted job $JOB_NAME for tile ${i} in ${state} ${year}. Log: ${LOG_FILE}"
             sleep 1
