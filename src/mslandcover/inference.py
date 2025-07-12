@@ -325,6 +325,7 @@ def process_single_raster(path, args, gdf: Optional[gpd.GeoDataFrame]=None):
             std=std,
             tta=args.tta,
             device=device,
+            enable_pbar=args.enable_pbar,
         )
         
         in_data = load_raster_for_processing(path, args, gdf)
