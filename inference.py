@@ -46,7 +46,7 @@ def parse_arguments():
     parser.add_argument(
         '--weights_path',
         type=str,
-        default='./weights/finetune_20250612/unet/byol/3_bands/presize_256/prebatch_128/randinit_false/frozenencoder_false/750/fold_3/best_model.pth',
+        default='./weights/finetune_20250707/unet/byol/randinit_false/frozenencoder_false/500/fold_2/best_model.pth',
         help='Path to the trained model weights file'
     )
     
@@ -104,8 +104,8 @@ def parse_arguments():
     parser.add_argument(
         '--gaussian_sigma',
         type=float,
-        default=64.0,
-        help='Sigma for Gaussian blending of overlapping tiles. Higher values create smoother transitions. Default: 64.0'
+        default=128,
+        help='Sigma for Gaussian blending of overlapping tiles. Higher values create smoother transitions. Default: 128'
     )
     
     # Input data preprocessing
@@ -113,8 +113,8 @@ def parse_arguments():
         '--bands',
         type=int,
         nargs=3,
-        default=[1, 2, 4],
-        help='Spectral bands to use from input rasters (1-indexed). Default: [1, 2, 4] (Red, Green, NIR)'
+        default=[4, 1, 2],
+        help='Spectral bands to use from input rasters (1-indexed). Default: [4, 1, 2] (NIR, Red, Green)'
     )
     
     parser.add_argument(
@@ -174,7 +174,7 @@ def parse_arguments():
     parser.add_argument(
         '--file_pattern',
         type=str,
-        default='*/*.sid',
+        default='*.tif',
         help='File pattern to match input files (glob pattern). Default: *.tif'
     )
     
