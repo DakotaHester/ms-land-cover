@@ -37,7 +37,7 @@ for state in "${states[@]}"; do
             MATCH_HISTOGRAMS=""
         fi
 
-        INPUT_TOTAL=$(find "${INPUT_DIR}" -type d | wc -l)
+        INPUT_TOTAL=$(find "${INPUT_DIR}" -type f | wc -l)
         echo "Total input directories for ${state} ${year}: ${INPUT_TOTAL}"
         for ((i=0; i<INPUT_TOTAL; i+=1)); do
             echo "${STATE} ${YEAR} - Processing tile ${i}"
@@ -59,7 +59,6 @@ for state in "${states[@]}"; do
             done
 
             cat > "${SLURM_SCRIPT}" <<EOL
-
 #!/bin/bash
 
 # #SBATCH -N 1
