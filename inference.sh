@@ -83,7 +83,7 @@ python "${SCRIPT_NAME}" \
     --output_dir "${OUTPUT_DIR}" \
     --weights_path "${WEIGHTS_PATH}" \
     --num_processes 1 \
-    -index $i \
+    --index $i \
     "${MATCH_HISTOGRAMS}"
 
 EOL
