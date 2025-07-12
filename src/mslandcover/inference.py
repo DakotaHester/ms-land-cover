@@ -43,7 +43,7 @@ class RasterProcessor:
         self.batch_size = batch_size
         self.device = device
         self.tta = tta  # Test Time Augmentation flag
-        self.enable_pbar = enable_pbarå
+        self.enable_pbar = enable_pbar
         
         # Move model to device and set to eval mode
         self.model = model.to(device)
@@ -153,10 +153,9 @@ class RasterProcessor:
         # weights_sum = torch.zeros((height, width))
         
         
-        # determine total number of batches
-        # total_batches = 0
-        # for _ in self.generate_tile_batches(raster_data):
-            # total_batches += 1
+        # estimate total batches based on raster size, tile size, and stride
+        total_batches = ((height - self.tile_size) // self.stride + 1)
+        total_batches *= ((width - self.tile_size) // self.stride + 1)
         
         # Process batches
         for batch_tiles, batch_coords in tqdm(self.generate_tile_batches(raster_data), total=total_batches, desc='Processing', unit='batches', disable=not self.enable_pbar):
