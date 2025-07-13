@@ -18,7 +18,8 @@ MAX_JOBS=10
 WEIGHTS_PATH="./weights/finetune_20250707/unet/byol/randinit_false/frozenencoder_false/500/fold_2/best_model.pth"
 
 states=("ms")
-years=("2016" "2023")
+# years=("2016" "2023")
+years=("2023")
 
 for state in "${states[@]}"; do
     for year in "${years[@]}"; do
@@ -83,8 +84,7 @@ python "${SCRIPT_NAME}" \
     --output_dir "${OUTPUT_DIR}" \
     --weights_path "${WEIGHTS_PATH}" \
     --num_processes 1 \
-    --index $i \
-    "${MATCH_HISTOGRAMS}"
+    --index $i ${MATCH_HISTOGRAMS}
 
 EOL
 
