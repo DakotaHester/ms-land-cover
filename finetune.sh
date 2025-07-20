@@ -151,9 +151,9 @@ for fold in $(seq 1 $n_folds); do
                     if [[ "$scheme" == "byol" ]]; then
                         ENCODER_WEIGHTS="./weights/resnet101_20250624/byol_bands3_size256_randinitfalse/resnet101/byol_last.pth"
                     elif [[ "$scheme" == "byol_randinit" ]]; then
-                        ENCODER_WEIGHTS="./weights/resnet101_20250624/byol_bands3_size256_randinittrue/resnet101/byol_last.pth"
+                        ENCODER_WEIGHTS="./weights/resnet101_20250624/byol_bands3_size256_randinittrue/resnet101_randinit/byol_last.pth"
                     else
-                        ="$scheme"
+                        ENCODER_WEIGHTS="$scheme"
                     fi
                     
                     # if linear_probe, set freeze_encoder to true
