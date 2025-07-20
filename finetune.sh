@@ -63,7 +63,7 @@ fi
 # =========================
 # MODELS=("unet" "deeplabv3plus" "linear_probe")
 MODELS=("deeplabv3plus" "unet" "attention_unet" "linear_probe" "upernet" "pspnet" "bisenet" "danet" "pan")
-PRETRAIN_SCHEMES=("imagenet" "byol")
+PRETRAIN_SCHEMES=("imagenet" "byol" "byol_randinit" "none")
 # FREEZE_ENCODERS=(false true) # Freeze encoder options
 
 # Dataset sizes and folds
@@ -150,8 +150,10 @@ for fold in $(seq 1 $n_folds); do
                     # Set encoder weights path or keyword
                     if [[ "$scheme" == "byol" ]]; then
                         ENCODER_WEIGHTS="./weights/resnet101_20250624/byol_bands3_size256_randinitfalse/resnet101/byol_last.pth"
+                    elif [[ "$scheme" == "byol_randinit" ]]; then
+                        ENCODER_WEIGHTS="./weights/resnet101_20250624/byol_bands3_size256_randinittrue/resnet101/byol_last.pth"
                     else
-                        ENCODER_WEIGHTS="$scheme"
+                        ="$scheme"
                     fi
                     
                     # if linear_probe, set freeze_encoder to true
@@ -172,7 +174,7 @@ for fold in $(seq 1 $n_folds); do
 
                     if [[ -f "$FINISHED_FILE" ]]; then
                         echo "Skipping $JOB_NAME (already finished)"
-                        # continue
+                        continue
                     fi
 
                     if [[ "$EXECUTION_MODE" == "slurm" ]]; then
@@ -225,31 +227,31 @@ echo "SLURM_SUBMIT_DIR: \$SLURM_SUBMIT_DIR"
 echo "SLURM_JOB_NODELIST: \$SLURM_JOB_NODELIST"
 echo "===================================="
 
-# python $SCRIPT_NAME \\
-# --model $model \\
-# --encoder_weights "$ENCODER_WEIGHTS" \\
-# --split_dir "$SPLIT_DIR" \\
-# --n_train_samples $n_train \\
-# --fold $fold \\
-# --mini_batch_size $MINI_BATCH_SIZE \\
-# --full_batch_size $FULL_BATCH_SIZE \\
-# --lr $LR \\
-# --num_epochs $NUM_EPOCHS \\
-# --early_stopping_patience $EARLY_STOPPING_PATIENCE \\
-# --reduce_lr_patience $REDUCE_LR_PATIENCE \\
-# --log_dir "$JOB_LOG_DIR" \\
-# --output_dir "$JOB_WEIGHTS_DIR" \\
-# --num_workers $NUM_WORKERS \\
-# --seed $SEED \\
-# \$( [[ "$freeze_encoder" == true ]] && echo "--freeze_encoder" ) \\
-# \$( [[ "$FREEZE_DECODER" == true ]] && echo "--freeze_decoder" ) \\
-# \$( [[ "$PRELOAD" == true ]] && echo "--preload" ) \\
-# \$( [[ "$LOAD_CHECKPOINT" == true ]] && echo "--load_checkpoint" ) \\
-# --minimum_class_proportion $MINIMUM_CLASS_PROPORTION \\
-# --oversample_factor $OVERSAMPLE_FACTOR \\
-# --minimum_oversample_ratio_factor $MINIMUM_OVERSAMPLE_RATIO_FACTOR \\
-# --alpha_power $ALPHA_POWER \\
-# --focal_gamma $FOCAL_GAMMA
+python $SCRIPT_NAME \\
+--model $model \\
+--encoder_weights "$ENCODER_WEIGHTS" \\
+--split_dir "$SPLIT_DIR" \\
+--n_train_samples $n_train \\
+--fold $fold \\
+--mini_batch_size $MINI_BATCH_SIZE \\
+--full_batch_size $FULL_BATCH_SIZE \\
+--lr $LR \\
+--num_epochs $NUM_EPOCHS \\
+--early_stopping_patience $EARLY_STOPPING_PATIENCE \\
+--reduce_lr_patience $REDUCE_LR_PATIENCE \\
+--log_dir "$JOB_LOG_DIR" \\
+--output_dir "$JOB_WEIGHTS_DIR" \\
+--num_workers $NUM_WORKERS \\
+--seed $SEED \\
+\$( [[ "$freeze_encoder" == true ]] && echo "--freeze_encoder" ) \\
+\$( [[ "$FREEZE_DECODER" == true ]] && echo "--freeze_decoder" ) \\
+\$( [[ "$PRELOAD" == true ]] && echo "--preload" ) \\
+\$( [[ "$LOAD_CHECKPOINT" == true ]] && echo "--load_checkpoint" ) \\
+--minimum_class_proportion $MINIMUM_CLASS_PROPORTION \\
+--oversample_factor $OVERSAMPLE_FACTOR \\
+--minimum_oversample_ratio_factor $MINIMUM_OVERSAMPLE_RATIO_FACTOR \\
+--alpha_power $ALPHA_POWER \\
+--focal_gamma $FOCAL_GAMMA
 
 python test.py \\
     --model "$model" \\
