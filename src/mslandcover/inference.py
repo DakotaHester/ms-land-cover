@@ -7,6 +7,7 @@ import torch
 import torch.nn as nn
 from numpy.lib.stride_tricks import sliding_window_view
 from typing import List, Tuple, Optional
+from tqdm import tqdm
 import xarray as xr
 import rioxarray as rxr
 from scipy.interpolate import interp1d
@@ -34,6 +35,7 @@ class RasterProcessor:
         std: Optional[torch.Tensor]=None,
         tta: bool=False,
         device: torch.device=torch.device('cuda' if torch.cuda.is_available() else 'cpu'),
+        enable_pbar: bool=False,
     ):
         self.tile_size = tile_size
         self.stride = stride
@@ -41,6 +43,7 @@ class RasterProcessor:
         self.batch_size = batch_size
         self.device = device
         self.tta = tta  # Test Time Augmentation flag
+        self.enable_pbar = enable_pbar
         
         # Move model to device and set to eval mode
         self.model = model.to(device)
@@ -150,14 +153,13 @@ class RasterProcessor:
         # weights_sum = torch.zeros((height, width))
         
         
-        # determine total number of batches
-        # total_batches = 0
-        # for _ in self.generate_tile_batches(raster_data):
-            # total_batches += 1
+        # estimate total batches based on raster size, tile size, and stride
+        total_batches = ((height - self.tile_size) // self.stride + 1)
+        total_batches *= ((width - self.tile_size) // self.stride + 1)
+        total_batches = (total_batches // self.batch_size) + 1
         
         # Process batches
-        # for batch_tiles, batch_coords in tqdm(self.generate_tile_batches(raster_data), total=total_batches, desc='Processing', unit='batches', disable=True):
-        for batch_tiles, batch_coords in self.generate_tile_batches(raster_data):
+        for batch_tiles, batch_coords in tqdm(self.generate_tile_batches(raster_data), total=total_batches, desc='Processing', unit='batches', disable=not self.enable_pbar):
             weighted_probs, coords = self.process_batch(batch_tiles, batch_coords)
 
             # Accumulate results
@@ -324,6 +326,7 @@ def process_single_raster(path, args, gdf: Optional[gpd.GeoDataFrame]=None):
             std=std,
             tta=args.tta,
             device=device,
+            enable_pbar=args.enable_pbar,
         )
         
         in_data = load_raster_for_processing(path, args, gdf)
@@ -485,10 +488,11 @@ def load_raster_for_processing(path: str, args: ArgumentParser, gdf: Optional[gp
     elif path.endswith('.tif'):
         
         if gdf is not None:
-            in_data = rxr.open_rasterio(tmp_file.name).rio.clip_box(*unary_union(buffered_geoms).bounds)
+            raise NotImplementedError("Clipping with GeoDataFrame is not implemented for .tif files just yet.")
+            in_data = rxr.open_rasterio(path).rio.clip_box(*unary_union(buffered_geoms).bounds)
             in_data = in_data.rio.clip(geoms=buffered_geoms, all_touched=True)
         else:
-            in_data = rxr.open_rasterio(tmp_file.name)
+            in_data = rxr.open_rasterio(path)
         
         if args.match_histograms:
             source_histograms = load_histogram_data(state='MS', year=2016)

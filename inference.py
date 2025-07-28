@@ -46,7 +46,7 @@ def parse_arguments():
     parser.add_argument(
         '--weights_path',
         type=str,
-        default='./weights/finetune_20250612/unet/byol/3_bands/presize_256/prebatch_128/randinit_false/frozenencoder_false/750/fold_3/best_model.pth',
+        default='./weights/finetune_20250707/unet/byol/randinit_false/frozenencoder_false/500/fold_2/best_model.pth',
         help='Path to the trained model weights file'
     )
     
@@ -90,22 +90,22 @@ def parse_arguments():
     parser.add_argument(
         '--stride',
         type=int,
-        default=128,
+        default=64,
         help='Stride between tiles (pixels). Should be <= tile_size. Smaller stride provides more overlap but takes longer. Default: 128'
     )
     
     parser.add_argument(
         '--batch_size',
         type=int,
-        default=32,
+        default=128,
         help='Batch size for model inference. Larger batches are faster but use more GPU memory. Default: 256'
     )
     
     parser.add_argument(
         '--gaussian_sigma',
         type=float,
-        default=64.0,
-        help='Sigma for Gaussian blending of overlapping tiles. Higher values create smoother transitions. Default: 64.0'
+        default=192,
+        help='Sigma for Gaussian blending of overlapping tiles. Higher values create smoother transitions. Default: 128'
     )
     
     # Input data preprocessing
@@ -113,8 +113,8 @@ def parse_arguments():
         '--bands',
         type=int,
         nargs=3,
-        default=[1, 2, 4],
-        help='Spectral bands to use from input rasters (1-indexed). Default: [1, 2, 4] (Red, Green, NIR)'
+        default=[4, 1, 2],
+        help='Spectral bands to use from input rasters (1-indexed). Default: [4, 1, 2] (NIR, Red, Green)'
     )
     
     parser.add_argument(
@@ -174,7 +174,7 @@ def parse_arguments():
     parser.add_argument(
         '--file_pattern',
         type=str,
-        default='*/*.sid',
+        default='*.tif',
         help='File pattern to match input files (glob pattern). Default: *.tif'
     )
     
@@ -230,6 +230,35 @@ def main():
     
     args = parse_arguments()
     
+    # Print configuration
+    print("Land Cover Inference Configuration:")
+    print("\nLand Cover Inference Configuration:")
+    print(f"  Input Directory:        {args.input_dir}")
+    print(f"  Output Directory:       {args.output_dir}")
+    print(f"  Model Weights:          {args.weights_path}")
+    print(f"  Mean Path:              {args.mean_path}")
+    print(f"  Std Path:               {args.std_path}")
+    print(f"  Model:                  {args.model}")
+    print(f"  Num Classes:            {args.num_classes}")
+    print(f"  In Channels:            {args.in_channels}")
+    print(f"  Bands:                  {args.bands}")
+    print(f"  Tile Size:              {args.tile_size}x{args.tile_size}")
+    print(f"  Stride:                 {args.stride}")
+    print(f"  Batch Size:             {args.batch_size}")
+    print(f"  Gaussian Sigma:         {args.gaussian_sigma}")
+    print(f"  Scale Factor:           {args.scale_factor}")
+    print(f"  Mode Filter Size:       {args.mode_filter_size} ({'Enabled' if args.mode_filter_size > 0 else 'Disabled'})")
+    print(f"  Num Processes:          {args.num_processes if args.num_processes else 'Auto'}")
+    print(f"  Compression:            {args.compress}")
+    print(f"  Block Size:             {args.block_size}")
+    print(f"  Skip Existing:          {args.skip_existing}")
+    print(f"  Overwrite:              {args.overwrite}")
+    print(f"  File Pattern:           {args.file_pattern}")
+    print(f"  Match Histograms:       {args.match_histograms}")
+    print(f"  Test-Time Augmentation: {args.tta}")
+    print(f"  Index:                  {args.index if args.index is not None else 'All'}")
+    print("-" * 60)
+    
     if args.index is not None:
         # If index is specified, only process that raster
         paths = glob(os.path.join(args.input_dir, args.file_pattern))
@@ -237,21 +266,15 @@ def main():
             raise ValueError(f"Index {args.index} is out of bounds for the number of files found: {len(paths)}")
         paths = [paths[args.index]]
         args.num_processes = 1  # Force single process for specific raster
-    
-    # Print configuration
-    print("Land Cover Inference Configuration:")
-    print(f"  Input Directory: {args.input_dir}")
-    print(f"  Output Directory: {args.output_dir}")
-    print(f"  Model Weights: {args.weights_path}")
-    print(f"  Processing {args.in_channels} bands: {args.bands}")
-    print(f"  Tile Size: {args.tile_size}x{args.tile_size}")
-    print(f"  Batch Size: {args.batch_size}")
-    print(f"  Mode Filter: {'Enabled' if args.mode_filter_size > 0 else 'Disabled'}")
-    print("-" * 50)
-    
-    # Get all paths to process
-    paths = glob(os.path.join(args.input_dir, args.file_pattern))
-    print(f"Found {len(paths)} files to process")
+        args.enable_pbar = True  # Enable progress bar for single raster
+        print(f"Processing single raster: {os.path.basename(paths[0])} at index {args.index}")
+        
+        
+    else:
+        # If no index, process all matching rasters
+        args.enable_pbar = False # Disable progress bar for multiple files
+        paths = glob(os.path.join(args.input_dir, args.file_pattern))
+        print(f"Found {len(paths)} files to process")
     
     if len(paths) == 0:
         print(f"No files found matching pattern '{args.file_pattern}' in {args.input_dir}")

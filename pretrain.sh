@@ -19,7 +19,7 @@ PRETRAIN_SCHEMES=("byol")
 # BATCH_SIZES=(128 256 512)
 BANDS=(3)
 # BATCH_SIZES=(128)
-RAND_INIT_OPTIONS=(false)
+RAND_INIT_OPTIONS=(false true)
 
 LOAD_CHECKPOINT=false
 
@@ -62,7 +62,7 @@ for rand_init in "${RAND_INIT_OPTIONS[@]}"; do
 
         if [[ -f "$LOG_DIR/resnet101/$scheme/finished.txt" ]]; then
           echo "Skipping: $scheme bands=$band size=$size rand_init=$rand_init (already finished)"
-#           continue
+          continue
         elif [ "$LOAD_CHECKPOINT" == true ] && [[ -f "$LOG_DIR/resnet101/$scheme/checkpoint.pth" ]]; then
           echo "Loading checkpoint for: $scheme bands=$band size=$size rand_init=$rand_init"
           python pretrain.py \

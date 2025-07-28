@@ -281,9 +281,11 @@ def load_histogram_data(state: str, year: int):
     # | | histograms
     # | | | {state}
     # | | | | {year}.npy
+    package = f'mslandcover.assets.histograms.{state}'
+    file = f'{year}.npy'
     
-    with resources.path('mslandcover.assets.histograms', f'{state}/{year}.npy') as path:
+    with resources.path(package, file) as path:
         if path.exists():
-            return np.load(path, allow_pickle=True).item()
+            return np.load(path, allow_pickle=True)
         else:
             raise FileNotFoundError(f"Histogram data for {state} in {year} not found at {path}")

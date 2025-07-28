@@ -63,7 +63,7 @@ fi
 # =========================
 # MODELS=("unet" "deeplabv3plus" "linear_probe")
 MODELS=("deeplabv3plus" "unet" "attention_unet" "linear_probe" "upernet" "pspnet" "bisenet" "danet" "pan")
-PRETRAIN_SCHEMES=("imagenet" "byol")
+PRETRAIN_SCHEMES=("imagenet" "byol" "byol_randinit" "none")
 # FREEZE_ENCODERS=(false true) # Freeze encoder options
 
 # Dataset sizes and folds
@@ -150,6 +150,8 @@ for fold in $(seq 1 $n_folds); do
                     # Set encoder weights path or keyword
                     if [[ "$scheme" == "byol" ]]; then
                         ENCODER_WEIGHTS="./weights/resnet101_20250624/byol_bands3_size256_randinitfalse/resnet101/byol_last.pth"
+                    elif [[ "$scheme" == "byol_randinit" ]]; then
+                        ENCODER_WEIGHTS="./weights/resnet101_20250624/byol_bands3_size256_randinittrue/resnet101_randinit/byol_last.pth"
                     else
                         ENCODER_WEIGHTS="$scheme"
                     fi

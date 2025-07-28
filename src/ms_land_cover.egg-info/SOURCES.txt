@@ -13,6 +13,9 @@ src/mslandcover/metrics.py
 src/mslandcover/models.py
 src/mslandcover/optim.py
 src/mslandcover/utils.py
+src/mslandcover/assets/histograms/MS/2016.npy
+src/mslandcover/assets/histograms/MS/2023.npy
+src/mslandcover/assets/histograms/MS/__init__.py
 src/mslandcover/data/__init__.py
 src/mslandcover/data/datasets.py
 src/mslandcover/data/preprocessing.py
