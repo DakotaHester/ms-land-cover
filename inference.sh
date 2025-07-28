@@ -83,7 +83,7 @@ export CUDA_VISIBLE_DEVICES=0
 python "${SCRIPT_NAME}" \
     --input_dir "${INPUT_DIR}" \
     --output_dir "${OUTPUT_DIR}" \
-    --weights_path "${WEIGHTS_PATH}" \
+    # --weights_path "${WEIGHTS_PATH}" \
     --num_processes 1 \
     --index $i ${MATCH_HISTOGRAMS}
 
