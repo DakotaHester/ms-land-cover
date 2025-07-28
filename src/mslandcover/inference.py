@@ -60,7 +60,9 @@ class RasterProcessor:
         weights /= weights.max()
         weights = weights.astype(np.float32)
         self.weights = torch.from_numpy(weights)
-
+        
+        self.is_ensemble = isinstance(model, list)  or isinstance(model, nn.ModuleList)
+        
     def generate_tile_batches(self, raster_data: np.ndarray, nodata: int=np.nan):
         height, width = raster_data.shape[1:]
         batch_tiles = []
@@ -129,6 +131,58 @@ class RasterProcessor:
 
 
 
+    def process_batch_ensemble(self, batch_tiles: torch.Tensor, batch_coords: List[Tuple[int, int]]) -> Tuple[torch.Tensor, List[Tuple[int, int]]]:
+        """Process a batch of tiles with an ensemble of models."""
+        if self.mean is not None and self.std is not None:
+            batch_tiles_norm = torch.subtract(batch_tiles, self.mean[None, :, None, None])
+            batch_tiles_norm = torch.divide(batch_tiles_norm, self.std[None, :, None, None])
+        else:
+            batch_tiles_norm = batch_tiles.clone()
+        
+        # go from (B, C, H, W) to (N, B, C, H, W) for ensemble, with N being the number of copies
+        batch_tiles_norm = batch_tiles_norm.unsqueeze(0).repeat(len(self.model), 1, 1, 1, 1)
+        # batch_tiles = batch_tiles.unsqueeze(0).repeat(len(self.model), 1, 1, 1, 1)
+        
+        if self.tta:
+            # we want to apply tta to each patch in (N, B)
+            is_hflip = torch.randint(0, 2, (len(self.model), batch_tiles.shape[0])).bool()
+            is_vflip = torch.randint(0, 2, (len(self.model), batch_tiles.shape[0])).bool()
+            rot_angle = torch.randint(0, 4, (len(self.model), batch_tiles.shape[0]))
+            for i in range(len(self.model)):
+                for j in range(batch_tiles.shape[0]):
+                    if is_hflip[i, j]:
+                        batch_tiles_norm[i, j] = torch.flip(batch_tiles_norm[i, j], [2])
+                    if is_vflip[i, j]:
+                        batch_tiles_norm[i, j] = torch.flip(batch_tiles_norm[i, j], [1])
+                    batch_tiles_norm[i, j] = torch.rot90(batch_tiles_norm[i, j], rot_angle[i, j], [1, 2])   
+
+        batch_tiles_norm = batch_tiles_norm.to(self.device)
+        # batch_tiles = batch_tiles.to(self.device)
+
+        with torch.no_grad():
+            probs_list = []
+            for i, model in enumerate(self.model):
+                probs = model(batch_tiles_norm[i]).cpu()  # batch_tiles_norm[i] is (B, C, H, W)
+                probs_list.append(probs)
+        
+        if self.tta:
+            # undo transformations for each model
+            for i in range(len(self.model)):
+                for j in range(batch_tiles.shape[0]):
+                    probs_list[i][j] = torch.rot90(probs_list[i][j], -int(rot_angle[i, j]), [1, 2])
+                    if is_vflip[i, j]:
+                        probs_list[i][j] = torch.flip(probs_list[i][j], [1])
+                    if is_hflip[i, j]:
+                        probs_list[i][j] = torch.flip(probs_list[i][j], [2])
+
+        # Average probabilities across models
+        probs = torch.stack(probs_list).mean(dim=0)
+
+        weighted_probs = probs * self.weights
+        return weighted_probs, batch_coords
+
+
+
     def process_raster(self, raster_data: np.ndarray) -> np.ndarray:
         """Process a raster array and return probabilities for each class.
         
@@ -160,7 +214,10 @@ class RasterProcessor:
         
         # Process batches
         for batch_tiles, batch_coords in tqdm(self.generate_tile_batches(raster_data), total=total_batches, desc='Processing', unit='batches', disable=not self.enable_pbar):
-            weighted_probs, coords = self.process_batch(batch_tiles, batch_coords)
+            if self.is_ensemble:
+                weighted_probs, coords = self.process_batch_ensemble(batch_tiles, batch_coords)
+            else:
+                weighted_probs, coords = self.process_batch(batch_tiles, batch_coords)
 
             # Accumulate results
             for idx, (y, x) in enumerate(coords):
@@ -172,6 +229,9 @@ class RasterProcessor:
         # return torch.argmax(outputs, dim=0)  # Return the class with the highest probability
         outputs = outputs / torch.clamp(outputs.sum(dim=0, keepdim=True), min=1e-8)  # Normalize to get probabilities
         return outputs.numpy()
+
+
+
 
 
 def histogram_match_image(image_data, source_histograms, target_histograms, output_path=None, 
@@ -302,12 +362,23 @@ def process_single_raster(path, args, gdf: Optional[gpd.GeoDataFrame]=None):
             torch.cuda.empty_cache()
         
         # Load model for this process
-        weights = load_pth(args.weights_path, map_location='cpu')
-        model = UNet(
-            backbone=ResNetBackboneUNet(in_channels=args.in_channels, pretrained=False),
-            num_classes=args.num_classes,
-        )
-        model.load_state_dict(weights, strict=True)
+        if isinstance(args.weights_path, str) or (isinstance(args.weights_path, list) and len(args.weights_path) == 1):
+            weights = load_pth(args.weights_path, map_location='cpu')
+            model = UNet(
+                backbone=ResNetBackboneUNet(in_channels=args.in_channels, pretrained=False),
+                num_classes=args.num_classes,
+            )
+            model.load_state_dict(weights, strict=True)
+        else:
+            model = nn.ModuleList()
+            for weights_path in args.weights_path:
+                sub_model = UNet(
+                    backbone=ResNetBackboneUNet(in_channels=args.in_channels, pretrained=False),
+                    num_classes=args.num_classes,
+                )
+                weights = load_pth(weights_path, map_location='cpu')
+                sub_model.load_state_dict(weights, strict=True)
+                model.append(sub_model)
         
         # Load normalization parameters
         mean = load_pth(args.mean_path)
