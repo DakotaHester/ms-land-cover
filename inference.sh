@@ -20,7 +20,7 @@ MAX_JOBS=10
 
 states=("ms")
 # years=("2016" "2023")
-years=("2023")
+years=("2023" "2016")
 
 for state in "${states[@]}"; do
     for year in "${years[@]}"; do
@@ -85,7 +85,6 @@ python "${SCRIPT_NAME}" \
     --output_dir "${OUTPUT_DIR}" \
     --num_processes 1 \
     --index $i ${MATCH_HISTOGRAMS} 
-
 
 EOL
     # --weights_path "${WEIGHTS_PATH}" \
