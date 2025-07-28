@@ -83,11 +83,12 @@ export CUDA_VISIBLE_DEVICES=0
 python "${SCRIPT_NAME}" \
     --input_dir "${INPUT_DIR}" \
     --output_dir "${OUTPUT_DIR}" \
-    # --weights_path "${WEIGHTS_PATH}" \
     --num_processes 1 \
-    --index $i ${MATCH_HISTOGRAMS}
+    --index $i ${MATCH_HISTOGRAMS} 
+
 
 EOL
+    # --weights_path "${WEIGHTS_PATH}" \
 
             sbatch "${SLURM_SCRIPT}"
             echo "Submitted job $JOB_NAME for tile ${i} in ${state} ${year}. Log: ${LOG_FILE}"
