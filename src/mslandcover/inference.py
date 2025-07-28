@@ -200,7 +200,7 @@ class RasterProcessor:
             raster_data = raster_data.astype(np.float32)
         
         height, width = raster_data.shape[1:]
-        num_classes = self.model.num_classes
+        num_classes = self.model.num_classes if not self.is_ensemble else self.model[0].num_classes
         
         # Initialize outputs
         outputs = torch.zeros((num_classes, height, width))
