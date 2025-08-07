@@ -1,5 +1,5 @@
 \documentclass[12pt]{article}
-\usepackage[margin=1in, papersize={8.5in,11in}]{geometry}
+\usepackage[margin=1in]{geometry}
 \usepackage{xcolor}
 \usepackage{booktabs}
 \usepackage{graphicx}
@@ -15,7 +15,10 @@
 \usepackage{lineno}
 \usepackage{multirow}
 \usepackage{amssymb}
-\usepackage[document]{ragged2e}
+\usepackage{newtxtext,newtxmath}
+\usepackage{siunitx}
+\usepackage[sort]{natbib}
+\usepackage{hyperref}
 
 % \RaggedRight
 
@@ -34,8 +37,8 @@
   \specialrule{.0025em}{0.001em}{0.001em} 
 }
 
-\title{Label-efficient learning for High-Resolution Land Cover Classification using Large-Scale Self-Supervised Pre-Training and Transfer Learning}
-\author{Dakota Hester}
+\title{Learning with less: label-efficient land cover classification at very high spatial resolution using semantic stratification and self-supervised deep learning}
+\author{Author order?}
 \date{\today}
 
 \begin{document}
@@ -44,9 +47,11 @@
 
 \input{sections/abstract.tex}
 
-\tableofcontents
+% \tableofcontents
 
 \input{sections/introduction.tex}
+
+\input{sections/related_work.tex}
 
 \input{sections/study_area.tex}
 
@@ -54,7 +59,7 @@
 
 \input{sections/results.tex}
 
-\bibliographystyle{plain}
+\bibliographystyle{elsarticle-harv}
 \bibliography{bibliography}
 
 \end{document}

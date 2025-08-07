@@ -1,0 +1,33 @@
+\section{Related work}
+
+\subsection{Approaches to very high spatial resolution land cover classification} 
+
+\note{maybe define VHSR in the intro???}
+
+VHSR land cover classification has historically been tricky due to blah blah blah
+Prior to deep learning, OBIA was the predominant paradigm - mention a few models
+Performance of OBIA at VHSR attributable to integration of spatial information into imagery classification
+Drawbacks, scale parameters, generalization, human intervention
+
+Semantic segmentation introduced in computer vision community
+Why it worked well
+Prominence in VHSR classification today
+List a couple of notable works on convolution
+
+\subsection{Training data sampling strategies}
+
+Mention stratification, classical pixel-wise
+Struggles when applying to patch wise
+Mention a few
+
+\subsection{Remote sensing pre-training and self-supervised learning}
+
+Bring up pre-training, why its important, how transfer learning works
+Difficulty in remote sensing pre-training, unsure of domain shift betweem standard ImageNet pre-training and remote sensing imagery
+Emergence of self-supervised learning as a new paradigm for pre-training
+
+How this has translated to remote sensing in the form of foundation models
+What these foundation models do, why they are built
+Problems with foundation models: ViT lacks inductive bias toward imagery
+Transformers still not the norm in remote sensing analysis, lack of inductive bias makes very low data fine-tuning difficult
+Still, can apply SSL to CNNs using contrastive/self-distillation approaches

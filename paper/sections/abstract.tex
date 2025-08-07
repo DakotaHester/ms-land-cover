@@ -6,26 +6,15 @@
     \begin{abstract}
 }
 
-% Land cover data is a key component of environmental analysis and informs decision making in agriculture, urban planning, hydrology, and other applied domains.
-% Most publicly available land cover products are produced at a coarse resolution due to the inherent difficulty in classifying high resolution data.
-% Deep learning semantic segmentation models have been shown to be performant for such tasks but require large amounts of fully annotated tiles for training. This is problematic for land cover classification due to the expense and difficulty of annotating such data at scale.
-% In our approach, we initially pre-train a ResNet-152 model on 377,913 unlabeled images using a denoising autoencoder to enable spatial feature extraction without the need for labeled data.
-% This model is used as an encoder in a U-Net architecture where fully supervised pre-training is performed using 10,220 labeled images from another region. Finally, we fine-tune the U-Net with only 119 labeled images over the state of Mississippi.
-% When applied to 1-meter imagery in Mississippi, our model achieves over 80\% accuracy despite limited region-specific labeled data.
-% While the lack of ground truth data makes certain visually intricate classes difficult for the model to capture with a high degree of precision (such as cultivated crops), a visual assessment of the resulting land cover product indicates accurate delineation of forested areas, impervious surfaces, open water, and herbaceous regions.
-% Our proposed approach can enable high-resolution land cover classification at scale while minimizing the need for human annotation to produce ground truth data.
 
-Land cover data is a key component of environmental analysis and informs decision making in agriculture, urban planning, hydrology, and other applied domains.
-Most publicly available land cover products are produced at a coarse resolution due to the inherent difficulty in classifying high resolution data.
-Deep learning semantic segmentation models have been shown to be performant for such tasks but require large amounts of fully annotated tiles for training.
-This is problematic for land cover classification due to the expense and difficulty of annotating such data at scale.
-A novel multi-stage pre-training approach is proposed to address this issue.
-In the first stage, a ResNet-152 model is pre-trained on 377,913 unlabeled images using a denoising autoencoder to enable spatial feature extraction without the need for labeled data.
-In the second stage, the pre-trained ResNet-152 model is used as an encoder in a U-Net architecture where fully supervised pre-training is performed using 10,220 labeled images from another region.
-Finally, in the third stage, the U-Net is fine-tuned with fewer than 500 labeled images over the state of Mississippi.
-A preliminary investigation of this approach using only 119 labels for training shows that the proposed approach outperforms the next best model by 4.57\% in overall accuracy and 5.04\% in overall F1 score, with a drastic 20.20\% increase in macro-average F1 score.
-This approach has the potential to enable high-resolution land cover classification at scale while minimizing the need for human annotation to produce ground truth data, paving the way for high-resolution land analyses quickly and efficiently.
-% A preliminary investigation of the proposed approach using 119 labeled images for training shows that the proposed appraoch outperforms the next best 
+Deep learning methods for land cover classification have been shown to be highly performant, particularly at high spatial resolutions where traditional pixel-wise or object-based approaches struggle.
+However, the wide parameter space of deep neural networks typically requires several thousand densely annotated imagery tiles to achieve reliable performance.
+This is problematic, as data annotation is costly and time-consuming, creating a strategic barrier to widespread adoption of such models for land cover classification at high resolutions. We address this challenge through two complementary approaches.
+First, we demonstrate that utilizing a stratification approach that groups candidate imagery tiles into semantic clusters using existing moderate resolution land cover products improves the quality of a training dataset compared to simple random sampling.
+Furthermore, applying Bootstrap Your Own Latent (BYOL) self-supervised learning to an ImageNet pre-trained ResNet-101 encoder using unannotated aerial imagery enhances the performance of a semantic segmentation network on a downstream land cover classification task, particularly when few samples are supplied during training.
+When applied to a 1 m resolution land cover task using linear probing, our BYOL model demonstrates average increases of 13.04\% and 14.87\% in mIoU and overall accuracy over a similar model pre-trained on ImageNet alone, illustrating the extent of the domain gap between general-purpose imagery often used for pre-training and high resolution remote sensing data.
+Using only 500 labeled samples during the training phase, our approach achieves 87.42\% overall accuracy and 63.00\% mIoU for comprehensive 8-class land cover mapping across Mississippi when the model is fine-tuned in a U-Net framework—improvements of 2.06\% and 2.77\% over ImageNet pre-training.
+These results demonstrate that creative approaches to sample stratification and selection along with advanced pre-training can substantially reduce the need for hand-annotated data, breaking down hurdles for large-scale high spatial resolution land cover mapping.
 
 \IfClassLoadedTF{msuthesis}
 {}
