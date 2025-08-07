@@ -1,0 +1,351 @@
+<VRTDataset rasterXSize="348690" rasterYSize="315801">
+  <SRS dataAxisToSRSAxisMapping="1,2">PROJCS["USA_Contiguous_Albers_Equal_Area_Conic_USGS_version",GEOGCS["NAD83",DATUM["North_American_Datum_1983",SPHEROID["GRS 1980",6378137,298.257222101004,AUTHORITY["EPSG","7019"]],AUTHORITY["EPSG","6269"]],PRIMEM["Greenwich",0],UNIT["degree",0.0174532925199433,AUTHORITY["EPSG","9122"]],AUTHORITY["EPSG","4269"]],PROJECTION["Albers_Conic_Equal_Area"],PARAMETER["latitude_of_center",23],PARAMETER["longitude_of_center",-96],PARAMETER["standard_parallel_1",29.5],PARAMETER["standard_parallel_2",45.5],PARAMETER["false_easting",0],PARAMETER["false_northing",0],UNIT["metre",1,AUTHORITY["EPSG","9001"]],AXIS["Easting",EAST],AXIS["Northing",NORTH]]</SRS>
+  <GeoTransform>  1.3825550000000005e+06,  1.0000000000000000e+00,  0.0000000000000000e+00,  2.2945359999999981e+06,  0.0000000000000000e+00, -1.0000000000000000e+00</GeoTransform>
+  <VRTRasterBand dataType="Byte" band="1">
+    <Metadata>
+      <MDI key="STATISTICS_APPROXIMATE">YES</MDI>
+      <MDI key="STATISTICS_VALID_PERCENT">83.26</MDI>
+      <MDI key="STATISTICS_MINIMUM">11</MDI>
+      <MDI key="STATISTICS_MAXIMUM">86</MDI>
+      <MDI key="STATISTICS_MEAN">47.944037948837</MDI>
+      <MDI key="STATISTICS_STDDEV">19.075874473016</MDI>
+    </Metadata>
+    <NoDataValue>0</NoDataValue>
+    <ColorInterp>Gray</ColorInterp>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011befd4be0263cab0ffbe/adam_42001_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="44816" RasterYSize="43818" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="44816" ySize="43818" />
+      <DstRect xOff="176700" yOff="241963" xSize="44816" ySize="43818" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011befd4be0263cab0ffc2/bedf_42009_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="49972" RasterYSize="71869" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="49972" ySize="71869" />
+      <DstRect xOff="66930" yOff="235012" xSize="49972" ySize="71869" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf0d4be0263cab0ffc6/berk_42011_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SrcRect xOff="0" yOff="0" xSize="75999" ySize="58840" />
+      <DstRect xOff="249630" yOff="154021" xSize="75999" ySize="58840" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf0d4be0263cab0ffc9/blai_42013_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="37355" RasterYSize="59811" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="37355" ySize="59811" />
+      <DstRect xOff="73300" yOff="184060" xSize="37355" ySize="59811" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf1d4be0263cab0ffcc/brad_42015_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="73527" RasterYSize="56313" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="73527" ySize="56313" />
+      <DstRect xOff="175950" yOff="13748" xSize="73527" ySize="56313" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf1d4be0263cab0ffcf/camb_42021_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="49598" RasterYSize="60943" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="49598" ySize="60943" />
+      <DstRect xOff="38010" yOff="189588" xSize="49598" ySize="60943" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf1d4be0263cab0ffd2/came_42023_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="40391" RasterYSize="43122" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="40391" ySize="43122" />
+      <DstRect xOff="63250" yOff="88979" xSize="40391" ySize="43122" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf2d4be0263cab0ffd5/carb_42025_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="45110" RasterYSize="45222" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="45110" ySize="45222" />
+      <DstRect xOff="276250" yOff="100079" xSize="45110" ySize="45222" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf2d4be0263cab0ffd8/cent_42027_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="94963" RasterYSize="64427" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="94963" ySize="64427" />
+      <DstRect xOff="84670" yOff="124334" xSize="94963" ySize="64427" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf3d4be0263cab0ffdb/ches_42029_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="56190" RasterYSize="66135" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="56190" ySize="66135" />
+      <DstRect xOff="292500" yOff="196946" xSize="56190" ySize="66135" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf4d4be0263cab0ffde/clea_42033_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="63972" RasterYSize="65051" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="63972" ySize="65051" />
+      <DstRect xOff="41820" yOff="131330" xSize="63972" ySize="65051" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf4d4be0263cab0ffe1/clin_42035_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SrcRect xOff="0" yOff="0" xSize="81329" ySize="55215" />
+      <DstRect xOff="98260" yOff="94766" xSize="81329" ySize="55215" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf4d4be0263cab0ffe4/colu_42037_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="40063" RasterYSize="59809" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="40063" ySize="59809" />
+      <DstRect xOff="218170" yOff="91962" xSize="40063" ySize="59809" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf5d4be0263cab0ffe7/cumb_42041_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="62798" RasterYSize="51470" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="62798" ySize="51470" />
+      <DstRect xOff="158440" yOff="209871" xSize="62798" ySize="51470" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf6d4be0263cab0ffea/daup_42043_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SrcRect xOff="0" yOff="0" xSize="43502" ySize="59376" />
+      <DstRect xOff="202570" yOff="170105" xSize="43502" ySize="59376" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf6d4be0263cab0ffed/elk_42047_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="73905" RasterYSize="50708" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="73905" ySize="50708" />
+      <DstRect xOff="12360" yOff="91733" xSize="73905" ySize="50708" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf7d4be0263cab0fff0/fran_42055_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="53451" RasterYSize="69328" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="53451" ySize="69328" />
+      <DstRect xOff="129120" yOff="226583" xSize="53451" ySize="69328" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf7d4be0263cab0fff3/fult_42057_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="35874" RasterYSize="52591" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="35874" ySize="52591" />
+      <DstRect xOff="105640" yOff="247700" xSize="35874" ySize="52591" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf8d4be0263cab0fff6/hunt_42061_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="51535" RasterYSize="76433" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="51535" ySize="76433" />
+      <DstRect xOff="99050" yOff="178378" xSize="51535" ySize="76433" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf8d4be0263cab0fff9/indi_42063_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="50640" RasterYSize="63740" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="50640" ySize="63740" />
+      <DstRect xOff="0" yOff="176451" xSize="50640" ySize="63740" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf9d4be0263cab0fffc/jeff_42065_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SrcRect xOff="0" yOff="0" xSize="43386" ySize="54858" />
+      <DstRect xOff="4750" yOff="127103" xSize="43386" ySize="54858" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bf9d4be0263cab0ffff/juni_42067_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="61277" RasterYSize="56727" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="61277" ySize="56727" />
+      <DstRect xOff="144060" yOff="173254" xSize="61277" ySize="56727" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bfad4be0263cab10002/lack_42069_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SrcRect xOff="0" yOff="0" xSize="36026" ySize="54984" />
+      <DstRect xOff="277440" yOff="40937" xSize="36026" ySize="54984" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bfad4be0263cab10005/lanc_42071_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="69731" RasterYSize="66745" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="69731" ySize="66745" />
+      <DstRect xOff="234950" yOff="198156" xSize="69731" ySize="66745" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bfad4be0263cab10008/leba_42075_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SrcRect xOff="0" yOff="0" xSize="47046" ySize="40031" />
+      <DstRect xOff="230530" yOff="178570" xSize="47046" ySize="40031" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bfbd4be0263cab1000b/luze_42079_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="61239" RasterYSize="60841" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="61239" ySize="60841" />
+      <DstRect xOff="241540" yOff="70930" xSize="61239" ySize="60841" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bfbd4be0263cab1000e/lyco_42081_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="99575" RasterYSize="62989" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="99575" ySize="62989" />
+      <DstRect xOff="131610" yOff="69772" xSize="99575" ySize="62989" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bfcd4be0263cab10011/mcke_42083_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="65789" RasterYSize="52664" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="65789" ySize="52664" />
+      <DstRect xOff="15120" yOff="47037" xSize="65789" ySize="52664" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bfcd4be0263cab10014/miff_42087_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="45317" RasterYSize="60925" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="45317" ySize="60925" />
+      <DstRect xOff="130180" yOff="160366" xSize="45317" ySize="60925" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bfdd4be0263cab10017/mont_42093_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SrcRect xOff="0" yOff="0" xSize="23295" ySize="28704" />
+      <DstRect xOff="210300" yOff="114227" xSize="23295" ySize="28704" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bfdd4be0263cab1001a/nort_42097_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="50468" RasterYSize="65506" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="50468" ySize="65506" />
+      <DstRect xOff="197670" yOff="114255" xSize="50468" ySize="65506" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bfdd4be0263cab1001d/perr_42099_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SrcRect xOff="0" yOff="0" xSize="61696" ySize="59463" />
+      <DstRect xOff="152600" yOff="177548" xSize="61696" ySize="59463" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bfed4be0263cab10020/pott_42105_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="60353" RasterYSize="64471" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="60353" ySize="64471" />
+      <DstRect xOff="72730" yOff="37770" xSize="60353" ySize="64471" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bfed4be0263cab10023/schu_42107_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="75644" RasterYSize="53749" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="75644" ySize="53749" />
+      <DstRect xOff="224410" yOff="129692" xSize="75644" ySize="53749" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bfed4be0263cab10026/snyd_42109_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="44171" RasterYSize="30592" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="44171" ySize="30592" />
+      <DstRect xOff="167360" yOff="146939" xSize="44171" ySize="30592" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bffd4be0263cab10029/some_42111_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="55729" RasterYSize="69058" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="55729" ySize="69058" />
+      <DstRect xOff="16420" yOff="246743" xSize="55729" ySize="69058" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011bffd4be0263cab1002c/sull_42113_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SrcRect xOff="0" yOff="0" xSize="49308" ySize="32980" />
+      <DstRect xOff="194320" yOff="65111" xSize="49308" ySize="32980" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011c00d4be0263cab1002f/susq_42115_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="63528" RasterYSize="49905" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="63528" ySize="49905" />
+      <DstRect xOff="238960" yOff="2216" xSize="63528" ySize="49905" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011c00d4be0263cab10032/tiog_42117_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="68327" RasterYSize="61266" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="68327" ySize="61266" />
+      <DstRect xOff="120900" yOff="26525" xSize="68327" ySize="61266" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011c01d4be0263cab10035/unio_42119_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="45600" RasterYSize="44005" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="45600" ySize="44005" />
+      <DstRect xOff="165880" yOff="120596" xSize="45600" ySize="44005" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011c01d4be0263cab10038/wayn_42127_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="44595" RasterYSize="86431" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="44595" ySize="86431" />
+      <DstRect xOff="292220" yOff="0" xSize="44595" ySize="86431" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011c02d4be0263cab1003b/wyom_42131_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SrcRect xOff="0" yOff="0" xSize="39662" ySize="38841" />
+      <DstRect xOff="242230" yOff="45400" xSize="39662" ySize="38841" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+    <ComplexSource>
+      <SourceFilename relativeToVRT="0">/vsicurl/https://prod-is-usgs-sb-prod-publish.s3.amazonaws.com/68011c02d4be0263cab1003e/york_42133_lulc_2022_2024-Edition.tif</SourceFilename>
+      <SourceBand>1</SourceBand>
+      <SourceProperties RasterXSize="82402" RasterYSize="57964" DataType="Byte" BlockXSize="512" BlockYSize="512" />
+      <SrcRect xOff="0" yOff="0" xSize="82402" ySize="57964" />
+      <DstRect xOff="201640" yOff="220137" xSize="82402" ySize="57964" />
+      <NODATA>0</NODATA>
+    </ComplexSource>
+  </VRTRasterBand>
+  <OverviewList resampling="nearest">2 4 8 16 32 64</OverviewList>
+</VRTDataset>
