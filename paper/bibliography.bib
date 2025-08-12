@@ -626,6 +626,22 @@
   file = {/Users/dak/Zotero/storage/HZW7VZ3J/Ma et al. - 2019 - Deep learning in remote sensing applications A me.pdf;/Users/dak/Zotero/storage/CUMZCM2G/S0924271619301108.html}
 }
 
+@article{maMultilevelMultimodalFusion2024,
+  title = {A {{Multilevel Multimodal Fusion Transformer}} for {{Remote Sensing Semantic Segmentation}}},
+  author = {Ma, Xianping and Zhang, Xiaokang and Pun, Man-On and Liu, Ming},
+  year = {2024},
+  journal = {IEEE Transactions on Geoscience and Remote Sensing},
+  volume = {62},
+  pages = {1--15},
+  issn = {1558-0644},
+  doi = {10.1109/TGRS.2024.3373033},
+  urldate = {2025-07-27},
+  abstract = {Accurate semantic segmentation of remote sensing data plays a crucial role in the success of geoscience research and applications. Recently, multimodal fusion-based segmentation models have attracted much attention due to their outstanding performance as compared to conventional single-modal techniques. However, most of these models perform their fusion operation using convolutional neural networks (CNNs) or the vision transformer (Vit), resulting in insufficient local--global contextual modeling and representative capabilities. In this work, a multilevel multimodal fusion scheme called FTransUNet is proposed to provide a robust and effective multimodal fusion backbone for semantic segmentation by integrating both CNN and Vit into one unified fusion framework. First, the shallow-level features are first extracted and fused through convolutional layers and shallow-level feature fusion (SFF) modules. After that, deep-level features characterizing semantic information and spatial relationships are extracted and fused by a well-designed fusion Vit (FVit). It applies adaptively mutually boosted attention (Ada-MBA) layers and self-attention (SA) layers alternately in a three-stage scheme to learn cross-modality representations of high interclass separability and low intraclass variations. Specifically, the proposed Ada-MBA computes SA and cross-attention (CA) in parallel to enhance intra- and cross-modality contextual information simultaneously while steering attention distribution toward semantic-aware regions. As a result, FTransUNet can fuse shallow-level and deep-level features in a multilevel manner, taking full advantage of CNN and transformer to accurately characterize local details and global semantics, respectively. Extensive experiments confirm the superior performance of the proposed FTransUNet compared with other multimodal fusion approaches on two fine-resolution remote sensing datasets, namely ISPRS Vaihingen and Potsdam. The source code in this work is available at https://github.com/sstary/SSRS.},
+  keywords = {Convolutional neural networks,Data mining,Feature extraction,Multilevel multimodal fusion,remote sensing,Remote sensing,semantic segmentation,Semantic segmentation,Semantics,Transformers,vision transformer (Vit)},
+  annotation = {71 citations (Crossref) [2025-07-28]},
+  file = {/Users/dak/Zotero/storage/KXZG7BVE/Ma et al. - 2024 - A Multilevel Multimodal Fusion Transformer for Remote Sensing Semantic Segmentation.pdf;/Users/dak/Zotero/storage/JUN99TIE/10458980.html}
+}
+
 @inproceedings{manasSeasonalContrastUnsupervised2021a,
   title = {Seasonal {{Contrast}}: {{Unsupervised Pre-Training}} from {{Uncurated Remote Sensing Data}}},
   shorttitle = {Seasonal {{Contrast}}},
@@ -1012,6 +1028,27 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   abstract = {Transformer models have recently approached or even surpassed the performance of ConvNets on computer vision tasks like classification and segmentation. To a large degree, these successes have been enabled by the use of large-scale labelled image datasets for supervised pre-training. This poses a significant challenge for the adaption of vision Transformers to domains where datasets with millions of labelled samples are not available. In this work, we bridge the gap between ConvNets and Transformers for Earth observation by self-supervised pre-training on large-scale unlabelled remote sensing data1. We show that self-supervised pre-training yields latent task-agnostic representations that can be utilized for both land cover classification and segmentation tasks, where they significantly outperform the fully supervised baselines. Additionally, we find that subsequent fine-tuning of Transformers for specific downstream tasks performs on-par with commonly used ConvNet architectures. An ablation study further illustrates that the labelled dataset size can be reduced to one-tenth after self-supervised pre-training while still maintaining the performance of the fully supervised approach. {\copyright} 2022 IEEE.},
   annotation = {54 citations (Crossref) [2024-10-12]},
   file = {/Users/dak/Zotero/storage/YQI7JZGL/Scheibenreif et al. - 2022 - Self-supervised Vision Transformers for Land-cover.pdf;/Users/dak/Zotero/storage/T8CXYZJD/display.html}
+}
+
+@article{segalrozenhaimerCloudMesoscaleCellular2023,
+  title = {Cloud {{Mesoscale Cellular Classification}} and {{Diurnal Cycle Using}} a {{Convolutional Neural Network}} ({{CNN}})},
+  author = {Segal Rozenhaimer, Michal and Nukrai, David and Che, Haochi and Wood, Robert and Zhang, Zhibo},
+  year = {2023},
+  month = jan,
+  journal = {Remote Sensing},
+  volume = {15},
+  number = {6},
+  pages = {1607},
+  publisher = {Multidisciplinary Digital Publishing Institute},
+  issn = {2072-4292},
+  doi = {10.3390/rs15061607},
+  urldate = {2025-08-07},
+  abstract = {Marine stratocumulus (MSC) clouds are important to the climate as they cover vast areas of the ocean's surface, greatly affecting radiation balance of the Earth. Satellite imagery shows that MSC clouds exhibit different morphologies of closed or open mesoscale cellular convection (MCC) but many limitations still exist in studying MCC dynamics. Here, we present a convolutional neural network algorithm to classify pixel-level closed and open MCC cloud types, trained by either visible or infrared channels from a geostationary SEVIRI satellite to allow, for the first time, their diurnal detection, with a 30 min. temporal resolution. Our probability of detection was 91\% and 92\% for closed and open MCC, respectively, which is in line with day-only detection schemes. We focused on the South-East Atlantic Ocean during months of biomass burning season, between 2016 and 2018. Our resulting MCC type area coverage, cloud effective radii, and cloud optical depth probability distributions over the research domain compare well with monthly and daily averages from MODIS. We further applied our algorithm on GOES-16 imagery over the South-East Pacific (SEP), another semi-permanent MCC domain, and were able to show good prediction skills, thereby representing the SEP diurnal cycle and the feasibility of our method to be applied globally on different satellite platforms.},
+  copyright = {http://creativecommons.org/licenses/by/3.0/},
+  langid = {english},
+  keywords = {convolutional neural networks,GOES,marine stratocumulus clouds,patch-based,sampling,SEVIRI},
+  annotation = {5 citations (Crossref) [2025-08-07]},
+  file = {/Users/dak/Zotero/storage/FPCT9APP/Segal Rozenhaimer et al. - 2023 - Cloud Mesoscale Cellular Classification and Diurna.pdf}
 }
 
 @article{songPatchBasedLightConvolutional2019,
