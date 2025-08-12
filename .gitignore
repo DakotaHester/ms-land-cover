@@ -25,6 +25,8 @@ data/splits/test/masks
 data/splits/pretrain/masks
 weights
 old_notebooks
+./data/cpb_tests/*
+./data/assessment_old/*
 
 *.pth
 logs
