@@ -712,8 +712,12 @@ def main() -> None:
         model.load_state_dict(load_pth(os.path.join(out_dir, 'best_model.pth')))
         model.eval()
         torch.set_grad_enabled(False)
-        y_preds = []
-        y_trues = []
+        
+        # y_preds = []
+        # y_trues = []
+        
+        num_classes = len(LEGEND_CLASSES) if 'cpb' not in args.test_dir else 7
+        total_cm = np.zeros((num_classes, num_classes), dtype=np.int64)
         
         total_steps = math.ceil(len(test_loader) / args.grad_accumulation_steps)
         with tqdm(total=total_steps, desc='Testing', unit='batch') as pbar:
@@ -739,8 +743,10 @@ def main() -> None:
                 #     phase_metrics[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X))
                 #     test_metrics[metric_fn.__name__] = sum(phase_metrics[metric_fn.__name__]) / ((step * test_loader.batch_size) + len(X))
                     
-                y_preds.append(y_hat.argmax(axis=1).cpu().numpy().flatten())
-                y_trues.append(y.cpu().numpy().flatten())
+                y_pred_flat = y_hat.argmax(axis=1).cpu().numpy().flatten()
+                y_true_flat = y.cpu().numpy().flatten()
+                
+                total_cm += sklearn.metrics.confusion_matrix(y_true_flat, y_pred_flat, labels=list(range(num_classes)))
                 
                 if (step + 1) % args.grad_accumulation_steps == 0 or step == len(test_loader) - 1:
                     # tqdm_postfix = {
@@ -772,8 +778,8 @@ def main() -> None:
         # test_metrics_df = pd.DataFrame(test_metrics, index=[0])
         # test_metrics_df.to_csv(os.path.join(log_dir, 'test_metrics.csv'), index=False)
         
-        y_preds = np.concatenate(y_preds)
-        y_trues = np.concatenate(y_trues)
+        # y_preds = np.concatenate(y_preds)
+        # y_trues = np.concatenate(y_trues)
         
         if 'cpb' in args.test_dir:
             # legend_classes = {
@@ -799,47 +805,107 @@ def main() -> None:
         else:
             legend_classes = LEGEND_CLASSES
             
-        y_trues_class_names = [legend_classes[i+1] for i in y_trues]
-        y_preds_class_names = [legend_classes[i+1] for i in y_preds]
+        # y_trues_class_names = [legend_classes[i+1] for i in y_trues]
+        # y_preds_class_names = [legend_classes[i+1] for i in y_preds]
         class_names_list = [legend_classes[i+1] for i in range(num_classes)]
 
-        cm = sklearn.metrics.confusion_matrix(y_trues_class_names, y_preds_class_names, labels=class_names_list)
-        cm_df = pd.DataFrame(cm, index=class_names_list, columns=class_names_list)
+        # cm = sklearn.metrics.confusion_matrix(y_trues_class_names, y_preds_class_names, labels=class_names_list)
+        cm_df = pd.DataFrame(total_cm, index=class_names_list, columns=class_names_list)
         cm_df.to_csv(os.path.join(log_dir, 'confusion_matrix.csv'), index=True)
+    
+        # Derive TP, FP, FN, TN for each class
+        tp = np.diag(total_cm)
+        fp = total_cm.sum(axis=0) - tp
+        fn = total_cm.sum(axis=1) - tp
+        tn = total_cm.sum() - (tp + fp + fn)
+        support = total_cm.sum(axis=1)
         
-        cr = sklearn.metrics.classification_report(y_trues, y_preds, target_names=class_names_list, output_dict=True, zero_division=0)
-        
-        cr_df = pd.DataFrame(cr).transpose()
+        # Calculate per-class metrics, handling division by zero
+        with np.errstate(divide='ignore', invalid='ignore'):
+            precision = tp / (tp + fp)
+            recall = tp / (tp + fn)
+            f1 = 2 * (precision * recall) / (precision + recall)
+            jaccard = tp / (tp + fp + fn)
+
+        precision = np.nan_to_num(precision)
+        recall = np.nan_to_num(recall)
+        f1 = np.nan_to_num(f1)
+        jaccard = np.nan_to_num(jaccard)
+
+        # Create classification report DataFrame
+        cr_dict = {}
+        for i, class_name in enumerate(class_names_list):
+            cr_dict[class_name] = {
+                'precision': precision[i],
+                'recall': recall[i],
+                'f1-score': f1[i],
+                'support': support[i]
+            }
+        cr_df = pd.DataFrame(cr_dict).transpose()
         cr_df.to_csv(os.path.join(log_dir, 'classification_report.csv'), index=True)
         
-        # calculate metrics
+        # Calculate overall, macro, and weighted metrics
+        accuracy = tp.sum() / total_cm.sum()
+        
+        # For Kappa, we need expected agreement
+        expected_accuracy = (support * total_cm.sum(axis=0)).sum() / (total_cm.sum()**2)
+        kappa = (accuracy - expected_accuracy) / (1 - expected_accuracy) if (1 - expected_accuracy) != 0 else 0
+
         metrics_dict = {
-            # overall metrics
-            'accuracy': sklearn.metrics.accuracy_score(y_trues, y_preds),
-            'f1_score': sklearn.metrics.f1_score(y_trues, y_preds, average='micro'),
-            'precision': sklearn.metrics.precision_score(y_trues, y_preds, average='micro'),
-            'recall': sklearn.metrics.recall_score(y_trues, y_preds, average='micro'),
-            'jaccard': sklearn.metrics.jaccard_score(y_trues, y_preds, average='micro'),
-            'kappa': sklearn.metrics.cohen_kappa_score(y_trues, y_preds),
-            # 'cross_entropy': np.mean(preds_df['cross_entropy']),
-            # 'brier_score': np.mean(preds_df['brier_score']),
+            # overall metrics (equivalent to micro-average)
+            'accuracy': accuracy,
+            'f1_score': np.average(f1, weights=support),
+            'precision': np.average(precision, weights=support),
+            'recall': np.average(recall, weights=support),
+            'jaccard': np.average(jaccard, weights=support),
+            'kappa': kappa,
             # macro metrics
-            'macro_f1_score': sklearn.metrics.f1_score(y_trues, y_preds, average='macro'),
-            'macro_precision': sklearn.metrics.precision_score(y_trues, y_preds, average='macro'),
-            'macro_recall': sklearn.metrics.recall_score(y_trues, y_preds, average='macro'),
-            'macro_jaccard': sklearn.metrics.jaccard_score(y_trues, y_preds, average='macro'),
-            # 'macro_cross_entropy': np.mean(preds_df.groupby('ground_truth_class_idx')['cross_entropy'].mean()),
-            # 'macro_brier_score': np.mean(preds_df.groupby('ground_truth_class_idx')['brier_score'].mean()),
+            'macro_f1_score': np.mean(f1),
+            'macro_precision': np.mean(precision),
+            'macro_recall': np.mean(recall),
+            'macro_jaccard': np.mean(jaccard),
             # weighted metrics
-            'weighted_f1_score': sklearn.metrics.f1_score(y_trues, y_preds, average='weighted'),
-            'weighted_precision': sklearn.metrics.precision_score(y_trues, y_preds, average='weighted'),
-            'weighted_recall': sklearn.metrics.recall_score(y_trues, y_preds, average='weighted'),
-            'weighted_jaccard': sklearn.metrics.jaccard_score(y_trues, y_preds, average='weighted'),
-            # 'weighted_cross_entropy': weighted_cross_entropy,
-            # 'weighted_brier_score': weighted_brier_score,
+            'weighted_f1_score': np.average(f1, weights=support),
+            'weighted_precision': np.average(precision, weights=support),
+            'weighted_recall': np.average(recall, weights=support),
+            'weighted_jaccard': np.average(jaccard, weights=support),
         }
         with open(os.path.join(log_dir, 'assessment_metrics.json'), 'w') as f:
             json.dump(metrics_dict, f, indent=4)
+        
+        # cr = sklearn.metrics.classification_report(y_trues, y_preds, target_names=class_names_list, output_dict=True, zero_division=0)
+        
+        # cr_df = pd.DataFrame(cr).transpose()
+        # cr_df.to_csv(os.path.join(log_dir, 'classification_report.csv'), index=True)
+        
+        # calculate metrics
+        # metrics_dict = {
+        #     # overall metrics
+        #     'accuracy': sklearn.metrics.accuracy_score(y_trues, y_preds),
+        #     'f1_score': sklearn.metrics.f1_score(y_trues, y_preds, average='micro'),
+        #     'precision': sklearn.metrics.precision_score(y_trues, y_preds, average='micro'),
+        #     'recall': sklearn.metrics.recall_score(y_trues, y_preds, average='micro'),
+        #     'jaccard': sklearn.metrics.jaccard_score(y_trues, y_preds, average='micro'),
+        #     'kappa': sklearn.metrics.cohen_kappa_score(y_trues, y_preds),
+        #     # 'cross_entropy': np.mean(preds_df['cross_entropy']),
+        #     # 'brier_score': np.mean(preds_df['brier_score']),
+        #     # macro metrics
+        #     'macro_f1_score': sklearn.metrics.f1_score(y_trues, y_preds, average='macro'),
+        #     'macro_precision': sklearn.metrics.precision_score(y_trues, y_preds, average='macro'),
+        #     'macro_recall': sklearn.metrics.recall_score(y_trues, y_preds, average='macro'),
+        #     'macro_jaccard': sklearn.metrics.jaccard_score(y_trues, y_preds, average='macro'),
+        #     # 'macro_cross_entropy': np.mean(preds_df.groupby('ground_truth_class_idx')['cross_entropy'].mean()),
+        #     # 'macro_brier_score': np.mean(preds_df.groupby('ground_truth_class_idx')['brier_score'].mean()),
+        #     # weighted metrics
+        #     'weighted_f1_score': sklearn.metrics.f1_score(y_trues, y_preds, average='weighted'),
+        #     'weighted_precision': sklearn.metrics.precision_score(y_trues, y_preds, average='weighted'),
+        #     'weighted_recall': sklearn.metrics.recall_score(y_trues, y_preds, average='weighted'),
+        #     'weighted_jaccard': sklearn.metrics.jaccard_score(y_trues, y_preds, average='weighted'),
+        #     # 'weighted_cross_entropy': weighted_cross_entropy,
+        #     # 'weighted_brier_score': weighted_brier_score,
+        # }
+        # with open(os.path.join(log_dir, 'assessment_metrics.json'), 'w') as f:
+        #     json.dump(metrics_dict, f, indent=4)
 
 
 
