@@ -677,6 +677,7 @@ def main() -> None:
             transform=None,
             preload=args.preload,
             n_threads=args.num_workers,
+            n_bands=args.n_bands,
             # n_threads=args.num_workers,
         )
         logger.log(f'Test dataset: {len(test_dataset)} samples')
