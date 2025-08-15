@@ -309,7 +309,7 @@ def main() -> None:
         mean=mean,
         std=std,
         noise_std=0.0,
-        transform=StandardDataAugmentations(s=1.0),
+        transform=StandardDataAugmentations(s=1.0 if 'cpb' not in args.split_dir else 0.0),
         preload=args.preload,
         n_threads=args.num_workers,
     )
@@ -372,7 +372,7 @@ def main() -> None:
     logger.log(f'Class weights: {alpha}')
     criterion = FocalLoss(alpha=alpha, gamma=args.focal_gamma, reduction='sum').to(device)
     
-    num_classes = 8
+    # num_classes = 8
     
     if args.model == 'deeplabv3plus':
         
