@@ -306,8 +306,8 @@ def main() -> None:
         data_paths=[file for split in train_splits for file in glob(os.path.join(args.split_dir, split, 'input', '*.tif'))],
         target_paths=[file for split in train_splits for file in glob(os.path.join(args.split_dir, split, 'target', '*.tif'))],
         n_bands=args.n_bands,
-        mean=mean,
-        std=std,
+        mean=mean if 'cpb' not in args.split_dir else None,
+        std=std if 'cpb' not in args.split_dir else None,
         noise_std=0.0,
         transform=StandardDataAugmentations(s=1.0 if 'cpb' not in args.split_dir else 0.0),
         preload=args.preload,
@@ -318,8 +318,8 @@ def main() -> None:
         data_paths=[file for split in val_splits for file in glob(os.path.join(args.split_dir, split, 'input', '*.tif'))],
         target_paths=[file for split in val_splits for file in glob(os.path.join(args.split_dir, split, 'target', '*.tif'))],
         n_bands=args.n_bands,
-        mean=mean,
-        std=std,
+        mean=mean if 'cpb' not in args.split_dir else train_dataset.mean,
+        std=std if 'cpb' not in args.split_dir else train_dataset.std,
         noise_std=0.0,
         transform=None,
         preload=args.preload,
@@ -328,6 +328,9 @@ def main() -> None:
     
     logger.log(f'Training dataset: {len(train_dataset)} samples')
     logger.log(f'Validation dataset: {len(val_dataset)} samples')
+    
+    logger.log(f'Training dataset mean: {train_dataset.mean}')
+    logger.log(f'Training dataset std: {train_dataset.std}')
     
     class_dist = train_dataset.get_class_distribution()
     num_classes = len(class_dist)
@@ -672,8 +675,8 @@ def main() -> None:
         test_dataset = FineTuneDataset(
             data_paths=glob(os.path.join(args.test_dir, 'input', '*.tif')),
             target_paths=glob(os.path.join(args.test_dir, 'target', '*.tif')),
-            mean=mean,
-            std=std,
+            mean=mean if 'cpb' not in args.split_dir else train_dataset.mean,
+            std=std if 'cpb' not in args.split_dir else train_dataset.std,
             transform=None,
             preload=args.preload,
             n_threads=args.num_workers,

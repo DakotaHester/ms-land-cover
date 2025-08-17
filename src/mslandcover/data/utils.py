@@ -107,12 +107,17 @@ def batched_mean(
     
     data_paths = data.keys() if isinstance(data, h5py.Group) else data
     
+    if isinstance(data_paths, h5py.Group):
+        n_bands = data_paths[list(data_paths.keys())[0]][()].shape[0]
+    else:
+        n_bands = read_image(data_paths[0]).shape[0]
+        
     N = len(data_paths)
     num_steps = ceil(N / batch_size)
     if as_tensor:
-        mean = torch.zeros(3, device=device, dtype=torch.float32)
+        mean = torch.zeros(n_bands, device=device, dtype=torch.float32)
     else:
-        mean = np.zeros(3, dtype=np.float64)
+        mean = np.zeros(n_bands, dtype=np.float64)
     
     for i in range(num_steps):
         start = i * batch_size
@@ -203,13 +208,18 @@ def batched_std(
     
     if isinstance(mean, np.ndarray) and as_tensor:
         mean = torch.tensor(mean, device=device, dtype=torch.float32)
+        
+    if isinstance(data_paths, h5py.Group):
+        n_bands = data_paths[list(data_paths.keys())[0]][()].shape[0]
+    else:
+        n_bands = read_image(data_paths[0]).shape[0]
     
     N = len(data_paths)
     num_steps = ceil(N / batch_size)
     if as_tensor:
-        std = torch.zeros(3, device=device, dtype=torch.float32)
+        std = torch.zeros(n_bands, device=device, dtype=torch.float32)
     else:
-        std = np.zeros(3)
+        std = np.zeros(n_bands)
     
     for i in range(num_steps):
         start = i * batch_size

@@ -25,9 +25,9 @@ GRES="gpu:a100_1g.10gb:1"
 MAIL_USER="dh2306@msstate.edu"
 PYTHON_ENV=".env/bin/activate"
 SCRIPT_NAME="finetune.py"
-BASE_LOG_DIR="./logs/finetune_cpb_20250814"
-BASE_WEIGHTS_DIR="./weights/finetune_cpb_20250814"
-SLURM_SCRIPT_DIR="./slurm_scripts/finetune_cpb_20250814"
+BASE_LOG_DIR="./logs/finetune_cpb_20250816"
+BASE_WEIGHTS_DIR="./weights/finetune_cpb_20250816"
+SLURM_SCRIPT_DIR="./slurm_scripts/finetune_cpb_20250816"
 TEST_DIR="./data/cpb_tests/test_tiles"
 MAX_JOBS=10
 
@@ -61,7 +61,7 @@ fi
 # =========================
 # EXPERIMENT CONFIGURATION
 # =========================
-MODEL="deeplabv3plus"
+MODEL="unet"
 PRETRAIN_SCHEME="imagenet"
 STRATIFICATION_SCHEMES=("sss" "srs" "semss")
 N_TRAIN_SAMPLES=(250 500 750)
