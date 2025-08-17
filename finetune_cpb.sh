@@ -25,9 +25,9 @@ GRES="gpu:a100_1g.10gb:1"
 MAIL_USER="dh2306@msstate.edu"
 PYTHON_ENV=".env/bin/activate"
 SCRIPT_NAME="finetune.py"
-BASE_LOG_DIR="./logs/finetune_cpb_20250814"
-BASE_WEIGHTS_DIR="./weights/finetune_cpb_20250814"
-SLURM_SCRIPT_DIR="./slurm_scripts/finetune_cpb_20250814"
+BASE_LOG_DIR="./logs/finetune_cpb_20250817"
+BASE_WEIGHTS_DIR="./weights/finetune_cpb_20250817"
+SLURM_SCRIPT_DIR="./slurm_scripts/finetune_cpb_20250817"
 TEST_DIR="./data/cpb_tests/test_tiles"
 MAX_JOBS=10
 
