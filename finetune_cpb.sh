@@ -168,7 +168,7 @@ for rep in $(seq 0 $((N_REPS-1))); do
                             break
                         else
                             echo "[$(date)] $TOTAL_JOBS jobs in queue. Waiting to submit $JOB_NAME..."
-                            sleep 60
+                            sleep 10
                         fi
                     done
 
