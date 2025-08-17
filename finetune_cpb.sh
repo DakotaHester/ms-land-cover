@@ -62,7 +62,7 @@ fi
 # EXPERIMENT CONFIGURATION
 # =========================
 MODELS=("unet" "deeplabv3plus")
-PRETRAIN_SCHEMES=("imagenet" "none")
+PRETRAIN_SCHEMES=("none" "imagenet")
 STRATIFICATION_SCHEMES=("sss" "srs" "semss")
 N_TRAIN_SAMPLES=(250 500 750)
 N_REPS=10
@@ -132,7 +132,7 @@ run_python_job() {
 COUNT=0
 
 for model in "${MODELS[@]}"; do
-    for strategy in "${STRATIFICATION_SCHEMES[@]}"; do
+    for scheme in "${PRETRAIN_SCHEMES[@]}"; do
         for rep in $(seq 0 $((N_REPS-1))); do
             for n_train in "${N_TRAIN_SAMPLES[@]}"; do
                 
@@ -142,7 +142,7 @@ for model in "${MODELS[@]}"; do
                 fi
 
                 for fold in $(seq 1 $N_FOLDS); do
-                    for scheme in "${PRETRAIN_SCHEMES[@]}"; do
+                    for strategy in "${STRATIFICATION_SCHEMES[@]}"; do
 
                         # if linear_probe, set freeze_encoder to true
                         if [[ "$model" == "linear_probe" ]]; then
@@ -161,12 +161,12 @@ for model in "${MODELS[@]}"; do
                         JOB_WEIGHTS_DIR="${BASE_WEIGHTS_DIR}/${BASE_DIR}"
                         mkdir -p "$JOB_LOG_DIR" "$JOB_WEIGHTS_DIR"
 
-                        FINISHED_FILE="${JOB_LOG_DIR}/finished.txt"
+                        FINISHED_FILE="${JOB_LOG_DIR}/assessment_metrics.json"
 
-                        # if [[ -f "$FINISHED_FILE" ]]; then
-                            # echo "Skipping $JOB_NAME (already finished)"
-                            # continue
-                        # fi
+                        if [[ -f "$FINISHED_FILE" ]]; then
+                            echo "Skipping $JOB_NAME (already finished)"
+                            continue
+                        fi
 
                         if [[ "$EXECUTION_MODE" == "slurm" ]]; then
                             # SLURM EXECUTION MODE
