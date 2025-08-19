@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.12) (preloaded format=pdflatex 2024.10.7)  7 AUG 2025 14:52
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.12) (preloaded format=pdflatex 2024.10.7)  19 AUG 2025 11:59
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -625,54 +625,54 @@ Package: natbib 2010/09/13 8.31b (PWD, AO)
 LaTeX Info: Redefining \cite on input line 694.
 \c@NAT@ctr=\count330
 )
-LaTeX Font Info:    Trying to load font information for OT1+ntxtlf on input line 44.
+LaTeX Font Info:    Trying to load font information for OT1+ntxtlf on input line 45.
  (C:\Users\dh2306\AppData\Local\Programs\MiKTeX\tex/latex/newtx\ot1ntxtlf.fd
 File: ot1ntxtlf.fd 2021/05/24 v1.0 font definition file for OT1/ntx/tlf
 )
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 12.0pt on input line 44.
-Package translations Info: No language package found. I am going to use `english' as default language. on input line 44.
+(Font)              scaled to size 12.0pt on input line 45.
+Package translations Info: No language package found. I am going to use `english' as default language. on input line 45.
  (main.aux)
 \openout1 = `main.aux'.
 
-LaTeX Font Info:    Checking defaults for OML/ntxmi/m/it on input line 44.
-LaTeX Font Info:    Trying to load font information for OML+ntxmi on input line 44.
+LaTeX Font Info:    Checking defaults for OML/ntxmi/m/it on input line 45.
+LaTeX Font Info:    Trying to load font information for OML+ntxmi on input line 45.
  (C:\Users\dh2306\AppData\Local\Programs\MiKTeX\tex/latex/newtx\omlntxmi.fd
 File: omlntxmi.fd 2015/08/25 Fontinst v1.933 font definitions for OML/ntxmi.
 )
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for U/ntxexa/m/n on input line 44.
-LaTeX Font Info:    Trying to load font information for U+ntxexa on input line 44.
+LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 45.
+LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 45.
+LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 45.
+LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 45.
+LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 45.
+LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for U/ntxexa/m/n on input line 45.
+LaTeX Font Info:    Trying to load font information for U+ntxexa on input line 45.
  (C:\Users\dh2306\AppData\Local\Programs\MiKTeX\tex/latex/newtx\untxexa.fd
 File: untxexa.fd 2012/04/16 Fontinst v1.933 font definitions for U/ntxexa.
 )
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 44.
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for LMS/ntxsy/m/n on input line 44.
-LaTeX Font Info:    Trying to load font information for LMS+ntxsy on input line 44.
+LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 45.
+LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 45.
+LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for LMS/ntxsy/m/n on input line 45.
+LaTeX Font Info:    Trying to load font information for LMS+ntxsy on input line 45.
  (C:\Users\dh2306\AppData\Local\Programs\MiKTeX\tex/latex/newtx\lmsntxsy.fd
 File: lmsntxsy.fd 2016/07/02 Fontinst v1.933 font definitions for LMS/ntxsy.
 )
-LaTeX Font Info:    ... okay on input line 44.
-LaTeX Font Info:    Checking defaults for LMX/ntxexx/m/n on input line 44.
-LaTeX Font Info:    Trying to load font information for LMX+ntxexx on input line 44.
+LaTeX Font Info:    ... okay on input line 45.
+LaTeX Font Info:    Checking defaults for LMX/ntxexx/m/n on input line 45.
+LaTeX Font Info:    Trying to load font information for LMX+ntxexx on input line 45.
  (C:\Users\dh2306\AppData\Local\Programs\MiKTeX\tex/latex/newtx\lmxntxexx.fd
 File: lmxntxexx.fd 2016/07/03 Fontinst v1.933 font definitions for LMX/ntxexx.
 )
-LaTeX Font Info:    ... okay on input line 44.
+LaTeX Font Info:    ... okay on input line 45.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: pdftex
@@ -733,95 +733,95 @@ Package grfext Info: Graphics extension search list:
  (C:\Users\dh2306\AppData\Local\Programs\MiKTeX\tex/latex/00miktex\epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2021/03/18 v2.0 Configuration of epstopdf for MiKTeX
 ))
-Package hyperref Info: Link coloring OFF on input line 44.
+Package hyperref Info: Link coloring OFF on input line 45.
  (main.out) (main.out)
 \@outlinefile=\write3
 \openout3 = `main.out'.
 
-LaTeX Info: Command `\dddot' is already robust on input line 44.
-LaTeX Info: Command `\ddddot' is already robust on input line 44.
+LaTeX Info: Command `\dddot' is already robust on input line 45.
+LaTeX Info: Command `\ddddot' is already robust on input line 45.
 \c@mv@tabular=\count337
 \c@mv@boldtabular=\count338
  (C:\Users\dh2306\AppData\Local\Programs\MiKTeX\tex/latex/translations/dicts\translations-basic-dictionary-english.trsl
 File: translations-basic-dictionary-english.trsl (english translation file `translations-basic-dictionary')
 )
-Package translations Info: loading dictionary `translations-basic-dictionary' for `english'. on input line 44.
+Package translations Info: loading dictionary `translations-basic-dictionary' for `english'. on input line 45.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 20.74pt on input line 47.
+(Font)              scaled to size 20.74pt on input line 48.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 14.4pt on input line 47.
-LaTeX Font Info:    Trying to load font information for OT1+minntx on input line 47.
+(Font)              scaled to size 14.4pt on input line 48.
+LaTeX Font Info:    Trying to load font information for OT1+minntx on input line 48.
  (C:\Users\dh2306\AppData\Local\Programs\MiKTeX\tex/latex/newtx\ot1minntx.fd
 File: ot1minntx.fd 2023/09/09 v1.1 font definition file for OT1/minntx
 )
 LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 14.4pt on input line 47.
+(Font)              scaled to size 14.4pt on input line 48.
 LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 10.5pt on input line 47.
+(Font)              scaled to size 10.5pt on input line 48.
 LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 7.9pt on input line 47.
+(Font)              scaled to size 7.9pt on input line 48.
 LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 14.4pt on input line 47.
+(Font)              scaled to size 14.4pt on input line 48.
 LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 10.5pt on input line 47.
+(Font)              scaled to size 10.5pt on input line 48.
 LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 7.9pt on input line 47.
+(Font)              scaled to size 7.9pt on input line 48.
 LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 14.4pt on input line 47.
+(Font)              scaled to size 14.4pt on input line 48.
 LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 10.5pt on input line 47.
+(Font)              scaled to size 10.5pt on input line 48.
 LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 7.9pt on input line 47.
+(Font)              scaled to size 7.9pt on input line 48.
 LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 14.4pt on input line 47.
+(Font)              scaled to size 14.4pt on input line 48.
 LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 10.5pt on input line 47.
+(Font)              scaled to size 10.5pt on input line 48.
 LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 7.9pt on input line 47.
-LaTeX Font Info:    Trying to load font information for U+msa on input line 47.
+(Font)              scaled to size 7.9pt on input line 48.
+LaTeX Font Info:    Trying to load font information for U+msa on input line 48.
  (C:\Users\dh2306\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
 )
-LaTeX Font Info:    Trying to load font information for U+msb on input line 47.
+LaTeX Font Info:    Trying to load font information for U+msb on input line 48.
  (C:\Users\dh2306\AppData\Local\Programs\MiKTeX\tex/latex/amsfonts\umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-LaTeX Font Info:    Trying to load font information for U+ntxmia on input line 47.
+LaTeX Font Info:    Trying to load font information for U+ntxmia on input line 48.
  (C:\Users\dh2306\AppData\Local\Programs\MiKTeX\tex/latex/newtx\untxmia.fd
 File: untxmia.fd 2024/04/09 Fontinst v1.933 font definitions for U/ntxmia.
 )
 LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 14.4pt on input line 47.
+(Font)              scaled to size 14.4pt on input line 48.
 LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 10.5pt on input line 47.
+(Font)              scaled to size 10.5pt on input line 48.
 LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 7.9pt on input line 47.
-LaTeX Font Info:    Trying to load font information for U+ntxsym on input line 47.
+(Font)              scaled to size 7.9pt on input line 48.
+LaTeX Font Info:    Trying to load font information for U+ntxsym on input line 48.
  (C:\Users\dh2306\AppData\Local\Programs\MiKTeX\tex/latex/newtx\untxsym.fd
 File: untxsym.fd 2023/08/16 Fontinst v1.933 font definitions for U/ntxsym.
 )
 LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 14.4pt on input line 47.
+(Font)              scaled to size 14.4pt on input line 48.
 LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 10.5pt on input line 47.
+(Font)              scaled to size 10.5pt on input line 48.
 LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 7.9pt on input line 47.
-LaTeX Font Info:    Trying to load font information for U+ntxsyc on input line 47.
+(Font)              scaled to size 7.9pt on input line 48.
+LaTeX Font Info:    Trying to load font information for U+ntxsyc on input line 48.
  (C:\Users\dh2306\AppData\Local\Programs\MiKTeX\tex/latex/newtx\untxsyc.fd
 File: untxsyc.fd 2012/04/12 Fontinst v1.933 font definitions for U/ntxsyc.
 )
 LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 14.4pt on input line 47.
+(Font)              scaled to size 14.4pt on input line 48.
 LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 10.5pt on input line 47.
+(Font)              scaled to size 10.5pt on input line 48.
 LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 7.9pt on input line 47.
+(Font)              scaled to size 7.9pt on input line 48.
 LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 14.4pt on input line 47.
+(Font)              scaled to size 14.4pt on input line 48.
 LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 10.5pt on input line 47.
+(Font)              scaled to size 10.5pt on input line 48.
 LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 7.9pt on input line 47.
+(Font)              scaled to size 7.9pt on input line 48.
  (sections/abstract.tex
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
 (Font)              scaled to size 10.95pt on input line 7.
@@ -882,10 +882,9 @@ LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
 (Font)              scaled to size 6.6pt on input line 8.
  [1
 
-{C:/Users/dh2306/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}]
+{C:/Users/dh2306/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map}] [2]
 LaTeX Font Info:    Font shape `OT1/ntxtlf/b/n' will be
 (Font)              scaled to size 12.0pt on input line 27.
- [2]
 LaTeX Font Info:    Trying to load font information for OT1+ntxtt on input line 41.
  (C:\Users\dh2306\AppData\Local\Programs\MiKTeX\tex/latex/newtx\ot1ntxtt.fd
 File: ot1ntxtt.fd 2012/04/20 v3.1
@@ -897,173 +896,61 @@ Overfull \hbox (28.44402pt too wide) in paragraph at lines 32--43
 \OT1/ntxtt/m/n/12 15 / 6 / 1607# : [] : text = Figure % 205C % 2C % 20we % 20show % 20that ,[] the % 20reported % 20confusion %
  []
 
-) [3] (sections/related_work.tex
+[3]) (sections/related_work.tex
 LaTeX Font Info:    Font shape `OT1/ntxtlf/b/n' will be
 (Font)              scaled to size 14.4pt on input line 3.
-) (sections/study_area.tex [4] (figures/naip_ms.tex
+ [4]) (sections/study_area.tex [5] (figures/naip_ms.tex
 
 pdfTeX warning: pdflatex (file ./images/ms_NAIP.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
-<images/ms_NAIP.pdf, id=218, 614.295pt x 794.97pt>
+<images/ms_NAIP.pdf, id=202, 614.295pt x 794.97pt>
 File: images/ms_NAIP.pdf Graphic file (type pdf)
 <use images/ms_NAIP.pdf>
 Package pdftex.def Info: images/ms_NAIP.pdf  used on input line 3.
 (pdftex.def)             Requested size: 427.22903pt x 552.86948pt.
-)) [5] (sections/methodology.tex [6
+)) [6] (sections/methodology.tex) [7
 pdfTeX warning (ext4): destination with the same identifier (name{figure.1}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.10 
-      <./images/ms_NAIP.pdf>] (tables/class_legend.tex
-Underfull \hbox (badness 1412) in paragraph at lines 14--15
-[]|\OT1/minntx/m/n/12 Short veg-e-ta-tion, in-clud-ing grasses and shrubs.
- []
-
-) [7] (tables/nlcd_reclass.tex) [8
+l.60 
+      <./images/ms_NAIP.pdf>] (sections/results.tex (tables/overall_metrics.tex [8]) (tables/params.tex) (tables/s1_metrics.tex) [9
 pdfTeX warning (ext4): destination with the same identifier (name{table.1}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.74 
-     ] (tables/chesapeake_bay_reclass.tex) [9
+l.28 
+     
 pdfTeX warning (ext4): destination with the same identifier (name{table.2}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.90 
-     ] (figures/farifax_co.tex
-
-pdfTeX warning: pdflatex (file ./images/fairfax_co.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
-<images/fairfax_co.pdf, id=339, 505.89pt x 216.81pt>
-File: images/fairfax_co.pdf Graphic file (type pdf)
-<use images/fairfax_co.pdf>
-Package pdftex.def Info: images/fairfax_co.pdf  used on input line 3.
-(pdftex.def)             Requested size: 469.75502pt x 201.32684pt.
-) [10
+l.28 
+     
 pdfTeX warning (ext4): destination with the same identifier (name{table.3}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.102 
-      
-pdfTeX warning (ext4): destination with the same identifier (name{figure.2}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.102 
-       <./images/fairfax_co.pdf>] (figures/sampling_flowchart.tex
-
-pdfTeX warning: pdflatex (file ./images/stratification_flowchart.drawio.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
-<images/stratification_flowchart.drawio.pdf, id=434, 717.64107pt x 392.42609pt>
-File: images/stratification_flowchart.drawio.pdf Graphic file (type pdf)
-<use images/stratification_flowchart.drawio.pdf>
-Package pdftex.def Info: images/stratification_flowchart.drawio.pdf  used on input line 3.
-(pdftex.def)             Requested size: 469.75502pt x 256.8763pt.
-) (figures/ms_lc_pcs.tex
-
-pdfTeX warning: pdflatex (file ./images/sampling/Mississippi_PCs.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
-<images/sampling/Mississippi_PCs.pdf, id=435, 505.89pt x 361.35pt>
-File: images/sampling/Mississippi_PCs.pdf Graphic file (type pdf)
-<use images/sampling/Mississippi_PCs.pdf>
-Package pdftex.def Info: images/sampling/Mississippi_PCs.pdf  used on input line 3.
-(pdftex.def)             Requested size: 469.75502pt x 335.54477pt.
-) [11
-pdfTeX warning (ext4): destination with the same identifier (name{figure.3}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.121 
-       <./images/stratification_flowchart.drawio.pdf>] (figures/clusters.tex
-<images/sampling/clusters_250.png, id=466, 361.35pt x 361.35pt>
-File: images/sampling/clusters_250.png Graphic file (type png)
-<use images/sampling/clusters_250.png>
-Package pdftex.def Info: images/sampling/clusters_250.png  used on input line 3.
-(pdftex.def)             Requested size: 375.80544pt x 375.80617pt.
-) [12
-pdfTeX warning (ext4): destination with the same identifier (name{figure.4}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.123 
-       <./images/sampling/Mississippi_PCs.pdf>] [13
-pdfTeX warning (ext4): destination with the same identifier (name{figure.5}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.139 
-       <./images/sampling/clusters_250.png>] (figures/ms_lc_dist.tex
-<images/sampling/split_distributions.png, id=503, 1156.32pt x 361.35pt>
-File: images/sampling/split_distributions.png Graphic file (type png)
-<use images/sampling/split_distributions.png>
-Package pdftex.def Info: images/sampling/split_distributions.png  used on input line 3.
-(pdftex.def)             Requested size: 469.75502pt x 146.79808pt.
-) (figures/sample_locations.tex
-
-pdfTeX warning: pdflatex (file ./images/sampling/sampling_sites_map.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
-<images/sampling/sampling_sites_map.pdf, id=504, 614.295pt x 794.97pt>
-File: images/sampling/sampling_sites_map.pdf Graphic file (type pdf)
-<use images/sampling/sampling_sites_map.pdf>
-Package pdftex.def Info: images/sampling/sampling_sites_map.pdf  used on input line 3.
-(pdftex.def)             Requested size: 452.34969pt x 585.38303pt.
-) [14
-pdfTeX warning (ext4): destination with the same identifier (name{figure.6}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.144 
-       <./images/sampling/split_distributions.png>] [15
-pdfTeX warning (ext4): destination with the same identifier (name{figure.7}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.156 
-       <./images/sampling/sampling_sites_map.pdf>] (figures/pretraining_flowchart.tex
-
-pdfTeX warning: pdflatex (file ./images/pretrain_flowchart.drawio.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
-<images/pretrain_flowchart.drawio.pdf, id=559, 753.77606pt x 580.08719pt>
-File: images/pretrain_flowchart.drawio.pdf Graphic file (type pdf)
-<use images/pretrain_flowchart.drawio.pdf>
-Package pdftex.def Info: images/pretrain_flowchart.drawio.pdf  used on input line 3.
-(pdftex.def)             Requested size: 469.75502pt x 361.51799pt.
-) [16] [17
-pdfTeX warning (ext4): destination with the same identifier (name{figure.8}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.195 
-       <./images/pretrain_flowchart.drawio.pdf>]
-LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 8.8pt on input line 211.
-LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 6.6pt on input line 211.
- [18]) (sections/results.tex [19] (tables/overall_metrics.tex) (tables/params.tex) [20
-pdfTeX warning (ext4): destination with the same identifier (name{table.4}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.16 
-     ] (tables/s1_metrics.tex) (figures/hi_res_land_cover.tex
+l.28 
+     ] (figures/hi_res_land_cover.tex
 
 pdfTeX warning: pdflatex (file ./images/landcover_vis.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
-<images/landcover_vis.pdf, id=655, 469.755pt x 289.08pt>
+<images/landcover_vis.pdf, id=309, 469.755pt x 289.08pt>
 File: images/landcover_vis.pdf Graphic file (type pdf)
 <use images/landcover_vis.pdf>
 Package pdftex.def Info: images/landcover_vis.pdf  used on input line 3.
 (pdftex.def)             Requested size: 469.75502pt x 289.07928pt.
-) [21
+) (tables/confusion_matrix.tex) [10
+pdfTeX warning (ext4): destination with the same identifier (name{figure.2}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.32 
+      <./images/landcover_vis.pdf>] (tables/classification_report.tex)) [11
+pdfTeX warning (ext4): destination with the same identifier (name{table.4}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.62 
+     
 pdfTeX warning (ext4): destination with the same identifier (name{table.5}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.30 
-     
-pdfTeX warning (ext4): destination with the same identifier (name{table.6}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.30 
-     ] (tables/confusion_matrix.tex) (tables/classification_report.tex) [22
-pdfTeX warning (ext4): destination with the same identifier (name{figure.9}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.34 
-     
-pdfTeX warning (ext4): destination with the same identifier (name{table.7}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.34 
-      <./images/landcover_vis.pdf>]) (main.bbl [23
-pdfTeX warning (ext4): destination with the same identifier (name{table.8}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.40 ...laschkeObjectOrientedImageProcessing2000a}
-                                                  ]
+l.62 
+     ] (main.bbl
 LaTeX Font Info:    Trying to load font information for OMS+ntxtlf on input line 50.
 LaTeX Font Info:    No file OMSntxtlf.fd. on input line 50.
 
@@ -1072,25 +959,30 @@ LaTeX Font Warning: Font shape `OMS/ntxtlf/m/n' undefined
 (Font)              using `OMS/cmsy/m/n' instead
 (Font)              for symbol `textbraceleft' on input line 50.
 
-[24] [25] [26] [27] [28]) [29] (main.aux)
+[12] [13]
+Underfull \hbox (badness 10000) in paragraph at lines 281--287
+[]\OT1/minntx/m/n/12 Mississippi State Uni-ver-sity Ex-ten-sion, .  Mis-sis-sippi Land Re-source Ar-eas.
+ []
+
+[14] [15]) [16] (main.aux)
 
 LaTeX Font Warning: Some font shapes were not available, defaults substituted.
 
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 4DE441F4786953911BA6266964A64D58;3152.
+(rerunfilecheck)             Checksum: 44FDB142510F8F886EF6F9697EC9FFD4;1629.
  ) 
 Here is how much of TeX's memory you used:
- 21062 strings out of 476404
- 398948 string characters out of 2789052
- 1871324 words of memory out of 3000000
- 40858 multiletter control sequences out of 15000+600000
- 557626 words of font info for 129 fonts, out of 8000000 for 9000
+ 20815 strings out of 476404
+ 391424 string characters out of 2789052
+ 1874324 words of memory out of 3000000
+ 40714 multiletter control sequences out of 15000+600000
+ 554337 words of font info for 120 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,23n,77p,713b,1321s stack positions out of 10000i,1000n,20000p,200000b,80000s
-{C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/newtx/ntx-ot1-tlf.enc}<C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/NewTXMI.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txexs.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txmiaX.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txsym.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txsys.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/txfonts/txtt.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/ztmb.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/ztmr.pfb>
-Output written on main.pdf (29 pages, 8486885 bytes).
+ 75i,23n,77p,772b,1274s stack positions out of 10000i,1000n,20000p,200000b,80000s
+{C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/newtx/ntx-ot1-tlf.enc}<C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/NewTXMI.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txsym.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/txfonts/txtt.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/ztmb.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/ztmr.pfb>
+Output written on main.pdf (16 pages, 1574510 bytes).
 PDF statistics:
- 1047 PDF objects out of 1200 (max. 8388607)
- 137 named destinations out of 1000 (max. 500000)
- 158 words of extra memory for PDF output out of 10000 (max. 10000000)
+ 627 PDF objects out of 1000 (max. 8388607)
+ 82 named destinations out of 1000 (max. 500000)
+ 75 words of extra memory for PDF output out of 10000 (max. 10000000)
 
