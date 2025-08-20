@@ -1,20 +1,46 @@
 
+% \begin{table}[H]
+%     \caption{Reclassification scheme for aligning NLCD land cover classes with our desired classification scheme.}\label{tab:nlcd_reclass}
+%     \vspace{0.25cm}
+%     \centering
+%     \resizebox{\textwidth}{!}{
+%         \begin{tabular}{@{}llll@{}}
+%             \toprule
+%             NLCD Class Index & NLCD Class                  & Mississippi Class Index & Mississippi Class                      \\ \midrule
+%             11               & Open Water                  & 1                       & Open Water                             \\ \smallrule
+%             \makecell[l]{23 \\ 24} & \makecell[l]{Developed, Medium Intensity \\ Developed, High Intensity} & 2                       & Impervious Structures                   \\ \smallrule
+%             \makecell[l]{21 \\ 22} & \makecell[l]{Developed, Open Space \\ Developed, Low Intensity} & 3                       & Impervious Surfaces                     \\ \smallrule
+%             31               & Barren Land                 & 4                       & Barren                                  \\ \smallrule
+%             \makecell[l]{41 \\ 42 \\ 43 \\ 90} & \makecell[l]{Deciduous Forest \\ Evergreen Forest \\ Mixed Forest \\ Woody Wetlands} & 5                       & Forest                                  \\ \smallrule
+%             \makecell[l]{52 \\ 71 \\ 81 \\ 95} & \makecell[l]{Shrub/Scrub \\ Grassland/Herbaceous \\ Pasture/Hay \\ Emergent Herbaceous Wetlands} & 6                       & Herbaceous                              \\ \smallrule
+%             82               & Cultivated Crops            & 7                       & Cultivated Crops                       \\ \smallrule
+%             250              & NoData                      & 0                       & No Data                                \\ \bottomrule
+%         \end{tabular}
+%     }
+% \end{table}
+
 \begin{table}[H]
-    \caption{Reclassification scheme for aligning NLCD land cover classes with our desired classification scheme.}\label{tab:nlcd_reclass}
-    \vspace{0.25cm}
+    \caption{Reclassification scheme for aligning NLCD land cover classes with our desired classification scheme.}
+    \label{tab:nlcd_reclass}
     \centering
-    \resizebox{\textwidth}{!}{
-        \begin{tabular}{@{}llll@{}}
-            \toprule
-            NLCD Class Index & NLCD Class                  & Mississippi Class Index & Mississippi Class                      \\ \midrule
-            11               & Open Water                  & 1                       & Open Water                             \\ \smallrule
-            \makecell[l]{23 \\ 24} & \makecell[l]{Developed, Medium Intensity \\ Developed, High Intensity} & 2                       & Impervious Structures                   \\ \smallrule
-            \makecell[l]{21 \\ 22} & \makecell[l]{Developed, Open Space \\ Developed, Low Intensity} & 3                       & Impervious Surfaces                     \\ \smallrule
-            31               & Barren Land                 & 4                       & Barren                                  \\ \smallrule
-            \makecell[l]{41 \\ 42 \\ 43 \\ 90} & \makecell[l]{Deciduous Forest \\ Evergreen Forest \\ Mixed Forest \\ Woody Wetlands} & 5                       & Forest                                  \\ \smallrule
-            \makecell[l]{52 \\ 71 \\ 81 \\ 95} & \makecell[l]{Shrub/Scrub \\ Grassland/Herbaceous \\ Pasture/Hay \\ Emergent Herbaceous Wetlands} & 6                       & Herbaceous                              \\ \smallrule
-            82               & Cultivated Crops            & 7                       & Cultivated Crops                       \\ \smallrule
-            250              & NoData                      & 0                       & No Data                                \\ \bottomrule
-        \end{tabular}
+    \begin{tblr}{
+        colspec={Q[c,m] X[l,m] Q[c,m] Q[l,m]},
+        row{1} = {font=\bfseries},
+        hlines = {0.25pt, dashed},
+        hline{1,2,10} = {0pt, solid},
+        % booktabs
     }
+        \toprule
+        {NLCD Class\\Index} & NLCD Class & {Target Class\\Index} & Target Class \\
+        \midrule
+        11 & Open Water & 1 & Open Water \\
+        {23 \\ 24} & {Developed, Medium Intensity \\ Developed, High Intensity} & 2 & Impervious Structures \\
+        {21 \\ 22} & {Developed, Open Space \\ Developed, Low Intensity} & 3 & Impervious Surfaces \\
+        31 & Barren Land & 4 & Barren \\
+        {41 \\ 42 \\ 43 \\ 90} & {Deciduous Forest \\ Evergreen Forest \\ Mixed Forest \\ Woody Wetlands} & 5 & Forest \\
+        {52 \\ 71 \\ 81 \\ 95} & {Shrub/Scrub \\ Grassland/Herbaceous \\ Pasture/Hay \\ Emergent Herbaceous Wetlands} & 6 & Herbaceous \\
+        82 & Cultivated Crops & 7 & Cultivated Crops \\
+        250 & No Data & 0 & No Data \\
+        \bottomrule
+    \end{tblr}
 \end{table}

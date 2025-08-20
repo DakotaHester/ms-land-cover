@@ -19,12 +19,15 @@
 \usepackage{siunitx}
 \usepackage[sort]{natbib}
 \usepackage{hyperref}
+\usepackage{tabularray}
+
 
 % \RaggedRight
 
 % \doublespacing
-\onehalfspacing
+% \onehalfspacing
 % \linenumbers
+\UseTblrLibrary{booktabs}
 
 % \note command for adding notes to the document
 \newcommand*{\note}[1]{\textbf{\textcolor{red}{#1}}}
@@ -59,6 +62,10 @@
 \input{sections/methodology.tex}
 
 \input{sections/results.tex}
+
+\input{sections/discussion.tex}
+
+\input{sections/conclusion.tex}
 
 \bibliographystyle{elsarticle-harv}
 \bibliography{bibliography}
