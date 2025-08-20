@@ -25,9 +25,9 @@ GRES="gpu:a100_1g.10gb:1"
 MAIL_USER="dh2306@msstate.edu"
 PYTHON_ENV=".env/bin/activate"
 SCRIPT_NAME="finetune.py"
-BASE_LOG_DIR="./logs/finetune_cpb_20250817"
-BASE_WEIGHTS_DIR="./weights/finetune_cpb_20250817"
-SLURM_SCRIPT_DIR="./slurm_scripts/finetune_cpb_20250817"
+BASE_LOG_DIR="./logs/finetune_cpb_20250820"
+BASE_WEIGHTS_DIR="./weights/finetune_cpb_20250820"
+SLURM_SCRIPT_DIR="./slurm_scripts/finetune_cpb_20250820"
 TEST_DIR="./data/cpb_tests/test_tiles"
 MAX_JOBS=10
 
@@ -62,7 +62,7 @@ fi
 # EXPERIMENT CONFIGURATION
 # =========================
 MODELS=("deeplabv3plus" "unet")
-PRETRAIN_SCHEMES=("imagenet" "none")
+PRETRAIN_SCHEMES=("none" "imagenet")
 STRATIFICATION_SCHEMES=("sss" "srs" "semss")
 N_TRAIN_SAMPLES=(250 500 750)
 N_REPS=10
@@ -130,9 +130,9 @@ run_python_job() {
 # JOB SUBMISSION LOOP
 # =========================
 COUNT=0
-for rep in $(seq 0 $((N_REPS-1))); do
-    for model in "${MODELS[@]}"; do
-        for scheme in "${PRETRAIN_SCHEMES[@]}"; do
+for model in "${MODELS[@]}"; do
+    for scheme in "${PRETRAIN_SCHEMES[@]}"; do
+        for rep in $(seq 0 $((N_REPS-1))); do
             for n_train in "${N_TRAIN_SAMPLES[@]}"; do
                 
                 N_FOLDS=4

@@ -309,7 +309,8 @@ def main() -> None:
         mean=mean if 'cpb' not in args.split_dir else None,
         std=std if 'cpb' not in args.split_dir else None,
         noise_std=0.0,
-        transform=StandardDataAugmentations(s=1.0 if 'cpb' not in args.split_dir else 0.0),
+        # transform=StandardDataAugmentations(s=1.0 if 'cpb' not in args.split_dir else 0.0),
+        transform=StandardDataAugmentations(s=1.0),
         preload=args.preload,
         n_threads=args.num_workers,
     )
