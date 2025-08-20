@@ -61,8 +61,8 @@ fi
 # =========================
 # EXPERIMENT CONFIGURATION
 # =========================
-MODELS=("unet" "deeplabv3plus")
-PRETRAIN_SCHEMES=("none" "imagenet")
+MODELS=("deeplabv3plus" "unet")
+PRETRAIN_SCHEMES=("imagenet" "none")
 STRATIFICATION_SCHEMES=("sss" "srs" "semss")
 N_TRAIN_SAMPLES=(250 500 750)
 N_REPS=10
@@ -130,10 +130,9 @@ run_python_job() {
 # JOB SUBMISSION LOOP
 # =========================
 COUNT=0
-
-for model in "${MODELS[@]}"; do
-    for scheme in "${PRETRAIN_SCHEMES[@]}"; do
-        for rep in $(seq 0 $((N_REPS-1))); do
+for rep in $(seq 0 $((N_REPS-1))); do
+    for model in "${MODELS[@]}"; do
+        for scheme in "${PRETRAIN_SCHEMES[@]}"; do
             for n_train in "${N_TRAIN_SAMPLES[@]}"; do
                 
                 N_FOLDS=4
