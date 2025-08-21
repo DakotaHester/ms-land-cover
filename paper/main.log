@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.12) (preloaded format=pdflatex 2024.10.7)  20 AUG 2025 15:52
+This is pdfTeX, Version 3.141592653-2.6-1.40.24 (MiKTeX 22.12) (preloaded format=pdflatex 2024.10.7)  21 AUG 2025 17:06
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -1058,19 +1058,19 @@ pdfTeX warning (ext4): destination with the same identifier (name{figure.2}) has
 l.39 
       <./images/stratification_flowchart.drawio.pdf>]
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 8.8pt on input line 46.
+(Font)              scaled to size 8.8pt on input line 48.
 LaTeX Font Info:    Font shape `OT1/ntxtlf/m/n' will be
-(Font)              scaled to size 6.6pt on input line 46.
+(Font)              scaled to size 6.6pt on input line 48.
  [10
 pdfTeX warning (ext4): destination with the same identifier (name{figure.3}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.59 
+l.62 
       <./images/fold_splits.pdf>] (tables/class_legend.tex) [11] [12
 pdfTeX warning (ext4): destination with the same identifier (name{table.2}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.95 
+l.98 
      ] (figures/byol.tex
 
 pdfTeX warning: pdflatex (file ./images/BYOL_2.drawio.pdf): PDF inclusion: found PDF version <1.7>, but at most version <1.5> allowed
@@ -1083,8 +1083,13 @@ Package pdftex.def Info: images/BYOL_2.drawio.pdf  used on input line 3.
 pdfTeX warning (ext4): destination with the same identifier (name{figure.4}) has been already used, duplicate ignored
 <argument> ...shipout:D \box_use:N \l_shipout_box 
                                                   \__shipout_drop_firstpage_...
-l.110 
-       <./images/BYOL_2.drawio.pdf>] (tables/models.tex)) (sections/results.tex) (sections/discussion.tex) (sections/conclusion.tex) (main.bbl
+l.114 
+       <./images/BYOL_2.drawio.pdf>] (tables/models.tex)) (sections/results.tex) (sections/discussion.tex) (sections/conclusion.tex) (main.bbl [14
+pdfTeX warning (ext4): destination with the same identifier (name{table.3}) has been already used, duplicate ignored
+<argument> ...shipout:D \box_use:N \l_shipout_box 
+                                                  \__shipout_drop_firstpage_...
+l.40 ...laschkeObjectOrientedImageProcessing2000a}
+                                                  ]
 LaTeX Font Info:    Trying to load font information for OMS+ntxtlf on input line 50.
 LaTeX Font Info:    No file OMSntxtlf.fd. on input line 50.
 
@@ -1093,12 +1098,7 @@ LaTeX Font Warning: Font shape `OMS/ntxtlf/m/n' undefined
 (Font)              using `OMS/cmsy/m/n' instead
 (Font)              for symbol `textbraceleft' on input line 50.
 
-[14
-pdfTeX warning (ext4): destination with the same identifier (name{table.3}) has been already used, duplicate ignored
-<argument> ...shipout:D \box_use:N \l_shipout_box 
-                                                  \__shipout_drop_firstpage_...
-l.53 ...m}]{chenEncoderDecoderAtrousSeparable2018}
-                                                  ] [15] [16]
+[15] [16]
 Underfull \hbox (badness 10000) in paragraph at lines 340--346
 []\OT1/minntx/m/n/12 Mississippi State Uni-ver-sity Ex-ten-sion, .  Mis-sis-sippi Land Re-source Ar-eas.
  []
@@ -1117,9 +1117,9 @@ Here is how much of TeX's memory you used:
  43553 multiletter control sequences out of 15000+600000
  562411 words of font info for 140 fonts, out of 8000000 for 9000
  1141 hyphenation exceptions out of 8191
- 75i,9n,102p,772b,1300s stack positions out of 10000i,1000n,20000p,200000b,80000s
+ 75i,9n,102p,772b,1298s stack positions out of 10000i,1000n,20000p,200000b,80000s
 {C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/newtx/ntx-ot1-tlf.enc}<C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/NewTXMI.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/amsfonts/cm/cmsy10.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txexs.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txmiaX.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/txsys.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/txfonts/txtt.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/ztmb.pfb><C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/type1/public/newtx/ztmr.pfb>
-Output written on main.pdf (19 pages, 11336996 bytes).
+Output written on main.pdf (19 pages, 11337262 bytes).
 PDF statistics:
  703 PDF objects out of 1000 (max. 8388607)
  109 named destinations out of 1000 (max. 500000)

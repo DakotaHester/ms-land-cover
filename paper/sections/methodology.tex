@@ -38,7 +38,9 @@ Figure~\ref{fig:fold_splits} illustrates the division of the training dataset in
 \input{figures/kfold.tex}
 
 For the CPB land use/land cover dataset, we produced and trained on 10 separate replications of simple random sampling, spatial stratification, and semantic stratification approaches to ensure that any observed differences in the performance of the models trained using these approaches were reproducible and not due to random chance.
+\note{The land use classes were reclassified down to 7 classes as shown in...}
 Further, 50,000 samples were randomly selected from the remaining candidate samples in the CPB land use/land cover dataset to form a large test dataset that was used to evaluate the performance of the trained models.
+
 Candidate samples that lay within 500 meters of a sampled training samples were excluded from consideration for the test dataset to ensure that spatial autocorrelation did not lead to data leakage between the training and test datasets. 
 Metrics were computed both on an overall basis and on a per-class basis to evaluate the performance of the models.
 % Considering the natural imbalance on the land cover classes, macro-averaged metrics are computed to ensure that the performance of the models is not dominated by the most common land cover classes.
@@ -49,11 +51,12 @@ mIoU is computed as shown in Equation~\ref{eq:miou}, where \(C\) is the number o
     \text{mIoU} = \frac{1}{C} \sum_{c=1}^{C} \frac{\text{TP}_c}{\text{TP}_c + \text{FP}_c + \text{FN}_c}
 \end{equation}
 
-A \note{MODEL - WITH OR WITHOUT PRE-TRAINED WEIGHTS??} with a ResNet-101 encoder network served as the model for which the semantic stratification approach was validated.
+A DeepLabv3+ architecture with a ResNet-101 encoder network served as the model for which the semantic stratification approach was validated.
 A separate model was trained for each run of the cross-validation framework, with the model being trained for a maxmimum of 1000 epochs using the AdamW optimizer with a learning rate of \(1 \times 10^{-4}\) and a batch size of 32.
-Focal loss  was used as the loss function to address the class imbalance in the land cover classes as shown in Equation~\ref{eq:focal_loss}, where \(p_t\) is the model's estimated probability for the true class amd \(\gamma=2.0\).
+Focal loss was used as the loss function to address the class imbalance in the land cover classes as shown in Equation~\ref{eq:focal_loss}, where \(p_t\) is the model's estimated probability for the true class amd \(\gamma=2.0\).
 A warmup period of 10 epochs was used to linearly increase the learning raate from \(1 \times 10^{-5}\) to \(1 \times 10^{-4}\) at epoch 10, after which the learning rate was decayed by a factor of 0.1 after the validation loss fails to decrease for 15 epochs.
 After 50 epochs of no improvement in the validation loss, training was halted and the model with the lowest validation loss was selected as the final model for that run.
+% Given the limited size of the training datasets, we employed a 
 Automatic mixed precision training was used to speed up the training stage and reduce memory usage.
 Each model was evaluated on the test dataset using the mIoU metric, and the results were averaged across the 10 replications and k-folds for each training dataset size and sampling strategy.
 
@@ -86,7 +89,7 @@ No points within \SI{200}{\meter} of a sampled tile were selected to prevent dat
 
 The pre-training phase of the methodology is intended to leverage the large dataset of unannotated samples such that a ResNet-101 encoder can be trained to extract relevant features from the imagery that are well-suited for downstream land cover classification tasks.
 BYOL uses a ``self-distillation'' approach to learn representations from images using two separate but inter-dependent networks: an online network that conists of the primary encoder and a target network that consists of an exponential moving average (EMA) of the online network's parameters.
-Given an input image, two separate augmented views of the image are created using a set of transformations, such as \note{WHAT???}.
+Given an input image, two separate augmented views of the image are created using a set of transformations, as showni in \note{}.
 Each view is then passed through the online and target networks to produce feature vectors, as shown in Figure~\ref{fig:byol_workflow}.
 The online network is trained to predict the feature vector produced by the target network given the other view as input, and backpropagation is used to update the weights of the online network based on the 
 However, the target network is not trained directly; instead, it is updated using an EMA of the online network weights, giving the online network a stable yet constantly updated target to learn from.
@@ -106,7 +109,8 @@ The target network's parameters \(\theta_\text{target}\) are updated according t
 
 We applied BYOL to a ResNet-101 encoder network using the large dataset of unannotated samples from the state of Mississippi.
 We tested two configurations of the BYOL pre-training process: one starting with ImageNet pre-trained weights at the beginning of the pre-training process and one starting with randomly initialized weights.
-The pre-training process was run for 300 epochs, with the learning rate being \note{FINISH ME!!!}
+The pre-training process was run for 300 epochs, with the learning annealed from \(1 \times 10^{-3}\) to 0 over the course of training using a cosine annealing schedule, with a warmup period of 10 epochs to linearly increase the learning rate from 0 to \(1 \times 10^{-3}\).
+The AdamW optimizer was used with a batch size of 4096: to achieve this large batch size while working withing the memory constraints of a single Nvidia A100 GPU with 80 GB of VRAM, we employed gradient accumulation using a microbatch size of 256.
 
 
 \subsection{Selecting a semantic segmentation architecture and fine-tuning}\label{sec:methodology:semantic_segmentation}
