@@ -1,0 +1,25 @@
+\begin{table}[H]
+    \centering
+    \caption{Semantic segmentation architectures evaluated in this study, with their total parameters using a ResNet-101 backbone.}\label{tab:semantic_segmentation_models}
+    \begin{tblr}{
+        colspec = {Q[l, m] Q[l, m] Q[l, m]},
+        row{1} = {font=\bfseries},
+        % cell{1}{2} = {font=\itshape},
+        % cell{2}{2} = {font=\itshape},
+        % cell{3}{2} = {font=\itshape},
+        % booktabs
+    }
+        \toprule
+        Model & Number of Parameters & Reference \\
+        \midrule
+        Attention U-Net & 83,610,272 & \citep{oktayAttentionUNetLearning2018} \\
+        BiSeNet & 49,535,880 & \citep{yuBiSeNetBilateralSegmentation2018} \\
+        DANet & 57,188,426 & \citep{fuDualAttentionNetwork2019} \\
+        DeepLabV3+ & 58,199,128 & \citep{chenEncoderDecoderAtrousSeparable2018} \\
+        PAN & 62,439,496 & \citep{liPyramidAttentionNetwork2018} \\
+        PSPNet & 122,216,520 & \citep{zhaoPyramidSceneParsing2017a} \\
+        UNet & 92,302,024 & \citep{ronnebergerUNetConvolutionalNetworks2015} \\
+        UPerNet & 73,251,400 & \citep{xiaoUnifiedPerceptualParsing2018} \\
+        \bottomrule
+    \end{tblr}
+\end{table}
