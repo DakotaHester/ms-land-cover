@@ -360,6 +360,21 @@
   file = {C:\Users\dh2306\Zotero\storage\4IVN9BAH\Defries and Townshend - 1994 - NDVI-derived land cover classifications at a globa.pdf}
 }
 
+@article{diakogiannisResUNetdeepLearning2020,
+  title = {{{ResUNet-a}}: {{A}} Deep Learning Framework for Semantic Segmentation of Remotely Sensed Data},
+  author = {Diakogiannis, Foivos I. and Waldner, Fran{\c c}ois and Caccetta, Peter and Wu, Chen},
+  year = {2020},
+  journal = {ISPRS Journal of Photogrammetry and Remote Sensing},
+  volume = {162},
+  pages = {94--114},
+  issn = {0924-2716},
+  doi = {10.1016/j.isprsjprs.2020.01.013},
+  abstract = {Scene understanding of high resolution aerial images is of great importance for the task of automated monitoring in various remote sensing applications. Due to the large within-class and small between-class variance in pixel values of objects of interest, this remains a challenging task. In recent years, deep convolutional neural networks have started being used in remote sensing applications and demonstrate state of the art performance for pixel level classification of objects. Here we propose a reliable framework for performant results for the task of semantic segmentation of monotemporal very high resolution aerial images. Our framework consists of a novel deep learning architecture, ResUNet-a, and a novel loss function based on the Dice loss. ResUNet-a uses a UNet encoder/decoder backbone, in combination with residual connections, atrous convolutions, pyramid scene parsing pooling and multi-tasking inference. ResUNet-a infers sequentially the boundary of the objects, the distance transform of the segmentation mask, the segmentation mask and a colored reconstruction of the input. Each of the tasks is conditioned on the inference of the previous ones, thus establishing a conditioned relationship between the various tasks, as this is described through the architecture's computation graph. We analyse the performance of several flavours of the Generalized Dice loss for semantic segmentation, and we introduce a novel variant loss function for semantic segmentation of objects that has excellent convergence properties and behaves well even under the presence of highly imbalanced classes. The performance of our modeling framework is evaluated on the ISPRS 2D Potsdam dataset. Results show state-of-the-art performance with an average F1 score of 92.9\% over all classes for our best model.},
+  keywords = {Architecture,Convolutional neural network,Data augmentation,Loss function,Very high spatial resolution},
+  annotation = {894 citations (Crossref) [2024-08-29]},
+  file = {C\:\\Users\\dh2306\\Zotero\\storage\\H6ZB86RS\\Diakogiannis et al. - 2020 - ResUNet-a A deep learning framework for semantic .pdf;C\:\\Users\\dh2306\\Zotero\\storage\\SITDUJBC\\S0924271620300149.html}
+}
+
 @misc{dippelFinegrainedVisualRepresentations2022,
   title = {Towards {{Fine-grained Visual Representations}} by {{Combining Contrastive Learning}} with {{Image Reconstruction}} and {{Attention-weighted Pooling}}},
   author = {Dippel, Jonas and Vogler, Steffen and H{\"o}hne, Johannes},
@@ -397,6 +412,36 @@
   keywords = {class imbalance,Geometric-SMOTE,imbalanced learning,LULC classification,oversampling},
   annotation = {65 citations (Crossref) [2025-03-28]},
   file = {C:\Users\dh2306\Zotero\storage\RTU9N9DN\Douzas et al. - 2019 - Imbalanced Learning in Land Cover Classification Improving Minority Classes’ Prediction Accuracy Us.pdf}
+}
+
+@article{dragutAutomatedParameterisationMultiscale2014,
+  title = {Automated Parameterisation for Multi-Scale Image Segmentation on Multiple Layers},
+  author = {Dr{\u a}gu{\c t}, L. and Csillik, O. and Eisank, C. and Tiede, D.},
+  year = {2014},
+  month = feb,
+  journal = {ISPRS Journal of Photogrammetry and Remote Sensing},
+  volume = {88},
+  pages = {119--127},
+  issn = {0924-2716},
+  doi = {10.1016/j.isprsjprs.2013.11.018},
+  urldate = {2024-10-07},
+  abstract = {We introduce a new automated approach to parameterising multi-scale image segmentation of multiple layers, and we implemented it as a generic tool for the eCognition{\textregistered} software. This approach relies on the potential of the local variance (LV) to detect scale transitions in geospatial data. The tool detects the number of layers added to a project and segments them iteratively with a multiresolution segmentation algorithm in a bottom-up approach, where the scale factor in the segmentation, namely, the scale parameter (SP), increases with a constant increment. The average LV value of the objects in all of the layers is computed and serves as a condition for stopping the iterations: when a scale level records an LV value that is equal to or lower than the previous value, the iteration ends, and the objects segmented in the previous level are retained. Three orders of magnitude of SP lags produce a corresponding number of scale levels. Tests on very high resolution imagery provided satisfactory results for generic applicability. The tool has a significant potential for enabling objectivity and automation of GEOBIA analysis.},
+  keywords = {Automation,GEOBIA,Imagery,MRS,Object,Representation},
+  annotation = {492 citations (Crossref) [2024-10-07]},
+  file = {C\:\\Users\\dh2306\\Zotero\\storage\\B5CEI2MA\\Drăguţ et al. - 2014 - Automated parameterisation for multi-scale image s.pdf;C\:\\Users\\dh2306\\Zotero\\storage\\DIDQWWKB\\S0924271613002803.html}
+}
+
+@article{duroComparisonPixelbasedObjectbased2012,
+  title = {A Comparison of Pixel-Based and Object-Based Image Analysis with Selected Machine Learning Algorithms for the Classification of Agricultural Landscapes Using {{SPOT-5 HRG}} Imagery},
+  author = {Duro, D.C. and Franklin, S.E. and Dub{\'e}, M.G.},
+  year = {2012},
+  journal = {Remote Sensing of Environment},
+  volume = {118},
+  pages = {259--272},
+  doi = {10.1016/j.rse.2011.11.020},
+  abstract = {Pixel-based and object-based image analysis approaches for classifying broad land cover classes over agricultural landscapes are compared using three supervised machine learning algorithms: decision tree (DT), random forest (RF), and the support vector machine (SVM). Overall classification accuracies between pixel-based and object-based classifications were not statistically significant (p {$>$} 0.05) when the same machine learning algorithms were applied. Using object-based image analysis, there was a statistically significant difference in classification accuracy between maps produced using the DT algorithm compared to maps produced using either RF (p =0.0116) or SVM algorithms (p =0.0067). Using pixel-based image analysis, there was no statistically significant difference (p {$>$} 0.05) between results produced using different classification algorithms. Classifications based on RF and SVM algorithms provided a more visually adequate depiction of wetland, riparian, and crop land cover types when compared to DT based classifications, using either object-based or pixel-based image analysis. In this study, pixel-based classifications utilized fewer variables (15 vs. 300), achieved similar classification accuracies, and required less time to produce than object-based classifications. Object-based classifications produced a visually appealing generalized appearance of land cover classes. Based exclusively on overall accuracy reports, there was no advantage to preferring one image analysis approach over another for the purposes of mapping broad land cover types in agricultural environments using medium spatial resolution earth observation imagery. {\copyright} 2011 Elsevier Inc.},
+  keywords = {Comparison,Decision tree,Object-based,Random forest,Support vector machine},
+  file = {C:\Users\dh2306\Zotero\storage\QTDMSRB9\display.html}
 }
 
 @misc{earthresourcesobservationandscienceeroscenterNationalAgricultureImagery2017,
@@ -582,6 +627,27 @@
   keywords = {Change detection,Land cover,Landsat data,Large Area,Monitoring},
   annotation = {775 citations (Crossref) [2025-03-10]},
   file = {C:\Users\dh2306\Zotero\storage\ZTEYG8XP\S0034425712000314.html}
+}
+
+@article{haoSegmentationScaleEffect2021,
+  title = {Segmentation {{Scale Effect Analysis}} in the {{Object-Oriented Method}} of {{High-Spatial-Resolution Image Classification}}},
+  author = {Hao, Shuang and Cui, Yuhuan and Wang, Jie},
+  year = {2021},
+  month = jan,
+  journal = {Sensors},
+  volume = {21},
+  number = {23},
+  pages = {7935},
+  publisher = {Multidisciplinary Digital Publishing Institute},
+  issn = {1424-8220},
+  doi = {10.3390/s21237935},
+  urldate = {2024-10-07},
+  abstract = {High-spatial-resolution images play an important role in land cover classification, and object-based image analysis (OBIA) presents a good method of processing high-spatial-resolution images. Segmentation, as the most important premise of OBIA, significantly affects the image classification and target recognition results. However, scale selection for image segmentation is difficult and complicated for OBIA. The main challenge in image segmentation is the selection of the optimal segmentation parameters and an algorithm that can effectively extract the image information. This paper presents an approach that can effectively select an optimal segmentation scale based on land object average areas. First, 20 different segmentation scales were used for image segmentation. Next, the classification and regression tree model (CART) was used for image classification based on 20 different segmentation results, where four types of features were calculated and used, including image spectral bands value, texture value, vegetation indices, and spatial feature indices, respectively. WorldView-3 images were used as the experimental data to verify the validity of the proposed method for the selection of the optimal segmentation scale parameter. In order to decide the effect of the segmentation scale on the object area level, the average areas of different land objects were estimated based on the classification results. Experiments based on the multi-scale segmentation scale testify to the validity of the land object's average area-based method for the selection of optimal segmentation scale parameters. The study results indicated that segmentation scales are strongly correlated with an object's average area, and thus, the optimal segmentation scale of every land object can be obtained. In this regard, we conclude that the area-based segmentation scale selection method is suitable to determine optimal segmentation parameters for different land objects. We hope the segmentation scale selection method used in this study can be further extended and used for different image segmentation algorithms.},
+  copyright = {http://creativecommons.org/licenses/by/3.0/},
+  langid = {english},
+  keywords = {CART model,OBIA,scale,Worldview-3},
+  annotation = {10 citations (Crossref) [2024-10-07]},
+  file = {C\:\\Users\\dh2306\\Zotero\\storage\\JR7LWGAB\\Hao et al. - 2021 - Segmentation Scale Effect Analysis in the Object-O.pdf;C\:\\Users\\dh2306\\Zotero\\storage\\VI3VFRAB\\Hao et al. - 2021 - Segmentation Scale Effect Analysis in the Object-O.pdf}
 }
 
 @misc{heDeepResidualLearning2015b,
@@ -812,6 +878,17 @@
   file = {C\:\\Users\\dh2306\\Zotero\\storage\\HXGXP9QF\\Kolesnikov et al. - 2020 - Big Transfer (BiT) General Visual Representation .pdf;C\:\\Users\\dh2306\\Zotero\\storage\\9IAKWKYE\\1912.html}
 }
 
+@inproceedings{krizhevskyImageNetClassificationDeep2012,
+  title = {{{ImageNet}} Classification with Deep Convolutional Neural Networks},
+  booktitle = {Advances in {{Neural Information Processing Systems}}},
+  author = {Krizhevsky, A. and Sutskever, I. and Hinton, G.E.},
+  year = {2012},
+  volume = {2},
+  pages = {1097--1105},
+  abstract = {We trained a large, deep convolutional neural network to classify the 1.2 million high-resolution images in the ImageNet LSVRC-2010 contest into the 1000 different classes. On the test data, we achieved top-1 and top-5 error rates of 37.5\% and 17.0\% which is considerably better than the previous state-of-the-art. The neural network, which has 60 million parameters and 650,000 neurons, consists of five convolutional layers, some of which are followed by max-pooling layers, and three fully-connected layers with a final 1000-way softmax. To make training faster, we used non-saturating neurons and a very efficient GPU implementation of the convolution operation. To reduce overfitting in the fully-connected layers we employed a recently-developed regularization method called "dropout" that proved to be very effective. We also entered a variant of this model in the ILSVRC-2012 competition and achieved a winning top-5 test error rate of 15.3\%, compared to 26.2\% achieved by the second-best entry.},
+  file = {C:\Users\dh2306\Zotero\storage\M7LPVGUU\display.html}
+}
+
 @article{kussulDeepLearningClassification2017,
   title = {Deep {{Learning Classification}} of {{Land Cover}} and {{Crop Types Using Remote Sensing Data}}},
   author = {Kussul, Nataliia and Lavreniuk, Mykola and Skakun, Sergii and Shelestov, Andrii},
@@ -845,6 +922,24 @@
   keywords = {Buildings,Feature extraction,Image classification,Laser radar,Neural networks,Pattern analysis,Remote sensing,Semantics,Support vector machines},
   annotation = {66 citations (Crossref) [2024-09-26]},
   file = {C\:\\Users\\dh2306\\Zotero\\storage\\EKJXVAVX\\Lagrange et al. - 2015 - Benchmarking classification of earth-observation d.pdf;C\:\\Users\\dh2306\\Zotero\\storage\\7N2WFJZV\\7326745.html}
+}
+
+@article{liDeepLearningUrban2024,
+  title = {Deep Learning for Urban Land Use Category Classification: {{A}} Review and Experimental Assessment},
+  shorttitle = {Deep Learning for Urban Land Use Category Classification},
+  author = {Li, Ziming and Chen, Bin and Wu, Shengbiao and Su, Mo and Chen, Jing M. and Xu, Bing},
+  year = {2024},
+  month = sep,
+  journal = {Remote Sensing of Environment},
+  volume = {311},
+  pages = {114290},
+  issn = {0034-4257},
+  doi = {10.1016/j.rse.2024.114290},
+  urldate = {2024-09-30},
+  abstract = {Mapping the distribution, pattern, and composition of urban land use categories plays a valuable role in understanding urban environmental dynamics and facilitating sustainable development. Decades of effort in land use mapping have accumulated a series of mapping approaches and land use products. New trends characterized by open big data and advanced artificial intelligence, especially deep learning, offer unprecedented opportunities for mapping land use patterns from regional to global scales. Combined with large amounts of geospatial big data, deep learning has the potential to promote land use mapping to higher levels of scale, accuracy, efficiency, and automation. Here, we comprehensively review the advances in deep learning based urban land use mapping research and practices from the aspects of data sources, classification units, and mapping approaches. More specifically, delving into different settings on deep learning-based land use mapping, we design eight experiments in Shenzhen, China to investigate their impacts on mapping performance in terms of data, sample, and model. For each investigated setting, we provide quantitative evaluations of the discussed approaches to inform more convincing comparisons. Based on the historical retrospection and experimental evaluation, we identify the prevailing limitations and challenges of urban land use classification and suggest prospective directions that could further facilitate the exploitation of deep learning techniques in urban land use mapping using remote sensing and other spatial data across various scales.},
+  keywords = {Deep learning,Geospatial big data,Remote sensing,Sample,Urban land use type},
+  annotation = {3 citations (Crossref) [2024-09-30]},
+  file = {C\:\\Users\\dh2306\\Zotero\\storage\\CBMJBKW7\\Li et al. - 2024 - Deep learning for urban land use category classifi.pdf;C\:\\Users\\dh2306\\Zotero\\storage\\KZUUTIBG\\S0034425724003080.html}
 }
 
 @article{liDeepUNetDeepFully2018,
@@ -924,6 +1019,27 @@
   urldate = {2024-07-17},
   copyright = {https://ieeexplore.ieee.org/Xplorehelp/downloads/license-information/IEEE.html},
   file = {C:\Users\dh2306\Zotero\storage\99HG3U6D\Li et al. - 2022 - A Survey of Convolutional Neural Networks Analysi.pdf}
+}
+
+@article{liuCropTypeMapping2023,
+  title = {Crop {{Type Mapping Based}} on {{Polarization Information}} of {{Time Series Sentinel-1 Images Using Patch-Based Neural Network}}},
+  author = {Liu, Yuying and Pu, Xuecong and Shen, Zhangquan},
+  year = {2023},
+  month = jan,
+  journal = {Remote Sensing},
+  volume = {15},
+  number = {13},
+  pages = {3384},
+  publisher = {Multidisciplinary Digital Publishing Institute},
+  issn = {2072-4292},
+  doi = {10.3390/rs15133384},
+  urldate = {2025-08-26},
+  abstract = {Large-scale crop mapping is of fundamental importance to tackle food security problems. SAR remote sensing has lately received great attention for crop type mapping due to its stability in the revisit cycle and is not hindered by cloud cover. However, most SAR image-classification studies focused on the application of backscattering characteristics with machine learning models, while few investigated the potential of the polarization decomposition and deep-learning models. This study investigated whether the radar polarization information mined by polarization decomposition, the patch strategy and the approaches for combining recurrent and convolutional neural networks (Conv2d + LSTM and ConvLSTM2d) could effectively improve the accuracy of crop type mapping. Sentinel-1 SLC and GRD products in 2020 were collected as data sources to extract VH, VV, VH/VV, VV + VH, Entropy, Anisotropy, and Alpha 7-dimensional features for classification. The results showed that the three-dimensional Convolutional Neural Network (Conv3d) was the best classifier with an accuracy and kappa up to 88.9\% and 0.875, respectively, and the ConvLSTM2d and Conv2d + LSTM achieved the second and third position. Compared to backscatter coefficients, the polarization decomposition features could provide additional phase information for classification in the time dimension. The optimal patch size was 17, and the patch-based Conv3d outperformed the pixel-based Conv1d by 11.3\% in accuracy and 0.128 in kappa. This study demonstrated the value of applying polarization decomposition features to deep-learning models and provided a strong technical support to efficient large-scale crop mapping.},
+  copyright = {http://creativecommons.org/licenses/by/3.0/},
+  langid = {english},
+  keywords = {convolutional neural network,crop type mapping,patch strategy,polarimetric decomposition,recurrent neural network,synthetic aperture radar,time series},
+  annotation = {5 citations (Crossref) [2025-08-26]},
+  file = {C:\Users\dh2306\Zotero\storage\NMTEUFN7\Liu et al. - 2023 - Crop Type Mapping Based on Polarization Informatio.pdf}
 }
 
 @inproceedings{longFullyConvolutionalNetworks2015,
@@ -1182,6 +1298,24 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   file = {C:\Users\dh2306\Zotero\storage\TRVSGEGL\McIver and Friedl - 2001 - Estimating pixel-scale land cover classification c.pdf}
 }
 
+@article{mingScaleParameterSelection2015,
+  title = {Scale Parameter Selection by Spatial Statistics for {{GeOBIA}}: {{Using}} Mean-Shift Based Multi-Scale Segmentation as an Example},
+  shorttitle = {Scale Parameter Selection by Spatial Statistics for {{GeOBIA}}},
+  author = {Ming, Dongping and Li, Jonathan and Wang, Junyi and Zhang, Min},
+  year = {2015},
+  month = aug,
+  journal = {ISPRS Journal of Photogrammetry and Remote Sensing},
+  volume = {106},
+  pages = {28--41},
+  issn = {0924-2716},
+  doi = {10.1016/j.isprsjprs.2015.04.010},
+  urldate = {2024-10-07},
+  abstract = {Geo-Object-Based Image Analysis (GEOBIA) is becoming an increasingly important technology for information extraction from remote sensing images. Multi-scale image segmentation is a key procedure that partitions an image into homogeneous parcels (image objects) in GEOBIA. Hierarchical image objects also provide a better representation result than a single-scale representation. However, scale selection in multi-scale image segmentation is always difficult for high-performance GEOBIA. This paper first generalizes the commonly used segmentation scale parameters into three aspects: spatial bandwidth (spatial distance between classes), attribute bandwidth (difference between classes) and merging threshold. Next, taking mean-shift multi-scale segmentation as an example, this paper proposes a spatial and spectral statistics-based scale parameter selection method for object-based information extraction from high spatial resolution remote sensing images. The main idea of this proposed method is to use the ALV graph to replace the semivariogram to pre-estimate the optimal spatial bandwidth. Next, the selection of the optimal attribute bandwidth and the merging threshold are based on the ALV histogram and simple geometric computation, respectively. This study uses Ikonos, Quickbird and aerial panchromatic images as the experimental data to verify the validity of the proposed scale parameter selection method. Experiments based on quantitative multi-scale segmentation evaluation testify to the validity of this method. This pre-estimation-based scale parameter selection method is practically helpful and efficient in GEOBIA. The idea of this method can be further extended to other segmentation algorithms and other sensor data.},
+  keywords = {Average local variance,GEOBIA,Mean-shift segmentation,Scale selection,Statistics},
+  annotation = {122 citations (Crossref) [2024-10-07]},
+  file = {C\:\\Users\\dh2306\\Zotero\\storage\\55PUUEHX\\Ming et al. - 2015 - Scale parameter selection by spatial statistics fo.pdf;C\:\\Users\\dh2306\\Zotero\\storage\\XTC4ZAWV\\S0924271615001203.html}
+}
+
 @misc{mississippistateuniversityextensionMississippiLandResource,
   title = {Mississippi {{Land Resource Areas}}},
   author = {{Mississippi State University Extension}},
@@ -1319,6 +1453,24 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   langid = {english},
   annotation = {70 citations (Crossref) [2024-07-11]},
   file = {C:\Users\dh2306\Zotero\storage\AGCWDDJA\Pan et al. - 2020 - Land-cover classification of multispectral LiDAR d.pdf}
+}
+
+@article{phinnMultiscaleObjectbasedImage2012,
+  title = {Multi-Scale, Object-Based Image Analysis for Mapping Geomorphic and Ecological Zones on Coral Reefs},
+  author = {Phinn, Stuart R. and Roelfsema, Chris M. and Mumby, Peter J.},
+  year = {2012},
+  month = jun,
+  journal = {International Journal of Remote Sensing},
+  volume = {33},
+  number = {12},
+  pages = {3768--3797},
+  publisher = {Taylor \& Francis},
+  issn = {0143-1161},
+  doi = {10.1080/01431161.2011.633122},
+  urldate = {2024-10-07},
+  abstract = {Providing accurate maps of coral reefs where the spatial scale and labels of the mapped features correspond to map units appropriate for examining biological and geomorphic structures and processes is a major challenge for remote sensing. The objective of this work is to assess the accuracy and relevance of the process used to derive geomorphic zone and benthic community zone maps for three western Pacific coral reefs produced from multi-scale, object-based image analysis (OBIA) of high-spatial-resolution multi-spectral images, guided by field survey data. Three Quickbird-2 multi-spectral data sets from reefs in Australia, Palau and Fiji and georeferenced field photographs were used in a multi-scale segmentation and object-based image classification to map geomorphic zones and benthic community zones. A per-pixel approach was also tested for mapping benthic community zones. Validation of the maps and comparison to past approaches indicated the multi-scale OBIA process enabled field data, operator field experience and a conceptual hierarchical model of the coral reef environment to be linked to provide output maps at geomorphic zone and benthic community scales on coral reefs. The OBIA mapping accuracies were comparable with previously published work using other methods; however, the classes mapped were matched to a predetermined set of features on the reef.},
+  annotation = {166 citations (Crossref) [2024-10-07]},
+  file = {C:\Users\dh2306\Zotero\storage\8V2DL3ID\Phinn et al. - 2012 - Multi-scale, object-based image analysis for mappi.pdf}
 }
 
 @article{phiriDevelopmentsLandsatLand2017,
@@ -1506,6 +1658,44 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   file = {C:\Users\dh2306\Zotero\storage\FPCT9APP\Segal Rozenhaimer et al. - 2023 - Cloud Mesoscale Cellular Classification and Diurna.pdf}
 }
 
+@article{segalrozenhaimerCloudMesoscaleCellular2023a,
+  title = {Cloud {{Mesoscale Cellular Classification}} and {{Diurnal Cycle Using}} a {{Convolutional Neural Network}} ({{CNN}})},
+  author = {Segal Rozenhaimer, Michal and Nukrai, David and Che, Haochi and Wood, Robert and Zhang, Zhibo},
+  year = {2023},
+  month = jan,
+  journal = {Remote Sensing},
+  volume = {15},
+  number = {6},
+  pages = {1607},
+  publisher = {Multidisciplinary Digital Publishing Institute},
+  issn = {2072-4292},
+  doi = {10.3390/rs15061607},
+  urldate = {2025-08-26},
+  abstract = {Marine stratocumulus (MSC) clouds are important to the climate as they cover vast areas of the ocean's surface, greatly affecting radiation balance of the Earth. Satellite imagery shows that MSC clouds exhibit different morphologies of closed or open mesoscale cellular convection (MCC) but many limitations still exist in studying MCC dynamics. Here, we present a convolutional neural network algorithm to classify pixel-level closed and open MCC cloud types, trained by either visible or infrared channels from a geostationary SEVIRI satellite to allow, for the first time, their diurnal detection, with a 30 min. temporal resolution. Our probability of detection was 91\% and 92\% for closed and open MCC, respectively, which is in line with day-only detection schemes. We focused on the South-East Atlantic Ocean during months of biomass burning season, between 2016 and 2018. Our resulting MCC type area coverage, cloud effective radii, and cloud optical depth probability distributions over the research domain compare well with monthly and daily averages from MODIS. We further applied our algorithm on GOES-16 imagery over the South-East Pacific (SEP), another semi-permanent MCC domain, and were able to show good prediction skills, thereby representing the SEP diurnal cycle and the feasibility of our method to be applied globally on different satellite platforms.},
+  copyright = {http://creativecommons.org/licenses/by/3.0/},
+  langid = {english},
+  keywords = {convolutional neural networks,GOES,marine stratocumulus clouds,SEVIRI},
+  annotation = {5 citations (Crossref) [2025-08-26]},
+  file = {C:\Users\dh2306\Zotero\storage\AH57G32K\Segal Rozenhaimer et al. - 2023 - Cloud Mesoscale Cellular Classification and Diurna.pdf}
+}
+
+@misc{sherrahFullyConvolutionalNetworks2016,
+  title = {Fully {{Convolutional Networks}} for {{Dense Semantic Labelling}} of {{High-Resolution Aerial Imagery}}},
+  author = {Sherrah, Jamie},
+  year = {2016},
+  month = jun,
+  number = {arXiv:1606.02585},
+  eprint = {1606.02585},
+  primaryclass = {cs},
+  publisher = {arXiv},
+  doi = {10.48550/arXiv.1606.02585},
+  urldate = {2024-10-08},
+  abstract = {The trend towards higher resolution remote sensing imagery facilitates a transition from land-use classification to object-level scene understanding. Rather than relying purely on spectral content, appearance-based image features come into play. In this work, deep convolutional neural networks (CNNs) are applied to semantic labelling of high-resolution remote sensing data. Recent advances in fully convolutional networks (FCNs) are adapted to overhead data and shown to be as effective as in other domains. A full-resolution labelling is inferred using a deep FCN with no downsampling, obviating the need for deconvolution or interpolation. To make better use of image features, a pre-trained CNN is fine-tuned on remote sensing data in a hybrid network context, resulting in superior results compared to a network trained from scratch. The proposed approach is applied to the problem of labelling high-resolution aerial imagery, where fine boundary detail is important. The dense labelling yields state-of-the-art accuracy for the ISPRS Vaihingen and Potsdam benchmark data sets.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Computer Vision and Pattern Recognition},
+  file = {C\:\\Users\\dh2306\\Zotero\\storage\\NJBGI2CF\\Sherrah - 2016 - Fully Convolutional Networks for Dense Semantic La.pdf;C\:\\Users\\dh2306\\Zotero\\storage\\USHPMJZS\\1606.html}
+}
+
 @article{songPatchBasedLightConvolutional2019,
   title = {A {{Patch-Based Light Convolutional Neural Network}} for {{Land-Cover Mapping Using Landsat-8 Images}}},
   author = {Song, Hunsoo and Kim, Yonghyun and Kim, Yongil},
@@ -1556,6 +1746,23 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   langid = {english},
   annotation = {110 citations (Crossref) [2024-08-01]},
   file = {C:\Users\dh2306\Zotero\storage\ZSG7S6BL\Tehrany et al. - 2014 - A comparative assessment between object and pixel-.pdf}
+}
+
+@article{tewkesburyCriticalSynthesisRemotely2015,
+  title = {A Critical Synthesis of Remotely Sensed Optical Image Change Detection Techniques},
+  author = {Tewkesbury, Andrew P. and Comber, Alexis J. and Tate, Nicholas J. and Lamb, Alistair and Fisher, Peter F.},
+  year = {2015},
+  month = apr,
+  journal = {Remote Sensing of Environment},
+  volume = {160},
+  pages = {1--14},
+  issn = {0034-4257},
+  doi = {10.1016/j.rse.2015.01.006},
+  urldate = {2025-08-26},
+  abstract = {State of the art reviews of remote sensing change detection are becoming increasingly complicated and disparate due to an ever growing list of techniques, algorithms and methods. To provide a clearer, synoptic view of the field this review has organised the literature by the unit of analysis and the comparison method used to identify change. This significantly reduces the conceptual overlap present in previous reviews giving a succinct nomenclature with which to understand and apply change detection workflows. Under this framework, several decades of research have been summarised to provide an overview of current change detection approaches. Seven units of analysis and six comparison methods were identified and described highlighting the advantages and limitations of each within a change detection workflow. Of these, the pixel and post-classification change methods remain the most popular choices. In this review we extend previous summaries and provide an accessible description of the field. This supports future research by placing a clear separation between the analysis unit and the change classification method. This separation is then discussed, providing guidance for applied change detection research and future benchmarking experiments.},
+  keywords = {Change detection,Land use land cover change (LULCC),Object-based,Pixel-based,Remote sensing},
+  annotation = {406 citations (Crossref) [2025-08-26]},
+  file = {C\:\\Users\\dh2306\\Zotero\\storage\\7PI4DHQL\\Tewkesbury et al. - 2015 - A critical synthesis of remotely sensed optical im.pdf;C\:\\Users\\dh2306\\Zotero\\storage\\CLGNEZ7W\\S0034425715000152.html}
 }
 
 @inproceedings{tianContrastiveMultiviewCoding2020,
@@ -1718,6 +1925,39 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   file = {C:\Users\dh2306\Zotero\storage\EGVUIC38\Vincent et al. - 2008 - Extracting and composing robust features with deno.pdf}
 }
 
+@article{wangScaleSelfadaptingSegmentation2018,
+  title = {A Scale Self-Adapting Segmentation Approach and Knowledge Transfer for Automatically Updating Land Use/Cover Change Databases Using High Spatial Resolution Images},
+  author = {Wang, Zhihua and Yang, Xiaomei and Lu, Chen and Yang, Fengshuo},
+  year = {2018},
+  month = jul,
+  journal = {International Journal of Applied Earth Observation and Geoinformation},
+  volume = {69},
+  pages = {88--98},
+  issn = {1569-8432},
+  doi = {10.1016/j.jag.2018.03.001},
+  urldate = {2025-08-26},
+  abstract = {Automatic updating of land use/cover change (LUCC) databases using high spatial resolution images (HSRI) is important for environmental monitoring and policy making, especially for coastal areas that connect the land and coast and that tend to change frequently. Many object-based change detection methods are proposed, especially those combining historical LUCC with HSRI. However, the scale parameter(s) segmenting the serial temporal images, which directly determines the average object size, is hard to choose without experts' intervention. And the samples transferred from historical LUCC also need experts' intervention to avoid insufficient or wrong samples. With respect to the scale parameter(s) choosing, a Scale Self-Adapting Segmentation (SSAS) approach based on the exponential sampling of a scale parameter and location of the local maximum of a weighted local variance was proposed to determine the scale selection problem when segmenting images constrained by LUCC for detecting changes. With respect to the samples transferring, Knowledge Transfer (KT), a classifier trained on historical images with LUCC and applied in the classification of updated images, was also proposed. Comparison experiments were conducted in a coastal area of Zhujiang, China, using SPOT 5 images acquired in 2005 and 2010. The results reveal that (1) SSAS can segment images more effectively without intervention of experts. (2) KT can also reach the maximum accuracy of samples transfer without experts' intervention. Strategy SSAS\,+\,KT would be a good choice if the temporal historical image and LUCC match, and the historical image and updated image are obtained from the same resource.},
+  keywords = {Coastal area,GEOBIA,High spatial resolution images,Land use/cover change,Ocean disaster,Scale issue},
+  annotation = {7 citations (Crossref) [2025-08-26]}
+}
+
+@article{wangUNetFormerUNetlikeTransformer2022,
+  title = {{{UNetFormer}}: {{A UNet-like}} Transformer for Efficient Semantic Segmentation of Remote Sensing Urban Scene Imagery},
+  shorttitle = {{{UNetFormer}}},
+  author = {Wang, Libo and Li, Rui and Zhang, Ce and Fang, Shenghui and Duan, Chenxi and Meng, Xiaoliang and Atkinson, Peter M.},
+  year = {2022},
+  month = aug,
+  journal = {ISPRS Journal of Photogrammetry and Remote Sensing},
+  volume = {190},
+  pages = {196--214},
+  issn = {09242716},
+  doi = {10.1016/j.isprsjprs.2022.06.008},
+  urldate = {2024-07-11},
+  langid = {english},
+  annotation = {294 citations (Crossref) [2024-07-11]},
+  file = {C:\Users\dh2306\Zotero\storage\J8LKWL5X\1-s2.0-S0924271622001654-main.pdf}
+}
+
 @article{weissSurveyTransferLearning2016,
   title = {A Survey of Transfer Learning},
   author = {Weiss, Karl and Khoshgoftaar, Taghi M. and Wang, DingDing},
@@ -1838,6 +2078,24 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   annotation = {11 citations (Crossref) [2025-08-25]}
 }
 
+@article{yeReviewAccuracyAssessment2018,
+  title = {A Review of Accuracy Assessment for Object-Based Image Analysis: {{From}} per-Pixel to per-Polygon Approaches},
+  shorttitle = {A Review of Accuracy Assessment for Object-Based Image Analysis},
+  author = {Ye, Su and Pontius, Robert Gilmore and Rakshit, Rahul},
+  year = {2018},
+  month = jul,
+  journal = {ISPRS Journal of Photogrammetry and Remote Sensing},
+  volume = {141},
+  pages = {137--147},
+  issn = {0924-2716},
+  doi = {10.1016/j.isprsjprs.2018.04.002},
+  urldate = {2025-08-26},
+  abstract = {Object-based image analysis (OBIA) has gained widespread popularity for creating maps from remotely sensed data. Researchers routinely claim that OBIA procedures outperform pixel-based procedures; however, it is not immediately obvious how to evaluate the degree to which an OBIA map compares to reference information in a manner that accounts for the fact that the OBIA map consists of objects that vary in size and shape. Our study reviews 209 journal articles concerning OBIA published between 2003 and 2017. We focus on the three stages of accuracy assessment: (1) sampling design, (2) response design and (3) accuracy analysis. First, we report the literature's overall characteristics concerning OBIA accuracy assessment. Simple random sampling was the most used method among probability sampling strategies, slightly more than stratified sampling. Office interpreted remotely sensed data was the dominant reference source. The literature reported accuracies ranging from 42\% to 96\%, with an average of 85\%. A third of the articles failed to give sufficient information concerning accuracy methodology such as sampling scheme and sample size. We found few studies that focused specifically on the accuracy of the segmentation. Second, we identify a recent increase of OBIA articles in using per-polygon approaches compared to per-pixel approaches for accuracy assessment. We clarify the impacts of the per-pixel versus the per-polygon approaches respectively on sampling, response design and accuracy analysis. Our review defines the technical and methodological needs in the current per-polygon approaches, such as polygon-based sampling, analysis of mixed polygons, matching of mapped with reference polygons and assessment of segmentation accuracy. Our review summarizes and discusses the current issues in object-based accuracy assessment to provide guidance for improved accuracy assessments for OBIA.},
+  keywords = {Accuracy assessment,OBIA,Object-based image analysis,Per-pixel,Per-polygon,Remote sensing},
+  annotation = {164 citations (Crossref) [2025-08-26]},
+  file = {C:\Users\dh2306\Zotero\storage\UBUQUYYB\S0924271618300947.html}
+}
+
 @misc{yosinskiHowTransferableAre2014,
   title = {How Transferable Are Features in Deep Neural Networks?},
   author = {Yosinski, Jason and Clune, Jeff and Bengio, Yoshua and Lipson, Hod},
@@ -1923,6 +2181,28 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   keywords = {GEE,LULC classification,machine learning,Mardan,Pakistan,Sentinel-2 data},
   annotation = {128 citations (Crossref) [2025-08-03]},
   file = {C:\Users\dh2306\Zotero\storage\QCFCTEDZ\S1550742423001227.html}
+}
+
+@article{zhaoLandUseLand2023,
+  title = {Land {{Use}} and {{Land Cover Classification Meets Deep Learning}}: {{A Review}}},
+  shorttitle = {Land {{Use}} and {{Land Cover Classification Meets Deep Learning}}},
+  author = {Zhao, Shengyu and Tu, Kaiwen and Ye, Shutong and Tang, Hao and Hu, Yaocong and Xie, Chao},
+  year = {2023},
+  month = jan,
+  journal = {Sensors},
+  volume = {23},
+  number = {21},
+  pages = {8966},
+  publisher = {Multidisciplinary Digital Publishing Institute},
+  issn = {1424-8220},
+  doi = {10.3390/s23218966},
+  urldate = {2024-09-30},
+  abstract = {As one of the important components of Earth observation technology, land use and land cover (LULC) image classification plays an essential role. It uses remote sensing techniques to classify specific categories of ground cover as a means of analyzing and understanding the natural attributes of the Earth's surface and the state of land use. It provides important information for applications in environmental protection, urban planning, and land resource management. However, remote sensing images are usually high-dimensional data and have limited available labeled samples, so performing the LULC classification task faces great challenges. In recent years, due to the emergence of deep learning technology, remote sensing data processing methods based on deep learning have achieved remarkable results, bringing new possibilities for the research and development of LULC classification. In this paper, we present a systematic review of deep-learning-based LULC classification, mainly covering the following five aspects: (1) introduction of the main components of five typical deep learning networks, how they work, and their unique benefits; (2) summary of two baseline datasets for LULC classification (pixel-level, patch-level) and performance metrics for evaluating different models (OA, AA, F1, and MIOU); (3) review of deep learning strategies in LULC classification studies, including convolutional neural networks (CNNs), autoencoders (AEs), generative adversarial networks (GANs), and recurrent neural networks (RNNs); (4) challenges faced by LULC classification and processing schemes under limited training samples; (5) outlooks on the future development of deep-learning-based LULC classification.},
+  copyright = {http://creativecommons.org/licenses/by/3.0/},
+  langid = {english},
+  keywords = {deep learning,image classification,LULC,remote sensing},
+  annotation = {10 citations (Crossref) [2024-09-30]},
+  file = {C:\Users\dh2306\Zotero\storage\SET2S4FF\Zhao et al. - 2023 - Land Use and Land Cover Classification Meets Deep .pdf}
 }
 
 @article{zhaoLossFunctionsImage2017,
