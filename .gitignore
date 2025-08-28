@@ -64,6 +64,12 @@ data/NAIP_MS
 *.aux
 *.nav
 *.snm
+*.log
+*.synctex.gz
+*.out
+*.fls
+*.fdb_latexmk
+*.toc
 data/shapefiles*.egg-info
 data/old_splits
 data/assessment

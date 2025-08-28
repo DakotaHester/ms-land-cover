@@ -52,7 +52,7 @@ mIoU is computed as shown in Equation~\ref{eq:miou}, where \(C\) is the number o
 \end{equation}
 
 A DeepLabv3+ architecture with a ResNet-101 encoder network served as the model for which the semantic stratification approach was validated.
-A separate model was trained for each run of the cross-validation framework, with the model being trained for a maxmimum of 1000 epochs using the AdamW optimizer with a learning rate of \(1 \times 10^{-4}\) and a batch size of 32.
+A separate model was trained for each run of the cross-validation framework, with the model being trained for a maximum of 1000 epochs using the AdamW optimizer with a learning rate of \(1 \times 10^{-4}\) and a batch size of 32.
 Focal loss was used as the loss function to address the class imbalance in the land cover classes as shown in Equation~\ref{eq:focal_loss}, where \(p_t\) is the model's estimated probability for the true class amd \(\gamma=2.0\).
 A warmup period of 10 epochs was used to linearly increase the learning raate from \(1 \times 10^{-5}\) to \(1 \times 10^{-4}\) at epoch 10, after which the learning rate was decayed by a factor of 0.1 after the validation loss fails to decrease for 15 epochs.
 After 50 epochs of no improvement in the validation loss, training was halted and the model with the lowest validation loss was selected as the final model for that run.

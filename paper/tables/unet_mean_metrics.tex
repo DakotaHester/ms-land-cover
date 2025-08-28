@@ -1,0 +1,25 @@
+\begin{table}[H]
+    \centering
+    \caption{Mean U-Net performance across pre-training methods and training set sizes.}
+    \label{tab:mean_unet_performance}
+    \begin{tblr}{
+        colspec = {Q[l, m] Q[c, m] Q[c, m] Q[c, m]},
+        row{1} = {font=\bfseries},
+    }
+        \toprule
+        Pretrain Method & $N_{train}$ & Mean Overall Accuracy (\%) & Mean mIOU (\%) \\
+        \midrule
+        ImageNet        & 250 & 85.20 & 56.77 \\
+        ImageNet        & 500 & 85.70 & 58.33 \\
+        ImageNet        & 750 & 86.10 & 58.97 \\
+        \midrule
+        BYOL            & 250 & 85.34 & 56.13 \\
+        BYOL            & 500 & 86.20 & 57.90 \\
+        BYOL            & 750 & 86.25 & 58.71 \\
+        \midrule
+        ImageNet + BYOL & 250 & 85.95 & 58.90 \\
+        ImageNet + BYOL & 500 & 86.55 & 60.36 \\
+        ImageNet + BYOL & 750 & 86.43 & 60.85 \\
+        \bottomrule
+    \end{tblr}
+\end{table}

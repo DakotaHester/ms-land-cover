@@ -1,13 +1,13 @@
 # Fdb version 4
-["bibtex main"] 1756229960 "main.aux" "main.bbl" "main" 1756229961 0
+["bibtex main"] 1756238608 "main.aux" "main.bbl" "main" 1756238635 0
   "./bibliography.bib" 1756229356 249250 bff5f17575de23d9571ed2ad76398611 ""
   "C:/Users/dh2306/AppData/Local/Programs/MiKTeX/bibtex/bst/elsarticle/elsarticle-harv.bst" 1606134568 30002 8c0c5833f37bea3ec214cf315a72975d ""
-  "main.aux" 1756227824 21391 5664e49da704f247c59ff703b6665f74 "pdflatex"
+  "main.aux" 1756238635 21391 66a8a731cce945d46ac39c6acfc5d804 "pdflatex"
   (generated)
   "main.bbl"
   "main.blg"
   (rewritten before read)
-["pdflatex"] 1756227822 "c:/Users/dh2306/projects/ms-land-cover/paper/main.tex" "main.pdf" "main" 1756229961 0
+["pdflatex"] 1756238633 "c:/Users/dh2306/projects/ms-land-cover/paper/main.tex" "main.pdf" "main" 1756238635 0
   "C:/Users/dh2306/AppData/Local/MiKTeX/fonts/map/pdftex/pdftex.map" 1753713552 256805 345d0720f467a37adecb34065c9e006b ""
   "C:/Users/dh2306/AppData/Local/MiKTeX/miktex/data/le/pdftex/pdflatex.fmt" 1728306850 23173453 6163e62320f8931c619cd7a9e82ea0a8 ""
   "C:/Users/dh2306/AppData/Local/Programs/MiKTeX/fonts/enc/dvips/newtx/ntx-ot1-tlf.enc" 1725093049 2083 60e36f8eac802fcaf19eabe2633b406e ""
@@ -166,7 +166,7 @@
   "C:/Users/dh2306/AppData/Local/Programs/MiKTeX/tex/latex/xkeyval/xkeyval.sty" 1656236919 4937 4ce600ce9bd4ec84d0250eb6892fcf4f ""
   "C:/Users/dh2306/AppData/Local/Programs/MiKTeX/tex/latex/xpatch/xpatch.sty" 1585221260 8510 7803f78066c4f9d008405191a4b43073 ""
   "C:/Users/dh2306/AppData/Local/Programs/MiKTeX/tex/latex/xstring/xstring.sty" 1693735632 123 a302f2c651a95033260db60e51527ae8 ""
-  "c:/Users/dh2306/projects/ms-land-cover/paper/main.tex" 1756227387 1685 1b63f1eb25e52eeef1d99c41493a179c ""
+  "c:/Users/dh2306/projects/ms-land-cover/paper/main.tex" 1756230111 1685 1b63f1eb25e52eeef1d99c41493a179c ""
   "figures/byol.tex" 1755720288 177 eefd471e1bd7699c41b5c2e19ace60b1 ""
   "figures/kfold.tex" 1755704549 287 9267d3c360059101f6dfae45f7808501 ""
   "figures/naip_ms.tex" 1749354060 222 6672eb99961c42df6f80a40141dea3a1 ""
@@ -175,16 +175,16 @@
   "images/fold_splits.pdf" 1755707372 20668 34b3dcdfaa8d5b4d4d139e752258fe36 ""
   "images/ms_NAIP.pdf" 1740284887 1005250 9fcde4e46ce05d46a8683832821c139c ""
   "images/stratification_flowchart.drawio.pdf" 1749354061 82920 fb4c1775b0787edb19555b4e438fc713 ""
-  "main.aux" 1756227824 21391 5664e49da704f247c59ff703b6665f74 "pdflatex"
-  "main.bbl" 1756229961 49481 6f34d226522679cbf23d715bf956593e "bibtex main"
-  "main.out" 1756227824 3472 97eefa4251d4bf52724ca5adf70af9cc "pdflatex"
-  "main.tex" 1756227387 1685 1b63f1eb25e52eeef1d99c41493a179c ""
+  "main.aux" 1756238635 21391 66a8a731cce945d46ac39c6acfc5d804 "pdflatex"
+  "main.bbl" 1756238609 49481 6f34d226522679cbf23d715bf956593e "bibtex main"
+  "main.out" 1756238635 3472 97eefa4251d4bf52724ca5adf70af9cc "pdflatex"
+  "main.tex" 1756230111 1685 1b63f1eb25e52eeef1d99c41493a179c ""
   "sections/abstract.tex" 1754586308 2258 be6e0bfb8e74addf5507bcab9da32b1e ""
   "sections/conclusion.tex" 1755720876 20 b50204e17c0a475d3d65191e029fdf1d ""
   "sections/discussion.tex" 1755720802 42 0e353f753378d52b49b628cb8f6368d1 ""
-  "sections/introduction.tex" 1755618719 11434 af2cdf2c626c1876aa9bd8546a2c4c9e ""
-  "sections/methodology.tex" 1755814058 15882 2a52eaf7b569c118a1019cd09910c4cf ""
-  "sections/related_work.tex" 1756229960 20421 e23e8144980c84cb6e7123fd98564537 ""
+  "sections/introduction.tex" 1756238604 11475 25e6da751dc900c82f52dc3b7c63c4f2 ""
+  "sections/methodology.tex" 1756238632 15881 2cdfc725523be351cb2054ea668e31a9 ""
+  "sections/related_work.tex" 1756230108 20421 e23e8144980c84cb6e7123fd98564537 ""
   "sections/results.tex" 1755720927 36 7c7577dbad6ec0bdb91145f33f01df93 ""
   "sections/study_area.tex" 1755620317 4600 0784e972f4a8c9896f42fc7da450433f ""
   "tables/class_legend.tex" 1755709185 3960 0bc27c45c59b28728fb3fa4349e12bad ""
