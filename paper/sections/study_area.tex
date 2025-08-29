@@ -1,4 +1,6 @@
-\section{Study area}\label{sec:study_area}
+\section{Study area and data sources}\label{sec:study_area}
+
+\subsection{Areas of interest}
 
 \paragraph{Mississippi, USA}
 The overarching goal of this proposed work is to develop a 1 m resolution land cover map for the state of Mississippi to facilitate high-fidelity land analysis.
@@ -14,6 +16,7 @@ The CBP land use and land cover products are among the largest meter-scale land 
 The 2024 edition provides a 56-class land use product at \SI{1}{\meter} resolution over the Chesapeake Bay watershed, which includes portions of six states (Delaware, Maryland, New York, Pennsylvania, Virginia, and West Virginia) and the District of Columbia for the years 2013/2014, 2017/2018, and 2021/2022.
 
 
+\subsection{Imagery and land cover dataset}\label{sec:data}
 
 \paragraph{National Agriculture Imagery Program (NAIP)}\label{sec:data:naip}
 For this study, USDA National Agriculture Imagery Program (NAIP) imagery is used as the primary data source from which the models are trained and the land cover map is generated.
@@ -24,9 +27,9 @@ NAIP imagery collected in 2021 and 2023 for the states of Virginia and Mississip
 The imagery is provided in 4 spectral bands (Red, Green, Blue, and Near-Infrared) at a spatial resolution of 0.6 meters per pixel.
 % The data is downloaded from the NRCS Geospatial Data Gateway, which provides color-infrared orthorectified, mosaiced imagery for each county for which NAIP imagery is available~\cite{usdaGeospatialDataGateway2016}.
 The imagery is resampled to a spatial resolution of 1 m to reduce the computational cost of processing and storing the data, as well as to align with the desired spatial resolution of the land cover product we aim to generate.
-Mississippi imagery is reprojected to the Mississippi Transverse Mercator (MSTM) coordinate system (EPSG: 3813) in accordance with recommendations from the Mississippi Automated Resource Information System (MARIS) to ensure that all data is in the same coordinate reference system~\cite{misssissippiautomatedresourceinformationsystemMississippiTransverseMercator}.
+% Mississippi imagery is reprojected to the Mississippi Transverse Mercator (MSTM) coordinate system (EPSG: 3813) in accordance with recommendations from the Mississippi Automated Resource Information System (MARIS) to ensure that all data is in the same coordinate reference system~\cite{misssissippiautomatedresourceinformationsystemMississippiTransverseMercator}.
 % , as both UTM and State Plane coordinate systems divide the state of Mississippi into two zones, which can introduce complexity when working with datasets that span the entire state
 Likewise, data for the Chesapeake Bay program is reprojected to CONUS
-Figure~\ref{fig:naip_ms} shows the extent of the study area and the NAIP imagery used in this study in the MSTM coordinate system.
+% Figure~\ref{fig:naip_ms} shows the extent of the study area and the NAIP imagery used in this study in the MSTM coordinate system.
 
-\input{figures/naip_ms.tex}
+\input{figures/study_areas.tex}

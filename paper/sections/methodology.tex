@@ -6,7 +6,9 @@ First, we applied the semantic stratification approach to train and evaluate a l
 We then used this approach to select 1000 sample tiles over the state of Mississippi for manual visual annotation to build a training dataset.
 A separate, larger dataset of unannotated sample tiles from the state of Mississippi was used to pre-train a ResNet-101 convolutional encoder using BYOL as a pre-text task under a self-supervised learning framework.
 The ResNet-101 encoder was then used as a backbone for a semantic segmentation architecture that was fine-tuned using the annotated training dataset.
-Finally, several fine-tuned models were ensembled to produce a land cover map at \SI{1}{\meter} resolution over the state of Mississippi for the years 2016 and 2023, with the 2023 map undergoing a thematic accuracy assessment using a point-based validation approach.
+Finally, several fine-tuned models were ensembled to produce a land cover map at \SI{1}{\meter} resolution over the state of Mississippi for the years 2016 and 2023, with the 2023 map undergoing a thematic accuracy assessment using a point-based validation approach. An illustration providing an overview of the methodology is shown in Figure~\ref{fig:methodology_flowchart}.
+
+\input{figures/methodology.tex}
 
 \subsection{Validation of semantic stratification approach using CPB land use/land cover data}\label{sec:methodology:semantic_stratification}
 
