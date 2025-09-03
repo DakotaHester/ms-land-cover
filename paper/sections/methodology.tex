@@ -13,6 +13,7 @@ Finally, several fine-tuned models were ensembled to produce a land cover map at
 \subsection{Validation of semantic stratification approach using CPB land use/land cover data}\label{sec:methodology:semantic_stratification}
 
 Our proposed semantic stratification approach relied on the use of existing land cover data to form strata according to the distribution and composition of land cover classes within a population of potential training samples over a given area.
+A high-level overview of this approach is shown in Figure~\ref{fig:sampling_flowchart}.
 Given an area of interest, we overlaid a grid of 256\(\times\)256 meter cells that intersected with the study area, and these cells served as the population of potential training samples.
 We then extracted zonal histograms of land cover class distribution within each cell using the NLCD land cover data as a reference.
 The NLCD classes were reclassified down to 7 classes in accordance with the chosen land cover classification scheme, as shown in Table~\ref{tab:nlcd_reclass}.
@@ -23,11 +24,10 @@ We selected 2 principal components to represent the feature space of the land co
 K-means clustering was then applied to the PCA-reduced feature space to form 250 strata, which were then used to stratify the population of potential training samples.
 A large number of clusters was chosen to ensure the strata were sufficiently fine-grained to capture the variability in land cover composition across the study area.
 From each stratum, we randomly sampled 4 candidate training samples, with each being placed into a separate fold of the training dataset such that 4 folds formed a total of 1000 training samples.
-The full stratification process is illustrated in Figure~\ref{fig:stratification_flowchart}.
-
-\input{tables/nlcd_reclass.tex}
 
 \input{figures/sampling_flowchart.tex}
+
+\input{tables/nlcd_reclass.tex}
 
 In order to validate the effectiveness of the proposed stratification approach, we applied it to the task of land cover classification using the CPB land use/land cover dataset.
 As comparisons, we also applied simple random sampling and spatially stratified sampling approaches to the same dataset.
@@ -77,7 +77,7 @@ Once the semantic stratification approach was validated using the CPB land use/l
 A team of trained annotators was employed to visually annotate the selected samples according to the land cover classification scheme shown in Table~\ref{tab:class_legend}.
 Samples were randomly assigned to each annotator without regard to the sampling strategy used to select them such that each fold contained a mix of samples from each annotator.
 After the annotators completed their work, the annotations were reviewed and corrected by another annotator whose task was to ensure that the annotations were consistent and accurate.
-Annotators employed the Segment Anything Model 2 (SAM 2) hosted on the Computer Vision Annotation Tool (CVAT) annotation platform to assist with the visual annotation process \cite{cvat2023,raviSAM2Segment2024}.
+Annotators employed the Segment Anything Model 2 (SAM 2) hosted on the Computer Vision Annotation Tool (CVAT) annotation platform to assist with the visual annotation process \citep{cvat2023,raviSAM2Segment2024}.
 By using positive and negative point prompts to create an initial mask corresponding to the boundaries of land cover classes in the imagery, annotators were able to quickly refine these masks to produce accurate annotations in a fraction of the time it would take to manually draw the masks.
 
 \input{tables/class_legend.tex}

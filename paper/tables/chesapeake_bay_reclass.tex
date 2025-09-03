@@ -1,20 +1,105 @@
+% \begin{table}[H]
+%     \centering
+%     \caption{Reclassification scheme for reducing Chesapeake Bay land cover classes to more closely align with our desired classification scheme.}\label{tab:chesapeake_reclassification}
+%     \vspace{0.25cm}
+%     \resizebox{\textwidth}{!}{
+%     \baselineskip=1pt
+%     \renewcommand{\arraystretch}{0.5}
+%         \begin{tabular}{@{}llll@{}}
+%             \toprule
+%             Chesapeake Class Index & Chesapeake Class                        & Reduced Class Index & Reduced Class Label                      \\ \midrule
+%             1  & Water                                      & 1  & Open Water                             \\ \smallrule
+%             \makecell[l]{3 \\ 10 \\ 11 \\ 12} & \makecell[l]{Tree Canopy \\ Tree Canopy over Impervious Structures \\ Tree Canopy over Other Impervious \\ Tree Canopy over Roads} & 2  & Forest                                  \\ \smallrule
+%             4  & Shrubland                                  & 3  & Herbaceous                              \\ \smallrule
+%             \makecell[l]{2 \\ 5} & \makecell[l]{Emergent Wetlands \\ Low Vegetation} & 4  & Herbaceous                              \\ \smallrule
+%             6  & Barren Land                               & 5  & Barren                                  \\ \smallrule
+%             7  & Impervious Structures                    & 6  & Impervious Structures                   \\ \smallrule
+%             \makecell[l]{8 \\ 9} & \makecell[l]{Other Impervious \\ Roads} & 7  & Impervious Surfaces                     \\ \bottomrule
+%         \end{tabular}
+%     }
+% \end{table}
+
+% filepath: /Users/dak/projects/ms-land-cover/paper/tables/cpb_reclass.tex
+% filepath: /Users/dak/projects/ms-land-cover/paper/tables/cpb_reclass.tex
 \begin{table}[H]
+    \caption{Reclassification scheme for aligning CPB land use/land cover classes with our desired classification scheme.}
+    \label{tab:cpb_reclass}
     \centering
-    \caption{Reclassification scheme for reducing Chesapeake Bay land cover classes to more closely align with our desired classification scheme.}\label{tab:chesapeake_reclassification}
-    \vspace{0.25cm}
-    \resizebox{\textwidth}{!}{
-    \baselineskip=1pt
-    \renewcommand{\arraystretch}{0.5}
-        \begin{tabular}{@{}llll@{}}
-            \toprule
-            Chesapeake Class Index & Chesapeake Class                        & Reduced Class Index & Reduced Class Label                      \\ \midrule
-            1  & Water                                      & 1  & Open Water                             \\ \smallrule
-            \makecell[l]{3 \\ 10 \\ 11 \\ 12} & \makecell[l]{Tree Canopy \\ Tree Canopy over Impervious Structures \\ Tree Canopy over Other Impervious \\ Tree Canopy over Roads} & 2  & Forest                                  \\ \smallrule
-            4  & Shrubland                                  & 3  & Herbaceous                              \\ \smallrule
-            \makecell[l]{2 \\ 5} & \makecell[l]{Emergent Wetlands \\ Low Vegetation} & 4  & Herbaceous                              \\ \smallrule
-            6  & Barren Land                               & 5  & Barren                                  \\ \smallrule
-            7  & Impervious Structures                    & 6  & Impervious Structures                   \\ \smallrule
-            \makecell[l]{8 \\ 9} & \makecell[l]{Other Impervious \\ Roads} & 7  & Impervious Surfaces                     \\ \bottomrule
-        \end{tabular}
+    \tiny
+    \begin{tblr}{
+        colspec={X[c,m] X[l,m] X[c,m] X[l,m]},
+        row{1} = {font=\bfseries},
+        hlines = {0.25pt, dashed},
+        hline{1,2,Z} = {0pt, solid},
     }
+        % \small
+        \toprule
+        {CPB Class Index} & CPB Class & {Target Class Index} & Target Class \\
+        \midrule
+        {10 \\ 11 \\ 12 \\ 13 \\ 14 \\ 15} & {Tidal Waters \\ Lakes and Reservoirs \\ Riverine Ponds \\ Terrene Ponds \\ Streams and Rivers \\ Bare Shore} &  1 &  Water \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % \midrule
+        {21 \\ 32} & {Structures \\ Solar Field Panel Arrays} &  2 &  Raised Structures \\
+        % & & & \\
+        % \midrule
+        {20 \\ 22 \\ 31} & {Roads \\ Other Impervious \\ Extractive Impervious} &  3 &  Impervious Surfaces \\
+        % & & & \\
+        % & & & \\
+        % \midrule
+        {28 \\ 30 \\ 33 \\ 36 \\ 42 \\ 45 \\ 50 \\ 60 \\ 70 \\ 80 \\ 82 \\ 85} & {Bare Developed \\ Extractive Barren \\ Solar Field Barren \\ Suspended Succession Barren \\ Natural Succession Barren \\ Harvested Forest Barren \\ Riverine Wetlands Barren \\ Terrene Wetlands Barren \\ Tidal Wetlands Barren \\ Cropland Barren \\ Orchards and Vineyards Barren \\ Pasture and Hay Barren} &  4 &  Barren \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % \midrule
+        {23 \\ 24 \\ 25 \\ 26 \\ 40 \\ 41 \\ 53 \\ 54 \\ 55 \\ 63 \\ 64 \\ 65 \\ 73 \\ 74 \\ 75} & {Tree Canopy Over Roads \\ Tree Canopy Over Structures \\ Tree Canopy Over Other Impervious \\ Tree Canopy Over Turf Grass \\ Forest \\ Forested Other \\ Riverine Wetlands Forested Other \\ Riverine Wetlands Forest \\ Riverine Wetlands Harvested Forest \\ Terrene Wetlands Forested Other \\ Terrene Wetlands Forest \\ Terrene Wetlands Harvested Forest \\ Tidal Wetlands Forested Other \\ Tidal Wetlands Forest \\ Tidal Wetlands Harvested Forest} &  5 &  Forest Canopy \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % \midrule
+        {27 \\ 34 \\ 35 \\ 37 \\ 38 \\ 43 \\ 44 \\ 46 \\ 51 \\ 52 \\ 61 \\ 62 \\ 71 \\ 72 \\ 84 \\ 86} & {Turf Grass \\ Solar Field Herbaceous \\ Solar Field Shrubland \\ Suspended Succession Herbaceous \\ Suspended Succession Shrubland \\ Natural Succession Herbaceous \\ Natural Succession Shrubland \\ Harvested Forest Herbaceous \\ Riverine Wetlands Herbaceous \\ Riverine Wetlands Shrubland \\ Terrene Wetlands Herbaceous \\ Terrene Wetlands Shrubland \\ Tidal Wetlands Herbaceous \\ Tidal Wetlands Shrubland \\ Orchards and Vineyards Shrubland \\ Pasture and Hay Herbaceous} &  6 &  Herbaceous \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % & & & \\
+        % \midrule
+        {81 \\ 83} & {Cropland Herbaceous \\ Orchards and Vineyards Herbaceous} &  7 &  Cultivated Crops \\
+        % & & & \\
+        % \midrule
+        0 & NoData & 0 & NoData \\
+        \bottomrule
+    \end{tblr}
 \end{table}
