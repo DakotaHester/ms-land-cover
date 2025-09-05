@@ -8,7 +8,7 @@
 \usepackage{adjustbox}
 \usepackage{makecell}
 \usepackage{array} % Add this package
-\usepackage{diagbox}
+% \usepackage{diagbox}
 \usepackage{amsmath}
 \usepackage{float}
 \usepackage{setspace}
@@ -23,6 +23,7 @@
 \usepackage{authblk}
 \usepackage{appendix}
 
+\sisetup{range-phrase=\,--\,}  
 
 % \RaggedRight
 
@@ -30,6 +31,7 @@
 % \onehalfspacing
 % \linenumbers
 \UseTblrLibrary{booktabs}
+\UseTblrLibrary{diagbox}
 
 % \note command for adding notes to the document
 \newcommand*{\note}[1]{\textbf{\textcolor{red}{#1}}}
@@ -53,6 +55,7 @@
 
 \input{sections/abstract.tex}
 
+\noindent
 \textbf{Keywords:} Land cover classification, very high spatial resolution, self-supervised learning, stratification, deep learning, label efficiency
 
 % \tableofcontents
@@ -71,11 +74,7 @@
 
 \input{sections/conclusion.tex}
 
-\newpage
-\appendix
-\section*{Appendix}
-
-\input{tables/chesapeake_bay_reclass.tex}
+% \input{sections/appendix.tex}
 
 \bibliographystyle{elsarticle-harv}
 \bibliography{bibliography}

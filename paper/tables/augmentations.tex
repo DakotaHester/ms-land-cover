@@ -1,0 +1,22 @@
+\begin{table}[H]
+    \centering
+    \caption{Data augmentation techniques and parameters used during model training.}
+    \label{tab:data_augmentations}
+    \begin{tblr}{
+        colspec={l l c},
+        row{1}={font=\bfseries},
+        % hlines,
+        % vlines,
+    }
+        \toprule
+        Augmentation & Parameters & Probability \\
+        \midrule
+        Random Horizontal Flip & -- & 50\% \\
+        Random Vertical Flip & -- & 50\% \\
+        Random 90-degree Rotation & Angles: \{0, 90, 180, 270\} & 100\% \\
+        Color Jitter & Brightness: 0.4, Contrast: 0.4, Saturation: 0.2, Hue: 0.2 & 80\% \\
+        Random Grayscale & -- & 20\% \\
+        Gaussian Blur & Kernel Size: 25, Sigma: [0.1, 2.0] & 100\% \\
+        \bottomrule
+    \end{tblr}
+\end{table}
