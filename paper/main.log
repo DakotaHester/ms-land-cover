@@ -1,4 +1,4 @@
-This is LuaHBTeX, Version 1.21.0 (TeX Live 2025/Homebrew)  (format=lualatex 2025.8.30)  5 SEP 2025 17:02
+This is LuaHBTeX, Version 1.21.0 (TeX Live 2025/Homebrew)  (format=lualatex 2025.8.30)  7 SEP 2025 00:48
  restricted system commands enabled.
  file:line:error style messages enabled.
 **/Users/dak/projects/ms-land-cover/paper/main.tex
@@ -37,8 +37,8 @@ Inserting `luaotfload.aux.set_xheight' in `luaotfload.patch_font'.
 Inserting `luaotfload.rewrite_fontname' in `luaotfload.patch_font'.
 Inserting `tracingstacklevels' in `input_level_string'. (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/base/article.cls
 Document Class: article 2024/06/29 v1.4n Standard LaTeX document class
-(/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/base/size12.clo
-File: size12.clo 2024/06/29 v1.4n Standard LaTeX file (size option)
+(/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/base/size10.clo
+File: size10.clo 2024/06/29 v1.4n Standard LaTeX file (size option)
 luaotfload | db : Font names database loaded from /opt/homebrew/Cellar/texlive/20250308_1/share/texmf-var/luatex-cache/generic/names/luaotfload-names.luc.gz)
 \c@part=\count194
 \c@section=\count195
@@ -851,51 +851,51 @@ Package fontspec Info:
 (fontspec)             <->s*[1]"[TeXGyreTermesX-BoldSlanted.otf]:mode=base;script=latn;language=dflt;-ss05;+tlig;+tnum;+lnum;+smcp;+pcap;"
 
 LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
-(Font)              scaled to size 12.0pt on input line 52.
-Package translations Info: No language package found. I am going to use `english' as default language. on input line 52.
+(Font)              scaled to size 10.0pt on input line 53.
+Package translations Info: No language package found. I am going to use `english' as default language. on input line 53.
  (./main.aux)
 \openout1 = main.aux
 
-LaTeX Font Info:    Checking defaults for OML/ntxmi/m/it on input line 52.
-LaTeX Font Info:    Trying to load font information for OML+ntxmi on input line 52.
+LaTeX Font Info:    Checking defaults for OML/ntxmi/m/it on input line 53.
+LaTeX Font Info:    Trying to load font information for OML+ntxmi on input line 53.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/omlntxmi.fd
 File: omlntxmi.fd 2015/08/25 Fontinst v1.933 font definitions for OML/ntxmi.
 )
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for U/ntxexa/m/n on input line 52.
-LaTeX Font Info:    Trying to load font information for U+ntxexa on input line 52.
+LaTeX Font Info:    ... okay on input line 53.
+LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 53.
+LaTeX Font Info:    ... okay on input line 53.
+LaTeX Font Info:    Checking defaults for OT1/cmr/m/n on input line 53.
+LaTeX Font Info:    ... okay on input line 53.
+LaTeX Font Info:    Checking defaults for T1/cmr/m/n on input line 53.
+LaTeX Font Info:    ... okay on input line 53.
+LaTeX Font Info:    Checking defaults for TS1/cmr/m/n on input line 53.
+LaTeX Font Info:    ... okay on input line 53.
+LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 53.
+LaTeX Font Info:    ... okay on input line 53.
+LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 53.
+LaTeX Font Info:    ... okay on input line 53.
+LaTeX Font Info:    Checking defaults for U/ntxexa/m/n on input line 53.
+LaTeX Font Info:    Trying to load font information for U+ntxexa on input line 53.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/untxexa.fd
 File: untxexa.fd 2012/04/16 Fontinst v1.933 font definitions for U/ntxexa.
 )
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 52.
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for LMS/ntxsy/m/n on input line 52.
-LaTeX Font Info:    Trying to load font information for LMS+ntxsy on input line 52.
+LaTeX Font Info:    ... okay on input line 53.
+LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 53.
+LaTeX Font Info:    ... okay on input line 53.
+LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 53.
+LaTeX Font Info:    ... okay on input line 53.
+LaTeX Font Info:    Checking defaults for LMS/ntxsy/m/n on input line 53.
+LaTeX Font Info:    Trying to load font information for LMS+ntxsy on input line 53.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/lmsntxsy.fd
 File: lmsntxsy.fd 2016/07/02 Fontinst v1.933 font definitions for LMS/ntxsy.
 )
-LaTeX Font Info:    ... okay on input line 52.
-LaTeX Font Info:    Checking defaults for LMX/ntxexx/m/n on input line 52.
-LaTeX Font Info:    Trying to load font information for LMX+ntxexx on input line 52.
+LaTeX Font Info:    ... okay on input line 53.
+LaTeX Font Info:    Checking defaults for LMX/ntxexx/m/n on input line 53.
+LaTeX Font Info:    Trying to load font information for LMX+ntxexx on input line 53.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/lmxntxexx.fd
 File: lmxntxexx.fd 2016/07/03 Fontinst v1.933 font definitions for LMX/ntxexx.
 )
-LaTeX Font Info:    ... okay on input line 52.
+LaTeX Font Info:    ... okay on input line 53.
 
 *geometry* driver: auto-detecting
 *geometry* detected driver: luatex
@@ -916,12 +916,12 @@ LaTeX Font Info:    ... okay on input line 52.
 * \topmargin=-37.0pt
 * \headheight=12.0pt
 * \headsep=25.0pt
-* \topskip=12.0pt
+* \topskip=10.0pt
 * \footskip=30.0pt
-* \marginparwidth=44.0pt
-* \marginparsep=10.0pt
+* \marginparwidth=65.0pt
+* \marginparsep=11.0pt
 * \columnsep=10.0pt
-* \skip\footins=10.8pt plus 4.0pt minus 2.0pt
+* \skip\footins=9.0pt plus 4.0pt minus 2.0pt
 * \hoffset=0.0pt
 * \voffset=0.0pt
 * \mag=1000
@@ -950,65 +950,65 @@ Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 48
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/latexconfig/epstopdf-sys.cfg
 File: epstopdf-sys.cfg 2010/07/13 v1.3 Configuration of (r)epstopdf for TeX Live
 ))
-Package hyperref Info: Link coloring OFF on input line 52.
+Package hyperref Info: Link coloring OFF on input line 53.
  (./main.out) (./main.out)
 \@outlinefile=\write3
 
 \openout3 = main.out
-LaTeX Info: Command `\dddot' is already robust on input line 52.
-LaTeX Info: Command `\ddddot' is already robust on input line 52.
+LaTeX Info: Command `\dddot' is already robust on input line 53.
+LaTeX Info: Command `\ddddot' is already robust on input line 53.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/translations/translations-basic-dictionary-english.trsl
 File: translations-basic-dictionary-english.trsl (english translation file `translations-basic-dictionary')
 )
-Package translations Info: loading dictionary `translations-basic-dictionary' for `english'. on input line 52.
+Package translations Info: loading dictionary `translations-basic-dictionary' for `english'. on input line 53.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/ninecolors/ninecolors.sty
 Package: ninecolors 2022-02-13 v2022D Select colors with proper color contrast
 )
 LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
-(Font)              scaled to size 20.74pt on input line 54.
+(Font)              scaled to size 17.28pt on input line 55.
 LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
-(Font)              scaled to size 14.4pt on input line 54.
+(Font)              scaled to size 12.0pt on input line 55.
  (./sections/abstract.tex
 LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
-(Font)              scaled to size 10.95pt on input line 7.
+(Font)              scaled to size 9.0pt on input line 7.
 LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/b/n' will be
-(Font)              scaled to size 10.95pt on input line 7.
+(Font)              scaled to size 9.0pt on input line 7.
 )
 LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/b/n' will be
-(Font)              scaled to size 12.0pt on input line 59.
+(Font)              scaled to size 10.0pt on input line 60.
  (./sections/introduction.tex
 LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
-(Font)              scaled to size 17.28pt on input line 1.
+(Font)              scaled to size 14.4pt on input line 1.
 LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/b/n' will be
-(Font)              scaled to size 17.28pt on input line 1.
+(Font)              scaled to size 14.4pt on input line 1.
 LaTeX Font Info:    Trying to load font information for OT1+minntx on input line 8.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/ot1minntx.fd
 File: ot1minntx.fd 2023/09/09 v1.1 font definition file for OT1/minntx
 )
 LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 12.0pt on input line 8.
+(Font)              scaled to size 10.0pt on input line 8.
 LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 8.8pt on input line 8.
+(Font)              scaled to size 7.3pt on input line 8.
 LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 6.6pt on input line 8.
+(Font)              scaled to size 5.5pt on input line 8.
 LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 12.0pt on input line 8.
+(Font)              scaled to size 10.0pt on input line 8.
 LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 8.8pt on input line 8.
+(Font)              scaled to size 7.3pt on input line 8.
 LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 6.6pt on input line 8.
+(Font)              scaled to size 5.5pt on input line 8.
 LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 12.0pt on input line 8.
+(Font)              scaled to size 10.0pt on input line 8.
 LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 8.8pt on input line 8.
+(Font)              scaled to size 7.3pt on input line 8.
 LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 6.6pt on input line 8.
+(Font)              scaled to size 5.5pt on input line 8.
 LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 12.0pt on input line 8.
+(Font)              scaled to size 10.0pt on input line 8.
 LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 8.8pt on input line 8.
+(Font)              scaled to size 7.3pt on input line 8.
 LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 6.6pt on input line 8.
+(Font)              scaled to size 5.5pt on input line 8.
 LaTeX Font Info:    Trying to load font information for U+msa on input line 8.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
@@ -1022,97 +1022,83 @@ LaTeX Font Info:    Trying to load font information for U+ntxmia on input line 8
 File: untxmia.fd 2024/04/09 Fontinst v1.933 font definitions for U/ntxmia.
 )
 LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 12.0pt on input line 8.
+(Font)              scaled to size 10.0pt on input line 8.
 LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 8.8pt on input line 8.
+(Font)              scaled to size 7.3pt on input line 8.
 LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 6.6pt on input line 8.
+(Font)              scaled to size 5.5pt on input line 8.
 LaTeX Font Info:    Trying to load font information for U+ntxsym on input line 8.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/untxsym.fd
 File: untxsym.fd 2023/08/16 Fontinst v1.933 font definitions for U/ntxsym.
 )
 LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 12.0pt on input line 8.
+(Font)              scaled to size 10.0pt on input line 8.
 LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 8.8pt on input line 8.
+(Font)              scaled to size 7.3pt on input line 8.
 LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 6.6pt on input line 8.
+(Font)              scaled to size 5.5pt on input line 8.
 LaTeX Font Info:    Trying to load font information for U+ntxsyc on input line 8.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/untxsyc.fd
 File: untxsyc.fd 2012/04/12 Fontinst v1.933 font definitions for U/ntxsyc.
 )
 LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 12.0pt on input line 8.
+(Font)              scaled to size 10.0pt on input line 8.
 LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 8.8pt on input line 8.
+(Font)              scaled to size 7.3pt on input line 8.
 LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 6.6pt on input line 8.
+(Font)              scaled to size 5.5pt on input line 8.
 LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 12.0pt on input line 8.
+(Font)              scaled to size 10.0pt on input line 8.
 LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 8.8pt on input line 8.
+(Font)              scaled to size 7.3pt on input line 8.
 LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 6.6pt on input line 8.
+(Font)              scaled to size 5.5pt on input line 8.
 
 
 [1
 
 {/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/map/pdftex/updmap/pdftex.map}]
 
-[2])
-
-[3] (./sections/related_work.tex
+[2]) (./sections/related_work.tex
 LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/b/n' will be
-(Font)              scaled to size 14.4pt on input line 3.
+(Font)              scaled to size 12.0pt on input line 3.
 
+
+[3]
 
 [4]
 
-[5]
+[5]) (./sections/study_area.tex
 
-[6]
-
-[7]) (./sections/study_area.tex
-
-[8]
-Overfull \hbox (13.72105pt too wide) in paragraph at lines 28--34
-\TU/TeXGyreTermesX(0)/m/n/12 work is aerial im-agery sourced from the USDA's Na-tional Agri-cul-ture Im-agery Pro-gram (NAIP) ([]Earth
- []
-
-
-Overfull \hbox (8.31073pt too wide) in paragraph at lines 28--34
-\TU/TeXGyreTermesX(0)/m/n/12 archive of high-resolution mul-ti-spec-tral im-agery over CONUS, with a spa-tial res-o-lu-tion of $\OT1/minntx/m/n/12 0\OML/ntxmi/m/it/12 :\OT1/minntx/m/n/12 3$$m$\TU/TeXGyreTermesX(0)/m/n/12 --$\OT1/minntx/m/n/12 1$$m$
- []
-
-
-
-[9] (./figures/study_areas.tex
-<images/Study_Area.pdf, id=409, 1156.32pt x 614.295pt>
+[6] (./figures/study_areas.tex
+<images/Study_Area.pdf, id=419, 1156.32pt x 614.295pt>
 File: images/Study_Area.pdf Graphic file (type pdf)
 <use images/Study_Area.pdf>
 Package luatex.def Info: images/Study_Area.pdf  used on input line 3.
 (luatex.def)             Requested size: 469.75502pt x 249.55672pt.
-)) (./sections/methodology.tex
+))
 
-[10
-warning  (pdf backend): ignoring duplicate destination with the name 'figure.1'
-<./images/Study_Area.pdf>] (./figures/methodology.tex
-<images/Methodology.drawio.png, id=438, 3661.68pt x 2292.565pt>
+[7] (./sections/methodology.tex (./figures/methodology.tex
+<images/Methodology.drawio.png, id=434, 3661.68pt x 2292.565pt>
 File: images/Methodology.drawio.png Graphic file (type png)
 <use images/Methodology.drawio.png>
 Package luatex.def Info: images/Methodology.drawio.png  used on input line 3.
 (luatex.def)             Requested size: 469.75502pt x 294.09099pt.
 )
 
-[11
-warning  (pdf backend): ignoring duplicate destination with the name 'figure.2'
-<./images/Methodology.drawio.png>] (./figures/sampling_flowchart.tex
-<images/semantic_stratification.drawio.png, id=450, 1764.5925pt x 364.36125pt>
+[8
+warning  (pdf backend): ignoring duplicate destination with the name 'figure.1'
+<./images/Study_Area.pdf>] (./figures/sampling_flowchart.tex
+<images/semantic_stratification.drawio.png, id=462, 1764.5925pt x 364.36125pt>
 File: images/semantic_stratification.drawio.png Graphic file (type png)
 <use images/semantic_stratification.drawio.png>
 Package luatex.def Info: images/semantic_stratification.drawio.png  used on input line 4.
 (luatex.def)             Requested size: 469.75502pt x 96.99448pt.
-) (./tables/nlcd_reclass.tex
+)
+
+[9
+warning  (pdf backend): ignoring duplicate destination with the name 'figure.2'
+<./images/Methodology.drawio.png>] (./tables/nlcd_reclass.tex
 > Step: init table outer spec.
 > Step: parse table options.
 > Step: split table.
@@ -1121,23 +1107,21 @@ Package luatex.def Info: images/semantic_stratification.drawio.png  used on inpu
 > Step: execute table commands.
 > Step: calculate cell and line sizes.
 > Step: build the whole table.
-)
-
-[12
-warning  (pdf backend): ignoring duplicate destination with the name 'figure.3'
-<./images/semantic_stratification.drawio.png>] (./figures/kfold.tex
-<images/fold_splits.pdf, id=466, 720.97752pt x 240.77956pt>
+) (./figures/kfold.tex
+<images/fold_splits.pdf, id=478, 720.97752pt x 240.77956pt>
 File: images/fold_splits.pdf Graphic file (type pdf)
 <use images/fold_splits.pdf>
 Package luatex.def Info: images/fold_splits.pdf  used on input line 3.
 (luatex.def)             Requested size: 469.75502pt x 156.8796pt.
 )
 
-[13
+[10
+warning  (pdf backend): ignoring duplicate destination with the name 'figure.3'
+
 warning  (pdf backend): ignoring duplicate destination with the name 'table.1'
-] (./tables/chesapeake_bay_reclass.tex
+<./images/semantic_stratification.drawio.png>] (./tables/chesapeake_bay_reclass.tex
 LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
-(Font)              scaled to size 6.0pt on input line 28.
+(Font)              scaled to size 5.0pt on input line 28.
 > Step: init table outer spec.
 > Step: parse table options.
 > Step: split table.
@@ -1146,52 +1130,20 @@ LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
 > Step: execute table commands.
 > Step: calculate cell and line sizes.
 LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/b/n' will be
-(Font)              scaled to size 6.0pt on input line 104.
+(Font)              scaled to size 5.0pt on input line 104.
 > Step: build the whole table.
-LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 6.5pt on input line 104.
-LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 5.5pt on input line 104.
-LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 6.5pt on input line 104.
-LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 5.5pt on input line 104.
-LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 6.5pt on input line 104.
-LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 5.5pt on input line 104.
-LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 6.5pt on input line 104.
-LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 5.5pt on input line 104.
-LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 6.5pt on input line 104.
-LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 5.5pt on input line 104.
-LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 6.5pt on input line 104.
-LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 5.5pt on input line 104.
-LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 6.5pt on input line 104.
-LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 5.5pt on input line 104.
-LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 6.5pt on input line 104.
-LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 5.5pt on input line 104.
 )
 
-[14
+[11
 warning  (pdf backend): ignoring duplicate destination with the name 'figure.4'
 <./images/fold_splits.pdf>]
 LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
-(Font)              scaled to size 8.8pt on input line 53.
+(Font)              scaled to size 7.3pt on input line 53.
 LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
-(Font)              scaled to size 6.6pt on input line 53.
+(Font)              scaled to size 5.5pt on input line 53.
 
 
-[15
+[12
 warning  (pdf backend): ignoring duplicate destination with the name 'table.2'
 ] (./tables/augmentations.tex
 > Step: init table outer spec.
@@ -1201,21 +1153,8 @@ warning  (pdf backend): ignoring duplicate destination with the name 'table.2'
 > Step: parse table inner spec.
 > Step: execute table commands.
 > Step: calculate cell and line sizes.
-
-
-Package tabularray Warning: Table width is too small, need 28.489pt more!
-
 > Step: build the whole table.
-
-Overfull \hbox (28.489pt too wide) in paragraph at lines 21--22
- [][] 
- []
-
-)
-
-[16
-warning  (pdf backend): ignoring duplicate destination with the name 'table.3'
-] (./tables/class_legend.tex
+) (./tables/class_legend.tex
 > Step: init table outer spec.
 > Step: parse table options.
 > Step: split table.
@@ -1226,19 +1165,21 @@ warning  (pdf backend): ignoring duplicate destination with the name 'table.3'
 > Step: build the whole table.
 )
 
-[17
+[13
+warning  (pdf backend): ignoring duplicate destination with the name 'table.3'
+]
+
+[14
 warning  (pdf backend): ignoring duplicate destination with the name 'table.4'
 ] (./figures/byol.tex
-<images/BYOL_2.drawio.pdf, id=578, 1015.87526pt x 356.29109pt>
+<images/BYOL_2.drawio.pdf, id=593, 1015.87526pt x 356.29109pt>
 File: images/BYOL_2.drawio.pdf Graphic file (type pdf)
 <use images/BYOL_2.drawio.pdf>
 Package luatex.def Info: images/BYOL_2.drawio.pdf  used on input line 3.
 (luatex.def)             Requested size: 469.75502pt x 164.75485pt.
 )
 
-[18]
-
-[19
+[15
 warning  (pdf backend): ignoring duplicate destination with the name 'figure.5'
 <./images/BYOL_2.drawio.pdf>] (./tables/models.tex
 > Step: init table outer spec.
@@ -1251,45 +1192,53 @@ warning  (pdf backend): ignoring duplicate destination with the name 'figure.5'
 > Step: build the whole table.
 )
 
-[20
+[16
 warning  (pdf backend): ignoring duplicate destination with the name 'table.5'
 ]) (./sections/results.tex (./figures/va_lc_pcs.tex
-<images/VA_PCs_Layout.png, id=709, 722.9409pt x 434.3427pt>
+<images/VA_PCs_Layout.png, id=725, 722.9409pt x 434.3427pt>
 File: images/VA_PCs_Layout.png Graphic file (type png)
 <use images/VA_PCs_Layout.png>
 Package luatex.def Info: images/VA_PCs_Layout.png  used on input line 4.
 (luatex.def)             Requested size: 469.75502pt x 282.22662pt.
 )
 
-[21] (./figures/stratification_results.tex
-<images/cpb_sampling_methods_boxplot.pdf, id=720, 867.24pt x 289.08pt>
+[17
+warning  (pdf backend): ignoring duplicate destination with the name 'figure.6'
+<./images/VA_PCs_Layout.png>] (./figures/stratification_results.tex
+<images/cpb_sampling_methods_boxplot.pdf, id=736, 867.24pt x 289.08pt>
 File: images/cpb_sampling_methods_boxplot.pdf Graphic file (type pdf)
 <use images/cpb_sampling_methods_boxplot.pdf>
 Package luatex.def Info: images/cpb_sampling_methods_boxplot.pdf  used on input line 3.
 (luatex.def)             Requested size: 469.75502pt x 156.58607pt.
-)
-
-[22
-warning  (pdf backend): ignoring duplicate destination with the name 'figure.6'
-<./images/VA_PCs_Layout.png>] (./figures/probing_metrics.tex
-<images/linear_probing_results.pdf, id=729, 433.62pt x 289.08pt>
+) (./figures/probing_metrics.tex
+<images/linear_probing_results.pdf, id=738, 433.62pt x 289.08pt>
 File: images/linear_probing_results.pdf Graphic file (type pdf)
 <use images/linear_probing_results.pdf>
 Package luatex.def Info: images/linear_probing_results.pdf  used on input line 3.
 (luatex.def)             Requested size: 281.85587pt x 187.913pt.
-) (./figures/finetune_metrics.tex
-<images/finetuning_results.pdf, id=730, 1011.78pt x 433.62pt>
+)
+
+[18
+warning  (pdf backend): ignoring duplicate destination with the name 'figure.7'
+<./images/cpb_sampling_methods_boxplot.pdf>] (./figures/finetune_metrics.tex
+<images/finetuning_results.pdf, id=806, 802.67078pt x 349.89796pt>
 File: images/finetuning_results.pdf Graphic file (type pdf)
 <use images/finetuning_results.pdf>
 Package luatex.def Info: images/finetuning_results.pdf  used on input line 3.
-(luatex.def)             Requested size: 469.75502pt x 201.32686pt.
+(luatex.def)             Requested size: 469.75502pt x 204.77223pt.
+)
 
-
-[23
-warning  (pdf backend): ignoring duplicate destination with the name 'figure.7'
-
+[19
 warning  (pdf backend): ignoring duplicate destination with the name 'figure.8'
-<./images/cpb_sampling_methods_boxplot.pdf><./images/linear_probing_results.pdf>]) (./tables/confusion_matrix.tex
+
+warning  (pdf backend): ignoring duplicate destination with the name 'figure.9'
+<./images/linear_probing_results.pdf><./images/finetuning_results.pdf>] (./figures/visual_assessment.tex
+<images/qualitative_results.png, id=996, 747.5127pt x 426.393pt>
+File: images/qualitative_results.png Graphic file (type png)
+<use images/qualitative_results.png>
+Package luatex.def Info: images/qualitative_results.png  used on input line 3.
+(luatex.def)             Requested size: 469.75502pt x 267.95886pt.
+) (./tables/confusion_matrix.tex
 > Step: init table outer spec.
 > Step: parse table options.
 > Step: split table.
@@ -1299,67 +1248,69 @@ warning  (pdf backend): ignoring duplicate destination with the name 'figure.8'
 > Step: calculate cell and line sizes.
 
 
-Package tabularray Warning: Table width is too small, need 299.14905pt more!
+Package tabularray Warning: Table width is too small, need 193.265pt more!
 
 > Step: build the whole table.
-)) (./sections/discussion.tex (./figures/inference_results.tex
-<images/inference_results.pdf, id=854, 2095.83pt x 1011.78pt>
+))
+
+[20
+warning  (pdf backend): ignoring duplicate destination with the name 'figure.10'
+<./images/qualitative_results.png>] (./sections/discussion.tex
+
+[21
+warning  (pdf backend): ignoring duplicate destination with the name 'table.6'
+] (./figures/inference_results.tex
+<images/inference_results.pdf, id=1016, 2095.83pt x 1011.78pt>
 File: images/inference_results.pdf Graphic file (type pdf)
 <use images/inference_results.pdf>
 Package luatex.def Info: images/inference_results.pdf  used on input line 3.
 (luatex.def)             Requested size: 469.75502pt x 226.77612pt.
-))
+)) (./sections/conclusion.tex) (./main.bbl
 
-[24
-warning  (pdf backend): ignoring duplicate destination with the name 'figure.9'
-
-warning  (pdf backend): ignoring duplicate destination with the name 'table.6'
-<./images/finetuning_results.pdf>] (./sections/conclusion.tex) (./main.bbl
-
-[25
-warning  (pdf backend): ignoring duplicate destination with the name 'figure.10'
+[22
+warning  (pdf backend): ignoring duplicate destination with the name 'figure.11'
 <./images/inference_results.pdf>]
+
+[23]
+
+[24]
+
+[25]
 
 [26]
 
 [27]
-
-[28]
-
-[29]
-
-[30]
-
-[31]
-Underfull \hbox (badness 1845) in paragraph at lines 521--525
-[]\TU/TeXGyreTermesX(0)/m/n/12 Zhao, H., Shi, J., Qi, X., Wang, X., Jia, J., 2017.  Pyra-mid Scene Pars-ing Net-work.
+Underfull \hbox (badness 1092) in paragraph at lines 523--528
+\TU/TeXGyreTermesX(0)/m/n/10 cover types us-ing satel-lite data.  In-ter-na-tional Jour-nal of Re-mote Sens-ing 8, 1189--1207.  doi:[]$\TU/lmtt/m/n/10 10.1080/
  []
 
-)
 
-[32] (./main.aux)
+
+[28])
+
+[29] (./main.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
 L3 programming layer <2020/03/25>
  ***********
 Package rerunfilecheck Info: File `main.out' has not changed.
-(rerunfilecheck)             Checksum: 892B1B4530D86B0FA22BD276F28DF7FE;5434.
+(rerunfilecheck)             Checksum: 969F116F47F579266F9C8ABB8414D13D;4454.
 )
 
 Here is how much of LuaTeX's memory you used:
- 26398 strings out of 475506
- 156267,2848258 words of node,token memory allocated
- 15589 words of node memory still in use:
-   6 hlist, 2 vlist, 2 rule, 2 glue, 2462 kern, 1 glyph, 660 attribute, 63 glue_spec, 660 attribute_list, 1 write, 24 pdf_action nodes
-   avail lists: 1:1,2:3644,3:332,4:72,5:393,6:265,7:11982,8:48,9:3337,10:30,11:1035
- 48497 multiletter control sequences out of 65536+600000
- 138 fonts using 13332375 bytes
+ 26426 strings out of 475506
+ 195331,2848258 words of node,token memory allocated
+ 17403 words of node memory still in use:
+   6 hlist, 2 vlist, 2 rule, 2 glue, 2770 kern, 1 glyph, 718 attribute, 63 glue_spec, 718 attribute_list, 1 write, 31 pdf_action nodes
+   avail lists: 1:1,2:3496,3:412,4:86,5:546,6:256,7:15598,8:48,9:3337,10:34,11:1367
+ 48541 multiletter control sequences out of 65536+600000
+ 98 fonts using 10598759 bytes
  80i,18n,115p,747b,2387s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/lm/lmmono12-regular.otf>{/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/enc/dvips/newtx/ntx-ot1-tlf.enc}</opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/newtx/TeXGyreTermesX-Bold.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/newtx/TeXGyreTermesX-Regular.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/NewTXMI.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/txexs.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/txmiaX.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/txsys.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/ztmr.pfb>
-Output written on main.pdf (32 pages, 26577882 bytes).
+</opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/lm/lmmono10-regular.otf>{/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/enc/dvips/newtx/ntx-ot1-tlf.enc}</opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/newtx/TeXGyreTermesX-Bold.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/newtx/TeXGyreTermesX-Regular.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/NewTXMI.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/NewTXMI7.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/txexs.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/txmiaX.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/txsys.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/ztmr.pfb>
+Output written on main.pdf (29 pages, 29765254 bytes).
 
-PDF statistics: 1220 PDF objects out of 1440 (max. 8388607)
- 831 compressed objects within 9 object streams
- 175 named destinations out of 1000 (max. 131072)
- 169 words of extra memory for PDF output out of 10000 (max. 100000000)
+PDF statistics: 1287 PDF objects out of 1440 (max. 8388607)
+ 900 compressed objects within 9 object streams
+ 188 named destinations out of 1000 (max. 131072)
+ 145 words of extra memory for PDF output out of 10000 (max. 100000000)
 

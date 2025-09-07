@@ -3,35 +3,50 @@
 \subsection{Validation of semantic stratification approach for selecting training samples}\label{sec:results:semantic_stratification}
 
 The distribution of the two principal components (PCs) derived from the NLCD histograms for the CBW region in Virginia are shown in Figure~\ref{fig:va_pcs}.
-Principal component 1 (PC1) explains \num{66.21}\% of the variance in the data, while principal component 2 (PC2) explains \num{29.11}\% of the variance, for a total of \num{95.32}\% of the variance explained by the first two PCs.
-PC1 appears to primarily distinguish candidate patches based on thier urban land cover content - patches with larger positive values of PC1 tend to be placed near urban or built-up regions.
-On the other hand, PC2 regions tend to correlate with more vegetated areas.
-A qualitative analysis of samples pulled from clusters of PC1 and PC2 are also demonstrated in Figure~\ref{fig:va_pcs}, demonstrating that samples within the same cluster/stratum tend to have similar land cover characteristics.
-For example, samples in cluster 50 have a high degree of urban land cover, while samples in cluster 210 have a mix of forested and agricultural land cover.
-This pattern is not necessarily fully consistent: for example, most samples in cluster 122 contain a mix of water and forested land cover, but one sample contains no water at all.
+Principal component 1 (PC1) explained \num{66.21}\% of the variance in the data, while principal component 2 (PC2) explained \num{29.11}\% of the variance, for a total of \num{95.32}\% of the variance explained by the first two PCs.
+PC1 appeared to primarily distinguish candidate patches based on their urban land cover content: patches with larger positive values of PC1 tend to be placed near urban or built-up regions.
+On the other hand, PC2 regions tended to correlate with more vegetated areas.
+A qualitative analysis of samples pulled from clusters of PC1 and PC2 are also demonstrated in Figure~\ref{fig:va_pcs}, demonstrating that samples within the same cluster/stratum tended to have similar land cover characteristics.
+For example, samples in cluster 50 had a high degree of urban land cover, while samples in cluster 210 had a mix of forested and agricultural land cover.
+This pattern was not necessarily consistent: for example, most samples in cluster 122 contained a mix of water and forested land cover, but one sample contained no water at all.
 
 \input{figures/va_lc_pcs.tex}
 
 The mIoU results for models trained using the different sampling strategies and dataset sizes according to the procedure outlined in Section~\ref{sec:methodology:semantic_stratification} are shown in Figure~\ref{fig:stratification_results}.
-A two-way ANOVA test indicates that both the sampling strategy \(p < 0.001\) and training dataset size \(p < 0.001\) have a statistically significant effect on model performance, while the interaction between the two factors is not statistically significant \(p = 0.082\).
-However, the Tukey HSD post-hoc test reveals that the semantic stratification strategy does not yield statistically significant improvements in mIoU at \(N_\text{train} = 250\).
-Still, significant improvements in mIoU over both random sampling and spatially stratified sampling are observed at \(N_\text{train} = 500\) and \(N_\text{train} = 750\).
-The largest improvements in mIoU are observed at \(N_\text{train} = 750\), where our proposed stratification method yields an average mIoU increase of \num{3.11}\% over random sampling and \num{2.50}\% over spatially stratified sampling.
+The two-way ANOVA test indicated that both the sampling strategy \(F(2, 81) = 22.26, p < 0.001\) and training dataset size \(F(2, 81) = 116.72, p < 0.001\) have a statistically significant effect on model performance, while the interaction between the two factors is not statistically significant \(F(4, 81) = 2.15, p = 0.082\).
+However, the Tukey HSD post-hoc test revealed that the semantic stratification strategy does not yield statistically significant improvements in mIoU at \(N_\text{train} = 250\).
+Still, significant improvements in mIoU over both random sampling and spatially stratified sampling were observed at \(N_\text{train} = 500\) and \(N_\text{train} = 750\).
+The largest improvements in mIoU were observed at \(N_\text{train} = 750\), where our proposed stratification method yields an average mIoU increase of \num{3.11}\% over random sampling and \num{2.50}\% over spatially stratified sampling.
+No significant differences in mIoU were observed between random sampling and spatially stratified sampling at any training dataset size.
 
 \input{figures/stratification_results.tex}
 
 \subsection{Evaluation of self-supervised learning approach}\label{sec:results:self_supervised_learning}
 
-As shown in Figure~\ref{fig:probing_metrics}, using fixed embeddings from a ResNet-101 model pre-trained using BYOL as input to a linear classifer yeilds substantial improvements in mIoU over a classifier that uses embeddings from a model pre-trained only on ImageNet.
-The largest training dataset size of \(N_\text{train} = 500\) yeilds the largest improvement in mIoU, with the BYOL pre-trained model achieving an mIoU of \num{41.33}\% compared to \num{32.49}\% for the ImageNet pre-trained model, an improvement of \num{8.84}\%.
-Notably, the model that begins BYOL pre-training with ImageNet weights performs marginally worse than the model that begins BYOL pre-training with random weights.
-
+As shown in Figure~\ref{fig:probing_metrics}, using fixed embeddings from a ResNet-101 model pre-trained using BYOL as input to a linear classifer yeilded substantial improvements in mIoU over a classifier that uses embeddings from a model pre-trained only on ImageNet.
+The largest training dataset size of \(N_\text{train} = 750\) exhibited the largest improvement in mIoU, with the BYOL pre-trained model achieving an mIoU of \num{42.71}\% compared to \num{27.70}\% for the ImageNet pre-trained model, an improvement of \num{15.01}\%.
+The embedding model where BYOL pre-training was initialized with ImageNet weights performs marginally worse than the model that begins BYOL pre-training with random weights: the average increase in mIoU over the ImageNet pre-trained model was \num{13.90}\% for the BYOL model with random initialization, compared to \num{13.04}\% for the BYOL model with ImageNet initialization.
 
 \input{figures/probing_metrics.tex}
 
-This trend continues when the pre-trained ResNet-101 ba
+These trends shifted somewhat when the pre-trained image encoders were used as the backbone in semantic segmentation architectures that were the fine-tuned end-to-end.
+Figure~\ref{fig:finetune_metrics} show that while the BYOL models that were first initialized with ImageNet weights prior to BYOL pre-training still outperformed ImageNet models with no additional pre-training, the BYOL models that were first initialized with random weights have more variable performance depending on the specifics of the semantic segmentation architecture.
+The BYOL encoder with random initialization only outperformed the ImageNet pre-trained encoder in terms of mean mIoU across all architectures except U-Net and Attention U-Net at \(N_\text{train} = 250\), but only DANet, PAN, and PSPnet at \(N_\text{train} = 500\), and only DANet and PSPNet at \(N_\text{train} = 750\).
+However, the BYOL model initialized with ImageNet weights prior to pre-training consitstently outperformed the ImageNet pre-trained model across all architectures and training dataset sizes, echoing the results observed in the linear probing experiment (though to a lesser degree).
 
 \input{figures/finetune_metrics.tex}
 
+The best performing pre-training, semantic segmentation architecture, and training dataset size combination based on mean mIoU across all k-folds was the BYOL model initialized with ImageNet weights used as the backbone in a U-Net architecture trained with \(N_\text{train} = 750\) samples, which achieved a mean mIoU of \num{60.86}\% and a mean overall accuracy of \num{86.43}\%, a \num{1.88}\% and a \num{0.32}\% improvement over the U-Net model using the same training dataset size but with an ImageNet pre-trained backbone, respectively.
+The best performing individual model (without averaging across k-folds) was run \#2 of the U-Net model the BYOL backbone with ImageNet initialization fine-tuned using \(N_\text{train} = 500\) samples, achieving an mIoU of \num{63.01}\% and an overall accuracy of \num{87.42}\%.
+This was an increase of \num{2.77}\% and {1.32}\% over a similar model with a backbone pre-trained only on ImageNet that was provided the exact same training/validation split.
+A qualitative assessment of the inference results from this model is shown in Figure~\ref{fig:visual_assessment}, demonstrating that not only did the model outperform the ImageNet pre-trained model quantitatively, but also produced sharper and more accurate land cover maps that visually appear to be of higher quality and correspond more closely to the true land cover.
+
+\input{figures/visual_assessment.tex}
+
+Despite this specific model's large individual performance, this model was an outlier in terms of performance across all k-folds, as the mean mIoU and overall accuracy across all k-folds for this model was \num{60.36}\% and \num{86.55}\%, respectively, falling short of the best performing configuration in terms of mean mIoU.
+As such, the U-Net model with a BYOL backbone initialized with ImageNet weights and fine-tuned using \(N_\text{train} = 750\) samples was considered the best performing model overall and was used to generate the final land cover map for the entire state of Mississippi.
+These models were ensembled and used to generate a final land cover map for the entire state of Mississippi using the procedure outlined in Section~\ref{sec:methodology:model_ensembling}.
+The confusion matrix for the final thematic accuracy assessment for the statewide land cover map is shown in Table~\ref{tab:confusion_matrix}.
+Overall, the final product's mIoU was \num{62.77}\% and overall accuracy was \num{87.14}\%, with the mean class-wise producer's accuracy and user's accuracy being \num{75.60}\% and \num{80.18}\%, respectively.
 
 \input{tables/confusion_matrix.tex}

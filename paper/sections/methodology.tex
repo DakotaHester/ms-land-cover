@@ -31,7 +31,7 @@ From each stratum, we randomly sampled 4 candidate training samples, with each b
 \input{tables/nlcd_reclass.tex}
 
 In order to validate the effectiveness of the proposed stratification approach, we applied it to the task of land cover classification using the CBLC dataset.
-As comparisons, we also applied simple random sampling and spatially stratified sampling approaches to the same dataset.
+As comparisons, we also used simple random sampling and spatially stratified sampling approaches on the same dataset to create training datasets for comparison against our semantic stratification procedure.
 To form spatial strata, we treated the grid of candidate training samples as a graph where each cell is a node and edges were formed between neighboring cells.
 The METIS graph partitioning software was then applied to the graph to form 250 spatial strata that were spatially contiguous and had similar sizes using parallel multilevel graph partitioning algorithms \citep{kloecknerPyMetis2025,karypisFastHighQuality1998, karypisMETISSoftwarePackage1997}.
 As with the semantic stratification approach, we sampled 4 candidate training samples from each stratum, with each sample being placed into a separate fold of the training dataset such that 4 folds formed a total of 1000 training samples.
@@ -149,10 +149,10 @@ Evaluation was again performed using cross-validation across 250, 500, and 750 t
 \subsection{Model ensembling and large-scale land cover mapping}\label{sec:methodology:model_ensembling}
 
 Once the best-performing model configurations were determined, we used the models trained using this configuration across all folds to produce a model ensemble for large-scale land cover mapping over the state of Mississippi.
-Model ensembling was chosen as it is a popular approach to improving the robustness and accuracy of machine learning models by combining the predictions of multiple distinct models to produce a final prediction \note{CITE!}.
-Each model in the ensemble produced a land cover probability vector for each pixel in the input image, and these class probability vectors were averaged across all models in the ensemble to produce a final class probability vector for each pixel, with the final predicted class being the class with the highest probability from the averaged class probabilities.
+Model ensembling was chosen as it is a popular approach to improving the robustness and accuracy of machine learning models by combining the predictions of multiple distinct models to produce a final prediction.
+Each model in the ensemble produced a land cover probability vector for each pixel in the input image, and these class probability vectors were averaged across all models in the ensemble to produce a final class probability vector for each pixel, with the final predicted class being the class with the highest probability from the averaged class probabilities~\citep{marmanisSemanticSegmentationAerial2016}.
 A ``sliding window'' approach was used to process the imagery in \SI{256}{\meter} tiles with a stride of \SI{64}{\meter} to ensure that each pixel would be seen multiple times to further maximize the effects of the model ensemble.
-Additionally, test-time augmentations were employed to further improve the robustness of the predictions: at any given location, each model in the ensemble received an input that was randomly augmented using random horizontal and vertical flips along with random 90-degree rotations \note{CITE!}.
+Additionally, test-time augmentations were employed to further improve the robustness of the predictions: at any given location, each model in the ensemble received an input that was randomly augmented using random horizontal and vertical flips along with random 90-degree rotations~\citep{moshkovTesttimeAugmentationDeep2020}.
 Evaluation of the final land cover product was performed using the point-based assessment dataset, with overall accuracy and per-class user accuracy and producer accuracy metrics being computed to assess the quality of the final product, as show in Equation~\ref{eq:accuracy_metrics}.
 
 \begin{equation}\label{eq:accuracy_metrics}
