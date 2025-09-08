@@ -1,4 +1,4 @@
-This is LuaHBTeX, Version 1.21.0 (TeX Live 2025/Homebrew)  (format=lualatex 2025.8.30)  7 SEP 2025 00:48
+This is LuaHBTeX, Version 1.21.0 (TeX Live 2025/Homebrew)  (format=lualatex 2025.8.30)  8 SEP 2025 15:18
  restricted system commands enabled.
  file:line:error style messages enabled.
 **/Users/dak/projects/ms-land-cover/paper/main.tex
@@ -402,317 +402,154 @@ Package: amsfonts 2013/01/14 v3.01 Basic AMSFonts support
 LaTeX Font Info:    Redeclaring math symbol \hbar on input line 98.
 LaTeX Font Info:    Overwriting math alphabet `\mathfrak' in version `bold'
 (Font)                  U/euf/m/n --> U/euf/b/n on input line 106.
-)) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/newtxtext.sty
-Package: newtxtext 2024/04/01 v1.744(Michael Sharpe) latex and unicode latex support for TeXGyreTermesX
- `newtxtext' v1.744, 2024/04/01 Text macros taking advantage of TeXGyre Termes and its extensions (msharpe) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/xpatch/xpatch.sty (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/l3kernel/expl3.sty
-Package: expl3 2025-01-18 L3 programming layer (loader) 
- (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/l3backend/l3backend-luatex.def
-File: l3backend-luatex.def 2024-05-08 L3 backend support: PDF output (LuaTeX)
-\l__color_backend_stack_int=\count314
-Inserting `l3color' in `luaotfload.parse_color'.
-\l__pdf_internal_box=\box62
-))
-Package: xpatch 2020/03/25 v0.3a Extending etoolbox patching commands
- (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/l3packages/xparse/xparse.sty
-Package: xparse 2024-08-16 L3 Experimental document command parser
-)) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/base/textcomp.sty
-Package: textcomp 2024/04/24 v2.1b Standard LaTeX package
-) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/generic/xstring/xstring.sty (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/generic/xstring/xstring.tex
-\xs_counta=\count315
-\xs_countb=\count316
-)
-Package: xstring 2023/08/22 v1.86 String manipulations (CT)
-) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/carlisle/scalefnt.sty)
-LaTeX Font Info:    Setting ntxLF sub-encoding to TS1/0 on input line 24.
-LaTeX Font Info:    Setting ntxTLF sub-encoding to TS1/0 on input line 24.
-LaTeX Font Info:    Setting ntxOsF sub-encoding to TS1/0 on input line 24.
-LaTeX Font Info:    Setting ntxTOsF sub-encoding to TS1/0 on input line 24.
- (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/generic/kastrup/binhex.tex)
-\ntx@tmpcnta=\count317
-\ntx@cnt=\count318
- (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/fontspec/fontspec.sty
-Package: fontspec 2024/05/11 v2.9e Font selection for XeLaTeX and LuaLaTeX
-Lua module: fontspec 2024/05/11 v2.9e Font selection for XeLaTeX and LuaLaTeX (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/fontspec/fontspec-luatex.sty
-Package: fontspec-luatex 2024/05/11 v2.9e Font selection for XeLaTeX and LuaLaTeX
-\l__fontspec_script_int=\count319
-\l__fontspec_language_int=\count320
-\l__fontspec_strnum_int=\count321
-\l__fontspec_tmp_int=\count322
-\l__fontspec_tmpa_int=\count323
-\l__fontspec_tmpb_int=\count324
-\l__fontspec_tmpc_int=\count325
-\l__fontspec_em_int=\count326
-\l__fontspec_emdef_int=\count327
-\l__fontspec_strong_int=\count328
-\l__fontspec_strongdef_int=\count329
-\l__fontspec_tmpa_dim=\dimen256
-\l__fontspec_tmpb_dim=\dimen257
-\l__fontspec_tmpc_dim=\dimen258
- (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/base/fontenc.sty
-Package: fontenc 2021/04/29 v2.0v Standard LaTeX package
-) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/fontspec/fontspec.cfg)))
-LaTeX Info: Redefining \oldstylenums on input line 611.
-LaTeX Info: Redefining \liningnums on input line 615.
-\tx@sixem=\dimen259
-\tx@y=\dimen260
-\tx@x=\dimen261
-\tx@tmpdima=\dimen262
-\tx@tmpdimb=\dimen263
-\tx@tmpdimc=\dimen264
-\tx@tmpdimd=\dimen265
-\tx@tmpdime=\dimen266
-\tx@tmpdimf=\dimen267
-\tx@dimA=\dimen268
-\tx@dimAA=\dimen269
-\tx@dimB=\dimen270
-\tx@dimBB=\dimen271
-\tx@dimC=\dimen272
-) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/newtxmath.sty
-Package: newtxmath 2024/09/22 v1.754
- `newtxmath' v1.754, 2024/09/22 Math macros based originally on txfonts (msharpe) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/oberdiek/centernot.sty
-Package: centernot 2016/05/16 v1.4 Centers the not symbol horizontally (HO)
-)
-\tx@cntz=\count330
- (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/generic/kastrup/binhex.tex)
-\tx@Isdigit=\count331
-\tx@IsAlNum=\count332
-\tx@tA=\toks33
-\tx@tB=\toks34
-\tx@su=\read2
-
-amsthm NOT loaded
-LaTeX Font Info:    Redeclaring symbol font `operators' on input line 402.
-LaTeX Font Info:    Overwriting symbol font `operators' in version `normal'
-(Font)                  OT1/cmr/m/n --> OT1/minntx/m/n on input line 402.
-LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
-(Font)                  OT1/cmr/bx/n --> OT1/minntx/m/n on input line 402.
-LaTeX Font Info:    Overwriting symbol font `operators' in version `bold'
-(Font)                  OT1/minntx/m/n --> OT1/minntx/b/n on input line 403.
-LaTeX Font Info:    Redeclaring math alphabet \mathsf on input line 410.
-LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `normal'
-(Font)                  OT1/cmss/m/n --> OT1/lmss/m/n on input line 410.
-LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
-(Font)                  OT1/cmss/bx/n --> OT1/lmss/m/n on input line 410.
-LaTeX Font Info:    Overwriting math alphabet `\mathsf' in version `bold'
-(Font)                  OT1/lmss/m/n --> OT1/lmss/b/n on input line 412.
-LaTeX Font Info:    Redeclaring math alphabet \mathit on input line 419.
-LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `normal'
-(Font)                  OT1/cmr/m/it --> OT1/minntx/m/it on input line 419.
-LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `bold'
-(Font)                  OT1/cmr/bx/it --> OT1/minntx/m/it on input line 419.
-LaTeX Font Info:    Redeclaring math alphabet \mathtt on input line 420.
-LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `normal'
-(Font)                  OT1/cmtt/m/n --> TU/lmtt/m/n on input line 420.
-LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
-(Font)                  OT1/cmtt/m/n --> TU/lmtt/m/n on input line 420.
-LaTeX Font Info:    Redeclaring math alphabet \mathbf on input line 422.
-LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `normal'
-(Font)                  OT1/cmr/bx/n --> OT1/minntx/b/n on input line 422.
-LaTeX Font Info:    Overwriting math alphabet `\mathbf' in version `bold'
-(Font)                  OT1/cmr/bx/n --> OT1/minntx/b/n on input line 422.
-LaTeX Font Info:    Overwriting math alphabet `\mathit' in version `bold'
-(Font)                  OT1/minntx/m/it --> OT1/minntx/b/it on input line 423.
-LaTeX Font Info:    Overwriting math alphabet `\mathtt' in version `bold'
-(Font)                  TU/lmtt/m/n --> TU/lmtt/b/n on input line 426.
-LaTeX Font Info:    Redeclaring symbol font `letters' on input line 534.
-LaTeX Font Info:    Overwriting symbol font `letters' in version `normal'
-(Font)                  OML/cmm/m/it --> OML/ntxmi/m/it on input line 534.
-LaTeX Font Info:    Overwriting symbol font `letters' in version `bold'
-(Font)                  OML/cmm/b/it --> OML/ntxmi/m/it on input line 534.
-LaTeX Font Info:    Overwriting symbol font `letters' in version `bold'
-(Font)                  OML/ntxmi/m/it --> OML/ntxmi/b/it on input line 535.
-\symlettersA=\mathgroup6
-LaTeX Font Info:    Overwriting symbol font `lettersA' in version `bold'
-(Font)                  U/ntxmia/m/it --> U/ntxmia/b/it on input line 582.
-LaTeX Font Info:    Redeclaring math alphabet \mathfrak on input line 584.
-LaTeX Font Info:    Redeclaring symbol font `symbols' on input line 604.
-LaTeX Font Info:    Encoding `OMS' has changed to `LMS' for symbol font
-(Font)              `symbols' in the math version `normal' on input line 604.
-LaTeX Font Info:    Overwriting symbol font `symbols' in version `normal'
-(Font)                  OMS/cmsy/m/n --> LMS/ntxsy/m/n on input line 604.
-LaTeX Font Info:    Encoding `OMS' has changed to `LMS' for symbol font
-(Font)              `symbols' in the math version `bold' on input line 604.
-LaTeX Font Info:    Overwriting symbol font `symbols' in version `bold'
-(Font)                  OMS/cmsy/b/n --> LMS/ntxsy/m/n on input line 604.
-LaTeX Font Info:    Overwriting symbol font `symbols' in version `bold'
-(Font)                  LMS/ntxsy/m/n --> LMS/ntxsy/b/n on input line 605.
-\symAMSm=\mathgroup7
-LaTeX Font Info:    Overwriting symbol font `AMSm' in version `bold'
-(Font)                  U/ntxsym/m/n --> U/ntxsym/b/n on input line 630.
-\symsymbolsC=\mathgroup8
-LaTeX Font Info:    Overwriting symbol font `symbolsC' in version `bold'
-(Font)                  U/ntxsyc/m/n --> U/ntxsyc/b/n on input line 651.
-LaTeX Font Info:    Redeclaring symbol font `largesymbols' on input line 664.
-LaTeX Font Info:    Encoding `OMX' has changed to `LMX' for symbol font
-(Font)              `largesymbols' in the math version `normal' on input line 664.
-LaTeX Font Info:    Overwriting symbol font `largesymbols' in version `normal'
-(Font)                  OMX/cmex/m/n --> LMX/ntxexx/m/n on input line 664.
-LaTeX Font Info:    Encoding `OMX' has changed to `LMX' for symbol font
-(Font)              `largesymbols' in the math version `bold' on input line 664.
-LaTeX Font Info:    Overwriting symbol font `largesymbols' in version `bold'
-(Font)                  OMX/cmex/m/n --> LMX/ntxexx/m/n on input line 664.
-LaTeX Font Info:    Overwriting symbol font `largesymbols' in version `bold'
-(Font)                  LMX/ntxexx/m/n --> LMX/ntxexx/b/n on input line 665.
-\symlargesymbolsTXA=\mathgroup9
-LaTeX Font Info:    Overwriting symbol font `largesymbolsTXA' in version `bold'
-(Font)                  U/ntxexa/m/n --> U/ntxexa/b/n on input line 679.
-\tx@sbptoks=\toks35
-LaTeX Font Info:    Redeclaring math delimiter \lfloor on input line 902.
-LaTeX Font Info:    Redeclaring math delimiter \rfloor on input line 903.
-LaTeX Font Info:    Redeclaring math delimiter \lceil on input line 904.
-LaTeX Font Info:    Redeclaring math delimiter \rceil on input line 905.
-LaTeX Font Info:    Redeclaring math delimiter \lbrace on input line 910.
-LaTeX Font Info:    Redeclaring math delimiter \rbrace on input line 911.
-LaTeX Font Info:    Redeclaring math delimiter \langle on input line 913.
-LaTeX Font Info:    Redeclaring math delimiter \rangle on input line 915.
-LaTeX Font Info:    Redeclaring math delimiter \arrowvert on input line 919.
-LaTeX Font Info:    Redeclaring math delimiter \vert on input line 920.
-LaTeX Font Info:    Redeclaring math accent \dot on input line 991.
-LaTeX Font Info:    Redeclaring math accent \ddot on input line 992.
-LaTeX Font Info:    Redeclaring math accent \vec on input line 2057.
-LaTeX Info: Redefining \Bbbk on input line 2847.
-LaTeX Info: Redefining \not on input line 2995.
-) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/siunitx/siunitx.sty
+)) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/siunitx/siunitx.sty
 Package: siunitx 2025-02-27 v3.4.6 A comprehensive (SI) units package
-\l__siunitx_number_uncert_offset_int=\count333
-\l__siunitx_number_exponent_fixed_int=\count334
-\l__siunitx_number_min_decimal_int=\count335
-\l__siunitx_number_min_integer_int=\count336
-\l__siunitx_number_round_precision_int=\count337
-\l__siunitx_number_lower_threshold_int=\count338
-\l__siunitx_number_upper_threshold_int=\count339
-\l__siunitx_number_group_first_int=\count340
-\l__siunitx_number_group_size_int=\count341
-\l__siunitx_number_group_minimum_int=\count342
-\l__siunitx_angle_tmp_dim=\dimen273
-\l__siunitx_angle_marker_box=\box63
-\l__siunitx_angle_unit_box=\box64
-\l__siunitx_compound_count_int=\count343
+\l__siunitx_number_uncert_offset_int=\count314
+\l__siunitx_number_exponent_fixed_int=\count315
+\l__siunitx_number_min_decimal_int=\count316
+\l__siunitx_number_min_integer_int=\count317
+\l__siunitx_number_round_precision_int=\count318
+\l__siunitx_number_lower_threshold_int=\count319
+\l__siunitx_number_upper_threshold_int=\count320
+\l__siunitx_number_group_first_int=\count321
+\l__siunitx_number_group_size_int=\count322
+\l__siunitx_number_group_minimum_int=\count323
+\l__siunitx_angle_tmp_dim=\dimen256
+\l__siunitx_angle_marker_box=\box62
+\l__siunitx_angle_unit_box=\box63
+\l__siunitx_compound_count_int=\count324
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/translations/translations.sty
 Package: translations 2022/02/05 v1.12 internationalization of LaTeX2e packages (CN)
 )
-\l__siunitx_table_tmp_box=\box65
-\l__siunitx_table_tmp_dim=\dimen274
-\l__siunitx_table_column_width_dim=\dimen275
-\l__siunitx_table_integer_box=\box66
-\l__siunitx_table_decimal_box=\box67
-\l__siunitx_table_uncert_box=\box68
-\l__siunitx_table_before_box=\box69
-\l__siunitx_table_after_box=\box70
-\l__siunitx_table_before_dim=\dimen276
-\l__siunitx_table_carry_dim=\dimen277
-\l__siunitx_unit_tmp_int=\count344
-\l__siunitx_unit_position_int=\count345
-\l__siunitx_unit_total_int=\count346
+\l__siunitx_table_tmp_box=\box64
+\l__siunitx_table_tmp_dim=\dimen257
+\l__siunitx_table_column_width_dim=\dimen258
+\l__siunitx_table_integer_box=\box65
+\l__siunitx_table_decimal_box=\box66
+\l__siunitx_table_uncert_box=\box67
+\l__siunitx_table_before_box=\box68
+\l__siunitx_table_after_box=\box69
+\l__siunitx_table_before_dim=\dimen259
+\l__siunitx_table_carry_dim=\dimen260
+\l__siunitx_unit_tmp_int=\count325
+\l__siunitx_unit_position_int=\count326
+\l__siunitx_unit_total_int=\count327
 ) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/natbib/natbib.sty
 Package: natbib 2010/09/13 8.31b (PWD, AO)
 \bibhang=\skip61
 \bibsep=\skip62
 LaTeX Info: Redefining \cite on input line 694.
-\c@NAT@ctr=\count347
-) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/tabularray/tabularray.sty
+\c@NAT@ctr=\count328
+) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/tabularray/tabularray.sty (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/l3kernel/expl3.sty
+Package: expl3 2025-01-18 L3 programming layer (loader) 
+ (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/l3backend/l3backend-luatex.def
+File: l3backend-luatex.def 2024-05-08 L3 backend support: PDF output (LuaTeX)
+\l__color_backend_stack_int=\count329
+Inserting `l3color' in `luaotfload.parse_color'.
+\l__pdf_internal_box=\box70
+))
 Package: tabularray 2024-02-16 v2024A Typeset tabulars and arrays with LaTeX3
-\l__tblr_a_int=\count348
-\l__tblr_c_int=\count349
-\l__tblr_r_int=\count350
-\l__tblr_d_dim=\dimen278
-\l__tblr_h_dim=\dimen279
-\l__tblr_o_dim=\dimen280
-\l__tblr_p_dim=\dimen281
-\l__tblr_q_dim=\dimen282
-\l__tblr_r_dim=\dimen283
-\l__tblr_s_dim=\dimen284
-\l__tblr_t_dim=\dimen285
-\l__tblr_v_dim=\dimen286
-\l__tblr_w_dim=\dimen287
+\l__tblr_a_int=\count330
+\l__tblr_c_int=\count331
+\l__tblr_r_int=\count332
+\l__tblr_d_dim=\dimen261
+\l__tblr_h_dim=\dimen262
+\l__tblr_o_dim=\dimen263
+\l__tblr_p_dim=\dimen264
+\l__tblr_q_dim=\dimen265
+\l__tblr_r_dim=\dimen266
+\l__tblr_s_dim=\dimen267
+\l__tblr_t_dim=\dimen268
+\l__tblr_v_dim=\dimen269
+\l__tblr_w_dim=\dimen270
 \l__tblr_a_box=\box71
 \l__tblr_b_box=\box72
 \l__tblr_c_box=\box73
 \l__tblr_d_box=\box74
-\g__tblr_table_count_int=\count351
-\c@rownum=\count352
-\c@colnum=\count353
-\c@rowcount=\count354
-\c@colcount=\count355
-\abovesep=\dimen288
-\belowsep=\dimen289
-\leftsep=\dimen290
-\rightsep=\dimen291
-\g_tblr_level_int=\count356
-\g__tblr_data_row_key_count_int=\count357
-\g__tblr_data_column_key_count_int=\count358
-\g__tblr_data_cell_key_count_int=\count359
-\g__tblr_array_int=\count360
-\l__tblr_key_count_int=\count361
-\l__tblr_key_quotient_int=\count362
-\l__tblr_key_quotient_two_int=\count363
-\l__tblr_key_remainder_int=\count364
-\g__tblr_data_str_value_count_int=\count365
-\rulewidth=\dimen292
-\l__tblr_strut_dp_dim=\dimen293
-\l__tblr_strut_ht_dim=\dimen294
-\g__tblr_cell_wd_dim=\dimen295
-\g__tblr_cell_ht_dim=\dimen296
-\g__tblr_cell_head_dim=\dimen297
-\g__tblr_cell_foot_dim=\dimen298
-\l__column_target_dim=\dimen299
+\g__tblr_table_count_int=\count333
+\c@rownum=\count334
+\c@colnum=\count335
+\c@rowcount=\count336
+\c@colcount=\count337
+\abovesep=\dimen271
+\belowsep=\dimen272
+\leftsep=\dimen273
+\rightsep=\dimen274
+\g_tblr_level_int=\count338
+\g__tblr_data_row_key_count_int=\count339
+\g__tblr_data_column_key_count_int=\count340
+\g__tblr_data_cell_key_count_int=\count341
+\g__tblr_array_int=\count342
+\l__tblr_key_count_int=\count343
+\l__tblr_key_quotient_int=\count344
+\l__tblr_key_quotient_two_int=\count345
+\l__tblr_key_remainder_int=\count346
+\g__tblr_data_str_value_count_int=\count347
+\rulewidth=\dimen275
+\l__tblr_strut_dp_dim=\dimen276
+\l__tblr_strut_ht_dim=\dimen277
+\g__tblr_cell_wd_dim=\dimen278
+\g__tblr_cell_ht_dim=\dimen279
+\g__tblr_cell_head_dim=\dimen280
+\g__tblr_cell_foot_dim=\dimen281
+\l__column_target_dim=\dimen282
 \l__tblr_caption_box=\box75
 \l__tblr_caption_left_box=\box76
 \l__tblr_row_head_box=\box77
 \l__tblr_row_foot_box=\box78
-\l__tblr_row_head_foot_dim=\dimen300
-\tablewidth=\dimen301
+\l__tblr_row_head_foot_dim=\dimen283
+\tablewidth=\dimen284
 \l__tblr_table_firsthead_box=\box79
 \l__tblr_table_middlehead_box=\box80
 \l__tblr_table_lasthead_box=\box81
 \l__tblr_table_firstfoot_box=\box82
 \l__tblr_table_middlefoot_box=\box83
 \l__tblr_table_lastfoot_box=\box84
-\l__tblr_remain_height_dim=\dimen302
-\l__tblr_long_from_int=\count366
-\l__tblr_long_to_int=\count367
-\l__tblr_curr_i_int=\count368
-\l__tblr_prev_i_int=\count369
-\l__tblr_table_page_int=\count370
+\l__tblr_remain_height_dim=\dimen285
+\l__tblr_long_from_int=\count348
+\l__tblr_long_to_int=\count349
+\l__tblr_curr_i_int=\count350
+\l__tblr_prev_i_int=\count351
+\l__tblr_table_page_int=\count352
 \l__tblr_table_head_box=\box85
 \l__tblr_table_foot_box=\box86
-\l__tblr_table_head_foot_dim=\dimen303
-\l__tblr_table_head_body_foot_dim=\dimen304
+\l__tblr_table_head_foot_dim=\dimen286
+\l__tblr_table_head_body_foot_dim=\dimen287
 \l__tblr_table_box=\box87
 \l__tblr_table_hlines_box=\box88
 \l__tblr_hline_box=\box89
 \l__tblr_row_box=\box90
-\l__tblr_col_o_wd_dim=\dimen305
-\l__tblr_col_b_wd_dim=\dimen306
-\l__tblr_hline_leftskip_dim=\dimen307
-\l__tblr_hline_rightskip_dim=\dimen308
-\l__tblr_row_ht_dim=\dimen309
-\l__tblr_row_dp_dim=\dimen310
-\l__tblr_row_abovesep_dim=\dimen311
-\l__tblr_row_belowsep_dim=\dimen312
+\l__tblr_col_o_wd_dim=\dimen288
+\l__tblr_col_b_wd_dim=\dimen289
+\l__tblr_hline_leftskip_dim=\dimen290
+\l__tblr_hline_rightskip_dim=\dimen291
+\l__tblr_row_ht_dim=\dimen292
+\l__tblr_row_dp_dim=\dimen293
+\l__tblr_row_abovesep_dim=\dimen294
+\l__tblr_row_belowsep_dim=\dimen295
 \l__tblr_row_vlines_box=\box91
 \l__tblr_vline_box=\box92
 \l__tblr_cell_box=\box93
-\l__row_upper_dim=\dimen313
-\l__row_lower_dim=\dimen314
-\l__row_vpace_dim=\dimen315
-\l__tblr_vline_aboveskip_dim=\dimen316
-\l__tblr_vline_belowskip_dim=\dimen317
-\l__tblr_cell_wd_dim=\dimen318
-\l__tblr_cell_ht_dim=\dimen319
+\l__row_upper_dim=\dimen296
+\l__row_lower_dim=\dimen297
+\l__row_vpace_dim=\dimen298
+\l__tblr_vline_aboveskip_dim=\dimen299
+\l__tblr_vline_belowskip_dim=\dimen300
+\l__tblr_cell_wd_dim=\dimen301
+\l__tblr_cell_ht_dim=\dimen302
 \l__tblr_diag_box=\box94
 ) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/preprint/authblk.sty
 Package: authblk 2001/02/27 1.3 (PWD)
 \affilsep=\skip63
 \@affilsep=\skip64
-\c@Maxaffil=\count371
-\c@authors=\count372
-\c@affil=\count373
+\c@Maxaffil=\count353
+\c@authors=\count354
+\c@affil=\count355
 ) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/appendix/appendix.sty
 Package: appendix 2020/02/08 v1.2c extra appendix facilities
-\c@@pps=\count374
-\c@@ppsavesec=\count375
-\c@@ppsaveapp=\count376
+\c@@pps=\count356
+\c@@ppsavesec=\count357
+\c@@ppsaveapp=\count358
 ) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/diagbox/diagbox.sty
 Package: diagbox 2020/02/09 v2.3 Making table heads with diagonal lines
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/pict2e/pict2e.sty
@@ -725,142 +562,43 @@ Package pict2e Info: Driver file for pict2e: p2e-luatex.def on input line 114.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/pict2e/p2e-luatex.def
 File: p2e-luatex.def 2016/02/05 v0.1u Driver-dependant file (RN,HjG,JT)
 )
-\pIIe@GRAPH=\toks36
-\@arclen=\dimen320
-\@arcrad=\dimen321
-\pIIe@tempdima=\dimen322
-\pIIe@tempdimb=\dimen323
-\pIIe@tempdimc=\dimen324
-\pIIe@tempdimd=\dimen325
-\pIIe@tempdime=\dimen326
-\pIIe@tempdimf=\dimen327
+\pIIe@GRAPH=\toks33
+\@arclen=\dimen303
+\@arcrad=\dimen304
+\pIIe@tempdima=\dimen305
+\pIIe@tempdimb=\dimen306
+\pIIe@tempdimc=\dimen307
+\pIIe@tempdimd=\dimen308
+\pIIe@tempdime=\dimen309
+\pIIe@tempdimf=\dimen310
 ) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/tools/calc.sty
 Package: calc 2023/07/08 v4.3 Infix arithmetic (KKT,FJ)
-\calc@Acount=\count377
-\calc@Bcount=\count378
-\calc@Adimen=\dimen328
-\calc@Bdimen=\dimen329
+\calc@Acount=\count359
+\calc@Bcount=\count360
+\calc@Adimen=\dimen311
+\calc@Bdimen=\dimen312
 \calc@Askip=\skip65
 \calc@Bskip=\skip66
 LaTeX Info: Redefining \setlength on input line 80.
 LaTeX Info: Redefining \addtolength on input line 81.
-\calc@Ccount=\count379
+\calc@Ccount=\count361
 \calc@Cskip=\skip67
 )
 \diagbox@boxa=\box95
 \diagbox@boxb=\box96
 \diagbox@boxm=\box97
-\diagbox@wd=\dimen330
-\diagbox@ht=\dimen331
-\diagbox@insepl=\dimen332
-\diagbox@insepr=\dimen333
-\diagbox@outsepl=\dimen334
-\diagbox@outsepr=\dimen335
-) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/TeXGyreTermesX.fontspec)
-
-Package fontspec Info: 
-(fontspec)             TeXGyreTermesX-Regular scale = 1.
-
-
-Package fontspec Info: 
-(fontspec)             TeXGyreTermesX-Regular scale = 1.
-
-
-Package fontspec Info: 
-(fontspec)             TeXGyreTermesX-Regular scale = 1.
-
-
-Package fontspec Info: 
-(fontspec)             TeXGyreTermesX-Bold scale = 1.
-
-
-Package fontspec Info: 
-(fontspec)             TeXGyreTermesX-Bold scale = 1.
-
-
-Package fontspec Info: 
-(fontspec)             TeXGyreTermesX-Italic scale = 1.
-
-
-Package fontspec Info: 
-(fontspec)             TeXGyreTermesX-Italic scale = 1.
-
-
-Package fontspec Info: 
-(fontspec)             TeXGyreTermesX-Slanted scale = 1.
-
-
-Package fontspec Info: 
-(fontspec)             TeXGyreTermesX-Slanted scale = 1.
-
-
-Package fontspec Info: 
-(fontspec)             TeXGyreTermesX-BoldItalic scale = 1.
-
-
-Package fontspec Info: 
-(fontspec)             TeXGyreTermesX-BoldItalic scale = 1.
-
-
-Package fontspec Info: 
-(fontspec)             TeXGyreTermesX-BoldSlanted scale = 1.
-
-
-Package fontspec Info: 
-(fontspec)             TeXGyreTermesX-BoldSlanted scale = 1.
-
-
-Package fontspec Info: 
-(fontspec)             Font family 'TeXGyreTermesX(0)' created for font
-(fontspec)             'TeXGyreTermesX' with options [Ligatures = TeX,Scale =
-(fontspec)             1,Extension = .otf,SmallCapsFeatures={RawFeature =
-(fontspec)             +pcap},Renderer=Basic,RawFeature=-ss05,Ligatures=TeX,Extension
-(fontspec)             = .otf,UprightFont = TeXGyreTermesX-Regular,BoldFont =
-(fontspec)             TeXGyreTermesX-Bold,ItalicFont =
-(fontspec)             TeXGyreTermesX-Italic,BoldItalicFont =
-(fontspec)             TeXGyreTermesX-BoldItalic,SlantedFont =
-(fontspec)             *-Slanted,BoldSlantedFont= *-BoldSlanted,Numbers =
-(fontspec)             {Monospaced,Lining}].
-(fontspec)              
-(fontspec)              This font family consists of the following NFSS
-(fontspec)             series/shapes:
-(fontspec)              
-(fontspec)             - 'normal' (m/n) with NFSS spec.:
-(fontspec)             <->s*[1]"[TeXGyreTermesX-Regular.otf]:mode=base;script=latn;language=dflt;-ss05;+tlig;+tnum;+lnum;"
-(fontspec)             - 'small caps'  (m/sc) with NFSS spec.:
-(fontspec)             <->s*[1]"[TeXGyreTermesX-Regular.otf]:mode=base;script=latn;language=dflt;-ss05;+tlig;+tnum;+lnum;+smcp;+pcap;"
-(fontspec)             - 'bold' (b/n) with NFSS spec.:
-(fontspec)             <->s*[1]"[TeXGyreTermesX-Bold.otf]:mode=base;script=latn;language=dflt;-ss05;+tlig;+tnum;+lnum;"
-(fontspec)             - 'bold small caps'  (b/sc) with NFSS spec.:
-(fontspec)             <->s*[1]"[TeXGyreTermesX-Bold.otf]:mode=base;script=latn;language=dflt;-ss05;+tlig;+tnum;+lnum;+smcp;+pcap;"
-(fontspec)             - 'italic' (m/it) with NFSS spec.:
-(fontspec)             <->s*[1]"[TeXGyreTermesX-Italic.otf]:mode=base;script=latn;language=dflt;-ss05;+tlig;+tnum;+lnum;"
-(fontspec)             - 'italic small caps'  (m/scit) with NFSS spec.:
-(fontspec)             <->s*[1]"[TeXGyreTermesX-Italic.otf]:mode=base;script=latn;language=dflt;-ss05;+tlig;+tnum;+lnum;+smcp;+pcap;"
-(fontspec)             - 'slanted' (m/sl) with NFSS spec.:
-(fontspec)             <->s*[1]"[TeXGyreTermesX-Slanted.otf]:mode=base;script=latn;language=dflt;-ss05;+tlig;+tnum;+lnum;"
-(fontspec)             - 'slanted small caps'  (m/scsl) with NFSS spec.:
-(fontspec)             <->s*[1]"[TeXGyreTermesX-Slanted.otf]:mode=base;script=latn;language=dflt;-ss05;+tlig;+tnum;+lnum;+smcp;+pcap;"
-(fontspec)             - 'bold italic' (b/it) with NFSS spec.:
-(fontspec)             <->s*[1]"[TeXGyreTermesX-BoldItalic.otf]:mode=base;script=latn;language=dflt;-ss05;+tlig;+tnum;+lnum;"
-(fontspec)             - 'bold italic small caps'  (b/scit) with NFSS spec.:
-(fontspec)             <->s*[1]"[TeXGyreTermesX-BoldItalic.otf]:mode=base;script=latn;language=dflt;-ss05;+tlig;+tnum;+lnum;+smcp;+pcap;"
-(fontspec)             - 'bold slanted' (b/sl) with NFSS spec.:
-(fontspec)             <->s*[1]"[TeXGyreTermesX-BoldSlanted.otf]:mode=base;script=latn;language=dflt;-ss05;+tlig;+tnum;+lnum;"
-(fontspec)             - 'bold slanted small caps'  (b/scsl) with NFSS spec.:
-(fontspec)             <->s*[1]"[TeXGyreTermesX-BoldSlanted.otf]:mode=base;script=latn;language=dflt;-ss05;+tlig;+tnum;+lnum;+smcp;+pcap;"
-
-LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
-(Font)              scaled to size 10.0pt on input line 53.
+\diagbox@wd=\dimen313
+\diagbox@ht=\dimen314
+\diagbox@insepl=\dimen315
+\diagbox@insepr=\dimen316
+\diagbox@outsepl=\dimen317
+\diagbox@outsepr=\dimen318
+)
 Package translations Info: No language package found. I am going to use `english' as default language. on input line 53.
  (./main.aux)
 \openout1 = main.aux
 
-LaTeX Font Info:    Checking defaults for OML/ntxmi/m/it on input line 53.
-LaTeX Font Info:    Trying to load font information for OML+ntxmi on input line 53.
- (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/omlntxmi.fd
-File: omlntxmi.fd 2015/08/25 Fontinst v1.933 font definitions for OML/ntxmi.
-)
+LaTeX Font Info:    Checking defaults for OML/cmm/m/it on input line 53.
 LaTeX Font Info:    ... okay on input line 53.
 LaTeX Font Info:    Checking defaults for OMS/cmsy/m/n on input line 53.
 LaTeX Font Info:    ... okay on input line 53.
@@ -874,27 +612,11 @@ LaTeX Font Info:    Checking defaults for TU/lmr/m/n on input line 53.
 LaTeX Font Info:    ... okay on input line 53.
 LaTeX Font Info:    Checking defaults for OMX/cmex/m/n on input line 53.
 LaTeX Font Info:    ... okay on input line 53.
-LaTeX Font Info:    Checking defaults for U/ntxexa/m/n on input line 53.
-LaTeX Font Info:    Trying to load font information for U+ntxexa on input line 53.
- (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/untxexa.fd
-File: untxexa.fd 2012/04/16 Fontinst v1.933 font definitions for U/ntxexa.
-)
+LaTeX Font Info:    Checking defaults for U/cmr/m/n on input line 53.
 LaTeX Font Info:    ... okay on input line 53.
 LaTeX Font Info:    Checking defaults for PD1/pdf/m/n on input line 53.
 LaTeX Font Info:    ... okay on input line 53.
 LaTeX Font Info:    Checking defaults for PU/pdf/m/n on input line 53.
-LaTeX Font Info:    ... okay on input line 53.
-LaTeX Font Info:    Checking defaults for LMS/ntxsy/m/n on input line 53.
-LaTeX Font Info:    Trying to load font information for LMS+ntxsy on input line 53.
- (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/lmsntxsy.fd
-File: lmsntxsy.fd 2016/07/02 Fontinst v1.933 font definitions for LMS/ntxsy.
-)
-LaTeX Font Info:    ... okay on input line 53.
-LaTeX Font Info:    Checking defaults for LMX/ntxexx/m/n on input line 53.
-LaTeX Font Info:    Trying to load font information for LMX+ntxexx on input line 53.
- (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/lmxntxexx.fd
-File: lmxntxexx.fd 2016/07/03 Fontinst v1.933 font definitions for LMX/ntxexx.
-)
 LaTeX Font Info:    ... okay on input line 53.
 
 *geometry* driver: auto-detecting
@@ -933,17 +655,17 @@ LaTeX Font Info:    ... okay on input line 53.
 
 (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/context/base/mkii/supp-pdf.mkii
 [Loading MPS to PDF converter (version 2006.09.02).]
-\scratchcounter=\count380
-\scratchdimen=\dimen336
+\scratchcounter=\count362
+\scratchdimen=\dimen319
 \scratchbox=\box98
-\nofMPsegments=\count381
-\nofMParguments=\count382
-\everyMPshowfont=\toks37
-\MPscratchCnt=\count383
-\MPscratchDim=\dimen337
-\MPnumerator=\count384
-\makeMPintoPDFobject=\count385
-\everyMPtoPDFconversion=\toks38
+\nofMPsegments=\count363
+\nofMParguments=\count364
+\everyMPshowfont=\toks34
+\MPscratchCnt=\count365
+\MPscratchDim=\dimen320
+\MPnumerator=\count366
+\makeMPintoPDFobject=\count367
+\everyMPtoPDFconversion=\toks35
 ) (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/epstopdf-pkg/epstopdf-base.sty
 Package: epstopdf-base 2020-01-24 v2.11 Base part for package epstopdf
 Package epstopdf-base Info: Redefining graphics rule for `.eps' on input line 485.
@@ -955,60 +677,15 @@ Package hyperref Info: Link coloring OFF on input line 53.
 \@outlinefile=\write3
 
 \openout3 = main.out
-LaTeX Info: Command `\dddot' is already robust on input line 53.
-LaTeX Info: Command `\ddddot' is already robust on input line 53.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/translations/translations-basic-dictionary-english.trsl
 File: translations-basic-dictionary-english.trsl (english translation file `translations-basic-dictionary')
 )
 Package translations Info: loading dictionary `translations-basic-dictionary' for `english'. on input line 53.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/ninecolors/ninecolors.sty
 Package: ninecolors 2022-02-13 v2022D Select colors with proper color contrast
-)
-LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
-(Font)              scaled to size 17.28pt on input line 55.
-LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
-(Font)              scaled to size 12.0pt on input line 55.
- (./sections/abstract.tex
-LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
-(Font)              scaled to size 9.0pt on input line 7.
-LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/b/n' will be
-(Font)              scaled to size 9.0pt on input line 7.
-)
-LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/b/n' will be
-(Font)              scaled to size 10.0pt on input line 60.
- (./sections/introduction.tex
-LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
-(Font)              scaled to size 14.4pt on input line 1.
-LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/b/n' will be
-(Font)              scaled to size 14.4pt on input line 1.
-LaTeX Font Info:    Trying to load font information for OT1+minntx on input line 8.
- (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/ot1minntx.fd
-File: ot1minntx.fd 2023/09/09 v1.1 font definition file for OT1/minntx
-)
-LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 10.0pt on input line 8.
-LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 7.3pt on input line 8.
-LaTeX Font Info:    Font shape `OT1/minntx/m/n' will be
-(Font)              scaled to size 5.5pt on input line 8.
-LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 10.0pt on input line 8.
-LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 7.3pt on input line 8.
-LaTeX Font Info:    Font shape `OML/ntxmi/m/it' will be
-(Font)              scaled to size 5.5pt on input line 8.
-LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 10.0pt on input line 8.
-LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 7.3pt on input line 8.
-LaTeX Font Info:    Font shape `LMS/ntxsy/m/n' will be
-(Font)              scaled to size 5.5pt on input line 8.
-LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 10.0pt on input line 8.
-LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 7.3pt on input line 8.
-LaTeX Font Info:    Font shape `LMX/ntxexx/m/n' will be
-(Font)              scaled to size 5.5pt on input line 8.
+ (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/l3packages/xparse/xparse.sty
+Package: xparse 2024-08-16 L3 Experimental document command parser
+)) (./sections/abstract.tex) (./sections/introduction.tex
 LaTeX Font Info:    Trying to load font information for U+msa on input line 8.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/amsfonts/umsa.fd
 File: umsa.fd 2013/01/14 v3.01 AMS symbols A
@@ -1017,52 +694,12 @@ LaTeX Font Info:    Trying to load font information for U+msb on input line 8.
  (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/amsfonts/umsb.fd
 File: umsb.fd 2013/01/14 v3.01 AMS symbols B
 )
-LaTeX Font Info:    Trying to load font information for U+ntxmia on input line 8.
- (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/untxmia.fd
-File: untxmia.fd 2024/04/09 Fontinst v1.933 font definitions for U/ntxmia.
-)
-LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 10.0pt on input line 8.
-LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 7.3pt on input line 8.
-LaTeX Font Info:    Font shape `U/ntxmia/m/it' will be
-(Font)              scaled to size 5.5pt on input line 8.
-LaTeX Font Info:    Trying to load font information for U+ntxsym on input line 8.
- (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/untxsym.fd
-File: untxsym.fd 2023/08/16 Fontinst v1.933 font definitions for U/ntxsym.
-)
-LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 10.0pt on input line 8.
-LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 7.3pt on input line 8.
-LaTeX Font Info:    Font shape `U/ntxsym/m/n' will be
-(Font)              scaled to size 5.5pt on input line 8.
-LaTeX Font Info:    Trying to load font information for U+ntxsyc on input line 8.
- (/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/newtx/untxsyc.fd
-File: untxsyc.fd 2012/04/12 Fontinst v1.933 font definitions for U/ntxsyc.
-)
-LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 10.0pt on input line 8.
-LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 7.3pt on input line 8.
-LaTeX Font Info:    Font shape `U/ntxsyc/m/n' will be
-(Font)              scaled to size 5.5pt on input line 8.
-LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 10.0pt on input line 8.
-LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 7.3pt on input line 8.
-LaTeX Font Info:    Font shape `U/ntxexa/m/n' will be
-(Font)              scaled to size 5.5pt on input line 8.
-
 
 [1
 
 {/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/map/pdftex/updmap/pdftex.map}]
 
 [2]) (./sections/related_work.tex
-LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/b/n' will be
-(Font)              scaled to size 12.0pt on input line 3.
-
 
 [3]
 
@@ -1070,16 +707,16 @@ LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/b/n' will be
 
 [5]) (./sections/study_area.tex
 
-[6] (./figures/study_areas.tex
-<images/Study_Area.pdf, id=419, 1156.32pt x 614.295pt>
+[6]
+
+[7] (./figures/study_areas.tex
+<images/Study_Area.pdf, id=476, 1156.32pt x 614.295pt>
 File: images/Study_Area.pdf Graphic file (type pdf)
 <use images/Study_Area.pdf>
 Package luatex.def Info: images/Study_Area.pdf  used on input line 3.
 (luatex.def)             Requested size: 469.75502pt x 249.55672pt.
-))
-
-[7] (./sections/methodology.tex (./figures/methodology.tex
-<images/Methodology.drawio.png, id=434, 3661.68pt x 2292.565pt>
+)) (./sections/methodology.tex (./figures/methodology.tex
+<images/Methodology.drawio.png, id=478, 3661.68pt x 2292.565pt>
 File: images/Methodology.drawio.png Graphic file (type png)
 <use images/Methodology.drawio.png>
 Package luatex.def Info: images/Methodology.drawio.png  used on input line 3.
@@ -1089,7 +726,7 @@ Package luatex.def Info: images/Methodology.drawio.png  used on input line 3.
 [8
 warning  (pdf backend): ignoring duplicate destination with the name 'figure.1'
 <./images/Study_Area.pdf>] (./figures/sampling_flowchart.tex
-<images/semantic_stratification.drawio.png, id=462, 1764.5925pt x 364.36125pt>
+<images/semantic_stratification.drawio.png, id=506, 1764.5925pt x 364.36125pt>
 File: images/semantic_stratification.drawio.png Graphic file (type png)
 <use images/semantic_stratification.drawio.png>
 Package luatex.def Info: images/semantic_stratification.drawio.png  used on input line 4.
@@ -1108,7 +745,7 @@ warning  (pdf backend): ignoring duplicate destination with the name 'figure.2'
 > Step: calculate cell and line sizes.
 > Step: build the whole table.
 ) (./figures/kfold.tex
-<images/fold_splits.pdf, id=478, 720.97752pt x 240.77956pt>
+<images/fold_splits.pdf, id=522, 720.97752pt x 240.77956pt>
 File: images/fold_splits.pdf Graphic file (type pdf)
 <use images/fold_splits.pdf>
 Package luatex.def Info: images/fold_splits.pdf  used on input line 3.
@@ -1120,8 +757,6 @@ warning  (pdf backend): ignoring duplicate destination with the name 'figure.3'
 
 warning  (pdf backend): ignoring duplicate destination with the name 'table.1'
 <./images/semantic_stratification.drawio.png>] (./tables/chesapeake_bay_reclass.tex
-LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
-(Font)              scaled to size 5.0pt on input line 28.
 > Step: init table outer spec.
 > Step: parse table options.
 > Step: split table.
@@ -1129,19 +764,12 @@ LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
 > Step: parse table inner spec.
 > Step: execute table commands.
 > Step: calculate cell and line sizes.
-LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/b/n' will be
-(Font)              scaled to size 5.0pt on input line 104.
 > Step: build the whole table.
 )
 
 [11
 warning  (pdf backend): ignoring duplicate destination with the name 'figure.4'
 <./images/fold_splits.pdf>]
-LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
-(Font)              scaled to size 7.3pt on input line 53.
-LaTeX Font Info:    Font shape `TU/TeXGyreTermesX(0)/m/n' will be
-(Font)              scaled to size 5.5pt on input line 53.
-
 
 [12
 warning  (pdf backend): ignoring duplicate destination with the name 'table.2'
@@ -1172,7 +800,7 @@ warning  (pdf backend): ignoring duplicate destination with the name 'table.3'
 [14
 warning  (pdf backend): ignoring duplicate destination with the name 'table.4'
 ] (./figures/byol.tex
-<images/BYOL_2.drawio.pdf, id=593, 1015.87526pt x 356.29109pt>
+<images/BYOL_2.drawio.pdf, id=640, 1015.87526pt x 356.29109pt>
 File: images/BYOL_2.drawio.pdf Graphic file (type pdf)
 <use images/BYOL_2.drawio.pdf>
 Package luatex.def Info: images/BYOL_2.drawio.pdf  used on input line 3.
@@ -1195,50 +823,52 @@ warning  (pdf backend): ignoring duplicate destination with the name 'figure.5'
 [16
 warning  (pdf backend): ignoring duplicate destination with the name 'table.5'
 ]) (./sections/results.tex (./figures/va_lc_pcs.tex
-<images/VA_PCs_Layout.png, id=725, 722.9409pt x 434.3427pt>
+<images/VA_PCs_Layout.png, id=770, 722.9409pt x 434.3427pt>
 File: images/VA_PCs_Layout.png Graphic file (type png)
 <use images/VA_PCs_Layout.png>
 Package luatex.def Info: images/VA_PCs_Layout.png  used on input line 4.
 (luatex.def)             Requested size: 469.75502pt x 282.22662pt.
 )
 
-[17
-warning  (pdf backend): ignoring duplicate destination with the name 'figure.6'
-<./images/VA_PCs_Layout.png>] (./figures/stratification_results.tex
-<images/cpb_sampling_methods_boxplot.pdf, id=736, 867.24pt x 289.08pt>
+[17] (./figures/stratification_results.tex
+<images/cpb_sampling_methods_boxplot.pdf, id=781, 867.24pt x 289.08pt>
 File: images/cpb_sampling_methods_boxplot.pdf Graphic file (type pdf)
 <use images/cpb_sampling_methods_boxplot.pdf>
 Package luatex.def Info: images/cpb_sampling_methods_boxplot.pdf  used on input line 3.
 (luatex.def)             Requested size: 469.75502pt x 156.58607pt.
-) (./figures/probing_metrics.tex
-<images/linear_probing_results.pdf, id=738, 433.62pt x 289.08pt>
+)
+
+[18
+warning  (pdf backend): ignoring duplicate destination with the name 'figure.6'
+<./images/VA_PCs_Layout.png>] (./figures/probing_metrics.tex
+<images/linear_probing_results.pdf, id=790, 433.62pt x 289.08pt>
 File: images/linear_probing_results.pdf Graphic file (type pdf)
 <use images/linear_probing_results.pdf>
 Package luatex.def Info: images/linear_probing_results.pdf  used on input line 3.
 (luatex.def)             Requested size: 281.85587pt x 187.913pt.
 )
 
-[18
+[19
 warning  (pdf backend): ignoring duplicate destination with the name 'figure.7'
-<./images/cpb_sampling_methods_boxplot.pdf>] (./figures/finetune_metrics.tex
-<images/finetuning_results.pdf, id=806, 802.67078pt x 349.89796pt>
+
+warning  (pdf backend): ignoring duplicate destination with the name 'figure.8'
+<./images/cpb_sampling_methods_boxplot.pdf><./images/linear_probing_results.pdf>] (./figures/finetune_metrics.tex
+<images/finetuning_results.pdf, id=917, 802.67078pt x 349.89796pt>
 File: images/finetuning_results.pdf Graphic file (type pdf)
 <use images/finetuning_results.pdf>
 Package luatex.def Info: images/finetuning_results.pdf  used on input line 3.
 (luatex.def)             Requested size: 469.75502pt x 204.77223pt.
-)
-
-[19
-warning  (pdf backend): ignoring duplicate destination with the name 'figure.8'
-
-warning  (pdf backend): ignoring duplicate destination with the name 'figure.9'
-<./images/linear_probing_results.pdf><./images/finetuning_results.pdf>] (./figures/visual_assessment.tex
-<images/qualitative_results.png, id=996, 747.5127pt x 426.393pt>
+) (./figures/visual_assessment.tex
+<images/qualitative_results.png, id=919, 747.5127pt x 426.393pt>
 File: images/qualitative_results.png Graphic file (type png)
 <use images/qualitative_results.png>
 Package luatex.def Info: images/qualitative_results.png  used on input line 3.
 (luatex.def)             Requested size: 469.75502pt x 267.95886pt.
-) (./tables/confusion_matrix.tex
+)
+
+[20
+warning  (pdf backend): ignoring duplicate destination with the name 'figure.9'
+<./images/finetuning_results.pdf>] (./tables/confusion_matrix.tex
 > Step: init table outer spec.
 > Step: parse table options.
 > Step: split table.
@@ -1248,30 +878,28 @@ Package luatex.def Info: images/qualitative_results.png  used on input line 3.
 > Step: calculate cell and line sizes.
 
 
-Package tabularray Warning: Table width is too small, need 193.265pt more!
+Package tabularray Warning: Table width is too small, need 233.85497pt more!
 
 > Step: build the whole table.
-))
-
-[20
-warning  (pdf backend): ignoring duplicate destination with the name 'figure.10'
-<./images/qualitative_results.png>] (./sections/discussion.tex
+)) (./sections/discussion.tex
 
 [21
+warning  (pdf backend): ignoring duplicate destination with the name 'figure.10'
+
 warning  (pdf backend): ignoring duplicate destination with the name 'table.6'
-] (./figures/inference_results.tex
-<images/inference_results.pdf, id=1016, 2095.83pt x 1011.78pt>
+<./images/qualitative_results.png>] (./figures/inference_results.tex
+<images/inference_results.pdf, id=1062, 2095.83pt x 1011.78pt>
 File: images/inference_results.pdf Graphic file (type pdf)
 <use images/inference_results.pdf>
 Package luatex.def Info: images/inference_results.pdf  used on input line 3.
 (luatex.def)             Requested size: 469.75502pt x 226.77612pt.
-)) (./sections/conclusion.tex) (./main.bbl
+)
 
-[22
+[22]) (./sections/conclusion.tex) (./main.bbl
+
+[23
 warning  (pdf backend): ignoring duplicate destination with the name 'figure.11'
 <./images/inference_results.pdf>]
-
-[23]
 
 [24]
 
@@ -1280,37 +908,51 @@ warning  (pdf backend): ignoring duplicate destination with the name 'figure.11'
 [26]
 
 [27]
-Underfull \hbox (badness 1092) in paragraph at lines 523--528
-\TU/TeXGyreTermesX(0)/m/n/10 cover types us-ing satel-lite data.  In-ter-na-tional Jour-nal of Re-mote Sens-ing 8, 1189--1207.  doi:[]$\TU/lmtt/m/n/10 10.1080/
+Underfull \hbox (badness 1092) in paragraph at lines 406--409
+[]\TU/lmr/m/n/10 Mar-ma-nis, D., Weg-ner, J.D., Gal-liani, S., Schindler, K., Datcu, M., Stilla, U., 2016.  Se-man-
+ []
+
+
+Underfull \hbox (badness 1215) in paragraph at lines 406--409
+\TU/lmr/m/n/10 tic Seg-men-ta-tion of Aerial Im-ages with an En-sem-ble of CNNS doi:[]$\TU/lmtt/m/n/10 10.3929/ETHZ-[]B-[]000338696$[]\TU/lmr/m/n/10 ,
+ []
+
+
+Underfull \hbox (badness 4036) in paragraph at lines 440--444
+[]\TU/lmr/m/n/10 Mis-sis-sippi State Uni-ver-sity Ex-ten-sion, .  Mis-sis-sippi Land Re-source Ar-eas.  https://ex-ten-
  []
 
 
 
-[28])
+[28]
 
-[29] (./main.aux)
+[29]
+
+[30])
+
+[31] (./main.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
-L3 programming layer <2020/03/25>
+L3 programming layer <2025-01-18>
  ***********
 Package rerunfilecheck Info: File `main.out' has not changed.
 (rerunfilecheck)             Checksum: 969F116F47F579266F9C8ABB8414D13D;4454.
 )
 
 Here is how much of LuaTeX's memory you used:
- 26426 strings out of 475506
- 195331,2848258 words of node,token memory allocated
- 17403 words of node memory still in use:
-   6 hlist, 2 vlist, 2 rule, 2 glue, 2770 kern, 1 glyph, 718 attribute, 63 glue_spec, 718 attribute_list, 1 write, 31 pdf_action nodes
-   avail lists: 1:1,2:3496,3:412,4:86,5:546,6:256,7:15598,8:48,9:3337,10:34,11:1367
- 48541 multiletter control sequences out of 65536+600000
- 98 fonts using 10598759 bytes
- 80i,18n,115p,747b,2387s stack positions out of 10000i,1000n,20000p,200000b,200000s
-</opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/lm/lmmono10-regular.otf>{/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/enc/dvips/newtx/ntx-ot1-tlf.enc}</opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/newtx/TeXGyreTermesX-Bold.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/newtx/TeXGyreTermesX-Regular.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/NewTXMI.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/NewTXMI7.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/txexs.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/txmiaX.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/txsys.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/newtx/ztmr.pfb>
-Output written on main.pdf (29 pages, 29765254 bytes).
+ 21332 strings out of 475506
+ 195340,1977958 words of node,token memory allocated
+ 929 words of node memory still in use:
+   6 hlist, 2 vlist, 2 rule, 2 glue, 4 kern, 1 glyph, 51 attribute, 63 glue_spec, 51 attribute_list, 1 write, 35 pdf_action nodes
+   avail lists: 1:1,2:3830,3:426,4:82,5:653,6:260,7:14859,8:48,9:3347,10:32,11:1313
+ 43609 multiletter control sequences out of 65536+600000
+ 45 fonts using 3414639 bytes
+ 72i,18n,115p,776b,2387s stack positions out of 10000i,1000n,20000p,200000b,200000s
+</opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/lm/lmmono10-regular.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/lm/lmroman7-regular.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/lm/lmroman5-regular.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/lm/lmroman5-bold.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/lm/lmroman12-bold.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/lm/lmroman10-regular.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/lm/lmroman10-bold.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/lm/lmroman9-regular.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/lm/lmroman9-bold.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/lm/lmroman12-regular.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/opentype/public/lm/lmroman17-regular.otf></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmex10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi7.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmr7.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy10.pfb></opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmsy7.pfb>
+Output written on main.pdf (31 pages, 29803546 bytes).
 
-PDF statistics: 1287 PDF objects out of 1440 (max. 8388607)
- 900 compressed objects within 9 object streams
- 188 named destinations out of 1000 (max. 131072)
+PDF statistics: 1405 PDF objects out of 1440 (max. 8388607)
+ 990 compressed objects within 10 object streams
+ 198 named destinations out of 1000 (max. 131072)
  145 words of extra memory for PDF output out of 10000 (max. 100000000)
 

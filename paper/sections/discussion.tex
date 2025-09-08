@@ -17,7 +17,7 @@ The inclusion of an additional blue band in the model input may help alleviate t
 For example, random color jittering is applied, which adjusts the brightness, contrast, saturation, and hue of the input image.
 The saturation and hue adjustment transformations are explicitly defined for three-channel imagery as a mapping from the RGB color space to the HSV color space, and thus cannot be directly applied to imagery with more than three bands.
 For remote sensing applications, this a significant limitation of BYOL and other transformation-based self-supervised learning methods that rely on image augmentations to learn transformation-invariant image representations, and we suggest that future work should investigate the development of transformation strategies that are directly compatible with multispectral imagery that contain more than three bands.
-Reconstruction-based self-supervised learning methods (e.g., masked image modeling) may also be a promising avenue for future research, as these methods do not inherently rely on image augmentations to facilitate feature representation learning.
+Reconstruction-based self-supervised learning methods (e.g., MIM) may also be a promising avenue for future research, as these methods do not inherently rely on image augmentations to facilitate feature representation learning.
 % Further, we observe that the model struggles to produce accurate delinations of large buildings (see Figure~\ref{fig:})
 
 

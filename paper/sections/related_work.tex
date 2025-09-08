@@ -2,7 +2,7 @@
 
 \subsection{Approaches to very high spatial resolution land cover classification} 
 
-\note{maybe define VHSR in the intro???}
+% \note{maybe define VHSR in the intro???}
 
 % VHSR land cover classification has historically been tricky due to blah blah blah
 % Prior to deep learning, OBIA was the predominant paradigm - mention a few models
@@ -48,18 +48,23 @@ Given the widespread success of these models, deep learning has quickly become a
 While deep learning semantic segmentation models have emerged as the predominant approach for land cover classification at VHSR, comparatively little work has been published on the selection of samples for training data compared to their pixel-wise counterparts.
 Indeed, most research into the applications of these models to VHSR land cover are evaluated against benchmark datasets, such as the ISPRS Potsdam~\citep{2DSemanticLabeling} and Vaihingen~\citep{2DSemanticLabel} 2D Semantic Labelling Challenges.
 These datasets are valuable for determining the efficacy of new models and techniques in the context of existing works, but they ignore critical considerations required for operational applications of these models.
-Given the data-hungry nature of deep learning models and the importance of quality training data, the selection of appropriate training data is critically understudieed in the context of semantic segmentation models for land cover classification at VHSR, particularly when compared to their pixel-wise counterparts.
-Training data selection strategies for pixel-wise approaches have been widely studied such to determine best approaches for maximizing model performance under real-world constraints, such as limited budgets for data collection and annotation~\citep{millardImportanceTrainingData2015}.
-A common theme in these works is the integration of prior knowledge of the spatial distribution of land cover classes over the area of interest to inform the sampling strategy.
-\note{CITE} showed that sampling training data roughly proportional to the spatial distribution of land cover classes in the area of interest maximized \note{INCOMPLETE}.
-\note{ANOTHER EXAMPLE HERE}
+Given the data-hungry nature of deep learning models and the importance of quality training data, the selection of appropriate training data is critically understudied in the context of semantic segmentation models for land cover classification at VHSR, particularly when compared to their pixel-wise counterparts.
+Training data selection strategies for traditional models have been widely studied such to determine best approaches for maximizing model performance under real-world constraints, such as limited budgets for data collection and annotation~\citep{millardImportanceTrainingData2015}.
+A common theme in these works is the integration of prior knowledge of the distribution of land cover classes over the area of interest to inform the sampling strategy~\citep{canoImprovedForestcoverMapping2017, brownLessonsLearnedImplementing2020,dongStratifiedEvenSampling2020, zhouTrainingDataSelection2020}.
+\citet{jinAssessingImpactTraining2014} showed that selecting training data points proportionally to the area of each land cover class in an existing reference dataset improved the overall accuracy of a pixel-wise urban land cover classifier.
+\citet{zhuOptimizingSelectionTraining2016} demonstrated that stratifying the study area according to land cover classes from and sampling training data proportional to the total area of each class maximized classification accuracy for pixel-wise land cover classification, while enforcing a minimum and maximum number of samples per class to avoid extreme class imbalance in the training data.
+% \citet{canoImprovedForestcoverMapping2017} applied OBIA to MODIS enhanced vegetation index time series data to define homogeneous land units that served as the basis for strata selection for sampling training data for forest cover mapping, demonstrating that regionalizing classification models according to strata 
+
+% \citet{costaSpatiallyStratifiedMultiStage2022} 
+% \note{CITE} showed that sampling training data roughly proportional to the spatial distribution of land cover classes in the area of interest maximized \note{INCOMPLETE}.
+% \note{ANOTHER EXAMPLE HERE}
 
 However, translating these strategies for selection of patches for training semantic segmentation models is non-trivial.
 Perhaps the most obvious challenge is that a single patch may contain multiple land cover classes, complicating the process of selecting patches to achieve a desired distribution of classes in the training data.
 Furthermore, as the predictive ability of semantic segmentation models is derived from their spatial feature extraction capabilities, there is also a pertinent question of how to select patches that contain meaningful spatial heterogeneity in land cover classes to maximize the variability of spatial features present in the training data.
-For example, a simple random sampling of patches over a predominantly homogeneous area may yield many patches containing a single land cover class with little variation in the spatial arrangement of that class and its interactions with other classes.
+% For example, a simple random sampling of patches over a predominantly homogeneous area may yield many patches containing a single land cover class with little variation in the spatial arrangement of that class and its interactions with other classes.
 Consequently, there is a need for research into effective sampling strategies for training data selection for semantic segmentation models applied to land cover classification.
-Our work attemtps to address this gap by proposing a semantic stratification approach for selecting high-quality training data for VHSR land cover classification using a semantic segmentation model by stratifying according to feature representations derived from medium-resolution land cover data.
+Our work attempts to address this gap by proposing a semantic stratification approach for selecting high-quality training data for VHSR land cover classification using a semantic segmentation model by stratifying according to feature representations derived from medium-resolution land cover data.
 
 % Mention stratification, classical pixel-wise
 % Struggles when applying to patch wise
@@ -67,20 +72,22 @@ Our work attemtps to address this gap by proposing a semantic stratification app
 
 \subsection{Remote sensing pre-training and self-supervised learning}
 
-The data-hungry nature of deep learning models has motivated research into techniques for improving model performance and generalization under limited training data scenarios across many domains.
-Transfer learning has long been among the most widely adopted techniques for addressing this challenge, particularly in the context of computer vision.
-The concept of transfer learning first emerged with \note{CITE}, who demonstrated that a two-stage training process where a model is first pre-trained on a large dataset (i.e., source domain) before being fine-tuned on a smaller dataset relevant to the desired task (i.e., target domain) could subsantially improve model performance, genearlization, and convergence speed compared to training a model from random initialization using only the target domain data.
-The predominant hypothesis for the success of transfer learning in deep learing is that the pre-training process enables a model to learn to extract high-level features from the input data that can be effectively repurposed during the fine-tuning stage, and that large-scale pre-training enables the model to learn to extract strong features that are difficult to capture using the smaller target domain dataset alone \note{CITE}.
-The success of transfer learning has been widely demonstrated in the computer vision community, where a common practice is to pre-train models using the ImageNet Large Scale Visual Recognition Challenge (ILSVRC) dataset \note{CITE}, which contains over 1 million labeled images spanning 1000 object categories before fine-tuning these models on smaller datasets for a variety of downstream tasks \note{CITE}.
+The data-hungry nature of deep learning models has motivated research into techniques for improving model performance and generalization under limited training data scenarios across many domains~\citep{adadiSurveyDataefficientAlgorithms2021}.
+Transfer learning has long been among the most widely adopted techniques for addressing this challenge, particularly in the context of computer vision~\citep{zhouTrainingDataSelection2020}.
+Notably, \citet{yosinskiHowTransferableAre2014} noticed that the convolutional kernels learned in the first layer of CNNs tended to resemble traditional image processing filters (e.g., Gabor filters), regardless of the dataset or training schema.
+From this observation, they demonstrated that these low-level features are broadly transferable across different datasets and tasks, and demonstrated that intializing a model using parameters from a pre-trained model then fine-tuning on a different dataset substantially improved the model generalization capacity.
+% In computer vision, who demonstrated that a two-stage training process where a model is first pre-trained on a large dataset (i.e., source domain) before being fine-tuned on a smaller dataset relevant to the desired task (i.e., target domain) could substantially improve model performance, generalization, and convergence speed compared to training a model from random initialization using only the target domain data.
+% The predominant hypothesis for the success of transfer learning in deep learning is that the pre-training process enables a model to learn to extract high-level features from the input data that can be effectively repurposed during the fine-tuning stage, and that large-scale pre-training enables the model to learn to extract strong features that are difficult to capture using the smaller target domain dataset alone \note{CITE}.
+The success of transfer learning has been widely demonstrated in the computer vision community, where a common practice is to pre-train models using the ImageNet Large Scale Visual Recognition Challenge (ILSVRC) dataset~\citep{yosinskiHowTransferableAre2014} before fine-tuning these models on smaller datasets for a variety of downstream tasks \citep{huhWhatMakesImageNet2016}.
 
-Notably, this procedure has been widely adopted in the remote sensing communtiy, where models are often pre-trained on ImageNet before being fine-tuned for a given task.
-\note{EXAMPLE 1}
-\note{EXAMPLE 2}
+Notably, this procedure has been widely adopted in the remote sensing community, where models are often pre-trained on ImageNet before being fine-tuned for a given task.
+% \note{EXAMPLE 1}
+% \note{EXAMPLE 2}
 However, as \note{CITE} pointed out, there are several unknowns regarding the efficacy of this approach for remote sensing applications.
 While ImageNet pre-training is effective, using remote sensing-specific dataset for pre-training may yield better results due to the reduced domain shift between the source and target domains \note{CITE}.
 However, there are very few large-scale labeled datasets of remotely sensed imagery available for pre-training.
 Further, remote sensing models are typically trained for sensor-specific tasks, with spectral bands and spatial resolutions that differ substantially from the natural images in ImageNet, further complicating both parameter transfer from ImageNet-pretrained models that expect 3-channel RGB inputs and the collection of large-scale labeled datasets with varying sensor sources for remote sensing-specific pre-training \note{CITE}.
-As fully-supervised pre-training requires large-scale labeled datasets, which are relatively scarce in the remote sensing domain for VHSR imagery, there is a need for laternative pre-training strategies that reduce the reliance on labeled data.
+As fully-supervised pre-training requires large-scale labeled datasets, which are relatively scarce in the remote sensing domain for VHSR imagery, there is a need for alternative pre-training strategies that reduce the reliance on labeled data.
 
 As part of a larger movement in the machine learning community, self-supervised learning (SSL) has emerged as a new paradigm for building large deep learning models that produce high-quality feature representations without the need for labeled data \note{CITE}.
 Like traditional supervised pre-training, SLL methods attempt to optimize a model with respect to some loss function that encourages the model to output a feature representation according to some desired properties.
