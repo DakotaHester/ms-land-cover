@@ -23,7 +23,7 @@ No significant differences in mIoU were observed between random sampling and spa
 
 \subsection{Evaluation of self-supervised learning approach}\label{sec:results:self_supervised_learning}
 
-As shown in Figure~\ref{fig:probing_metrics}, using fixed embeddings from a ResNet-101 model pre-trained using BYOL as input to a linear classifer yeilded substantial improvements in mIoU over a classifier that uses embeddings from a model pre-trained only on ImageNet.
+As shown in Figure~\ref{fig:probing_metrics}, using fixed embeddings from a ResNet-101 model pre-trained using BYOL as input to a linear classifier yielded substantial improvements in mIoU over a classifier that uses embeddings from a model pre-trained only on ImageNet.
 The largest training dataset size of \(N_\text{train} = 750\) exhibited the largest improvement in mIoU, with the BYOL pre-trained model achieving an mIoU of \num{42.71}\% compared to \num{27.70}\% for the ImageNet pre-trained model, an improvement of \num{15.01}\%.
 The embedding model where BYOL pre-training was initialized with ImageNet weights performs marginally worse than the model that begins BYOL pre-training with random weights: the average increase in mIoU over the ImageNet pre-trained model was \num{13.90}\% for the BYOL model with random initialization, compared to \num{13.04}\% for the BYOL model with ImageNet initialization.
 
@@ -47,6 +47,7 @@ Despite this specific model's large individual performance, this model was an ou
 As such, the U-Net model with a BYOL backbone initialized with ImageNet weights and fine-tuned using \(N_\text{train} = 750\) samples was considered the best performing model overall and was used to generate the final land cover map for the entire state of Mississippi.
 These models were ensembled and used to generate a final land cover map for the entire state of Mississippi using the procedure outlined in Section~\ref{sec:methodology:model_ensembling}.
 The confusion matrix for the final thematic accuracy assessment for the statewide land cover map is shown in Table~\ref{tab:confusion_matrix}.
-Overall, the final product's mIoU was \num{62.77}\% and overall accuracy was \num{87.14}\%, with the mean class-wise producer's accuracy and user's accuracy being \num{75.60}\% and \num{80.18}\%, respectively. An online dashboard to visualize and interact with the final land cover product can be found at \note{WHERE???}, while the final land cover product can be downloaded from \note{WHERE????}.
+Overall, the final product's mIoU was \num{62.77}\% and overall accuracy was \num{87.14}\%, with the mean class-wise producer's accuracy and user's accuracy being \num{75.60}\% and \num{80.18}\%, respectively. An online dashboard to visualize and interact with the final land cover product can be found at \url{https://www.gcerlab.com/projects/msland}, while the final land cover product can be downloaded from \url{https://doi.org/10.5281/zenodo.16762344}.
+The ground truth patches used to train the model can be found at \url{https://doi.org/10.5281/zenodo.15670823}.
 
 \input{tables/confusion_matrix.tex}

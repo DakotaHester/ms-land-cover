@@ -65,7 +65,7 @@ Automatic mixed precision (AMP) training was used to speed up the training stage
 Due to the limited size of the training datasets, we employed a strong set of image augmentations described in Table~\ref{tab:data_augmentations} on-the-fly to ensure that the models did not overfit to the training data.
 Each model was evaluated on the test dataset using the mIoU metric, and the results were averaged across the 10 replications and k-folds for each training dataset size and sampling strategy.
 To assess the impact of the sampling strategy on model performance, the average mIoU results across all folds were computed for each replication, sampling strategy, and training dataset size such that a two-way ANOVA could be performed to test the effects of stratification protocol, training dataset size, and their interaction on the model's accuracy.
-Pairwise comparisons were conducted using a Tukey HSD post-hoc test to determine which sampling strategies and training dataset sizes yielded statistically significant differences in mIoU.
+Pairwise comparisons were conducted using a Tukey HSD test to determine which sampling strategies and training dataset sizes yielded statistically significant differences in mIoU.
 For both the ANOVA and Tukey HSD tests, we use \(\alpha = 0.05\) as the threshold for statistical significance.
 
 \begin{equation}\label{eq:focal_loss}
@@ -101,7 +101,7 @@ For model evaluation purposes, 256 \(\times\) 256 meter tiles were extracted aro
 \subsection{Self-supervised pre-training using BYOL}\label{sec:methodology:self_supervised_pretraining}
 
 The pre-training phase of the methodology is intended to leverage the large dataset of unannotated samples such that a ResNet-101 encoder can be trained to extract relevant features from the imagery that are well-suited for downstream land cover classification tasks.
-BYOL uses a ``self-distillation'' approach to learn representations from images using two separate but inter-dependent networks: an online network that conists of the primary encoder and a target network that consists of an exponential moving average (EMA) of the online network's parameters.
+BYOL uses a ``self-distillation'' approach to learn representations from images using two separate but inter-dependent networks: an online network that consists of the primary encoder and a target network that consists of an exponential moving average (EMA) of the online network's parameters.
 Given an input image, two separate augmented views of the image are created using a set of transformations.
 Each view is then passed through the online and target networks to produce feature vectors, as shown in Figure~\ref{fig:byol_workflow}.
 The online network is trained to predict the feature vector produced by the target network given the other view as input, and backpropagation is used to update the weights of the online network based on the 
@@ -123,7 +123,7 @@ The target network's parameters \(\theta_\text{target}\) are updated according t
 We applied BYOL to a ResNet-101 encoder network using the large dataset of unannotated samples from the state of Mississippi.
 We tested two configurations of the BYOL pre-training process: one starting with ImageNet pre-trained weights at the beginning of the pre-training process and one starting with randomly initialized weights.
 The pre-training process was run for 300 epochs, with the learning annealed from \(1 \times 10^{-3}\) to 0 over the course of training using a cosine annealing schedule, with a warmup period of 10 epochs to linearly increase the learning rate from 0 to \(1 \times 10^{-3}\).
-The AdamW optimizer was used with a batch size of 4096: to achieve this large batch size while working withing the memory constraints of a single Nvidia A100 GPU with 80 GB of VRAM, we employed gradient accumulation using a microbatch size of 256.
+The AdamW optimizer was used with a batch size of 4096: to achieve this large batch size while working within the memory constraints of a single Nvidia A100 GPU with 80 GB of VRAM, we employed gradient accumulation using a microbatch size of 256.
 As with the models in Section~\ref{sec:methodology:semantic_stratification}, AMP training was again used to increase training speed and reduce memory footprint.
 After each epoch, the model was evaluated on the pre-training validation dataset using the BYOL loss function (as during training) to monitor for overfitting: as BYOL does not use a traditional supervised loss function, a decreasing validation loss is not necessarily indicative of a model learning high-quality representations for downstream tasks, but rather an indication that the model is better able to predict the target network's output, which ideally corresponds to learning better representations assuming the representations have not collapsed (i.e., the model produces the same output regardless of input).
 
@@ -131,7 +131,7 @@ To evaluate the quality of the learned representations, we used a linear probing
 To accomplish this, the feature maps produced by the ResNet-101 encoder were upsampled to the original input resolution using bilinear interpolation, and a linear classifier was trained on top of these feature maps using the annotated training dataset from Section~\ref{sec:methodology:dataset_curation}.
 The linear classifier consisted of a single 1\(\times\)1 convolutional layer with a softmax activation function to produce class probabilities for each pixel.
 This classification model was fit using the same configuration as the models in Section~\ref{sec:methodology:semantic_stratification} to maintain a consistent framework for experimentation.
-K-fold cross-validation was again employed to minimize the influence of variation in the training dataset while evaluating the performance of this method across different training dataset sizes (250, 500, and 750 samples), using the strategy shown in in Figure~\ref{fig:fold_splits}.
+K-fold cross-validation was again employed to minimize the influence of variation in the training dataset while evaluating the performance of this method across different training dataset sizes (250, 500, and 750 samples), using the strategy shown in Figure~\ref{fig:fold_splits}.
 The performance of the linear probing models was evaluated using the mIoU metrics on the point-based assessment dataset, with the results being compared between the two BYOL pre-training configurations as well as a baseline model that used the ResNet-101 encoder with ImageNet pre-trained weights without any BYOL pre-training.
 
 \subsection{Selecting a semantic segmentation architecture and fine-tuning}\label{sec:methodology:semantic_segmentation}
