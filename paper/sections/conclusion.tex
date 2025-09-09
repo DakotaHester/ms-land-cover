@@ -1,1 +1,10 @@
 \section{Conclusion}
+
+In this work, we have demonstrated that accurate land cover classification at VHSR can be achieved using as few as \num{1,000} labeled training patches when employing a combination of machine-learning driven semantic stratification to select informative training samples and self-supervised learning to pre-train a deep convolutional image encoder on large amounts of unlabeled VHSR imagery.
+Our proposed semantic stratification approach leverages existing land cover maps at coarse resolution to create strata based on the land cover composition of candidate training patches, ensuring that the training dataset is well-representative of the land cover characteristics of the target area.
+This approach can yield statistically significant improvements in land cover classification accuracy compared to simple random sampling and spatially stratified sampling.
+Further, we have demonstrated how self-distillation based self-supervised learning can be used to learn meaningful image representations from large amounts of unlabeled VHSR imagery which are more relevant to the target land cover classification task than those produced by models pre-trained on ImageNet, which is the current standard practice in remote sensing applications.
+ADditionally, fine-tuning these BYOL pre-trained image encoders using a small number of labeled training as part of an end-to-end trainable semantic segmentation framework (e.g., U-Net) on few samples also reveals moderate competetive performance compared to models pre-trained on Imagenet, while using a a model pre-trained on ImageNet then BYOL prior to fine-tuning outperforms ImageNet pre-training without the need for any additional labeled data.
+We applied this methodology to produce a \SI{1}{\meter} resolution land cover map for the entire state of Mississippi, USA, which captures fine-scale land cover features that are indistinguishable in existing land cover products such as the NLCD.
+
+\note{FINISH ME!!!}

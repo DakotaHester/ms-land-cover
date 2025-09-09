@@ -140,6 +140,18 @@
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Ban et al. - 2015 - Global land cover mapping using Earth observation satellite data Recent progresses and challenges.pdf;/Users/dak/Zotero/storage/S5IFHT72/S0924271615000131.html}
 }
 
+@inproceedings{bastaniSatlasPretrainLargeScaleDataset2023,
+  title = {{{SatlasPretrain}}: {{A Large-Scale Dataset}} for {{Remote Sensing Image Understanding}}},
+  shorttitle = {{{SatlasPretrain}}},
+  booktitle = {Proceedings of the {{IEEE}}/{{CVF International Conference}} on {{Computer Vision}}},
+  author = {Bastani, Favyen and Wolters, Piper and Gupta, Ritwik and Ferdinando, Joe and Kembhavi, Aniruddha},
+  year = {2023},
+  pages = {16772--16782},
+  urldate = {2025-09-09},
+  langid = {english},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Bastani et al. - 2023 - SatlasPretrain A Large-Scale Dataset for Remote Sensing Image Understanding.pdf}
+}
+
 @article{bhattWaterQualityImpacts2023,
   title = {Water Quality Impacts of Climate Change, Land Use, and Population Growth in the {{Chesapeake Bay}} Watershed},
   author = {Bhatt, Gopal and Linker, Lewis and Shenk, Gary and Bertani, Isabella and Tian, Richard and Rigelman, Jessica and Hinson, Kyle and Claggett, Peter},
@@ -416,19 +428,33 @@
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Cheng and Han - 2016 - A survey on object detection in optical remote sensing images.pdf;/Users/dak/Zotero/storage/SJB7Q35M/display.html}
 }
 
-@inproceedings{chenSimpleFrameworkContrastive2020c,
+@inproceedings{chenSimpleFrameworkContrastive2020,
   title = {A {{Simple Framework}} for {{Contrastive Learning}} of {{Visual Representations}}},
   booktitle = {Proceedings of the 37th {{International Conference}} on {{Machine Learning}}},
   author = {Chen, Ting and Kornblith, Simon and Norouzi, Mohammad and Hinton, Geoffrey},
+  editor = {III, Hal Daum{\'e} and Singh, Aarti},
   year = {2020},
-  month = nov,
+  month = jul,
+  series = {Proceedings of {{Machine Learning Research}}},
+  volume = {119},
   pages = {1597--1607},
   publisher = {PMLR},
-  issn = {2640-3498},
-  urldate = {2024-10-12},
   abstract = {This paper presents SimCLR: a simple framework for contrastive learning of visual representations. We simplify recently proposed contrastive self-supervised learning algorithms without requiring specialized architectures or a memory bank. In order to understand what enables the contrastive prediction tasks to learn useful representations, we systematically study the major components of our framework. We show that (1) composition of data augmentations plays a critical role in defining effective predictive tasks, (2) introducing a learnable nonlinear transformation between the representation and the contrastive loss substantially improves the quality of the learned representations, and (3) contrastive learning benefits from larger batch sizes and more training steps compared to supervised learning. By combining these findings, we are able to considerably outperform previous methods for self-supervised and semi-supervised learning on ImageNet. A linear classifier trained on self-supervised representations learned by SimCLR achieves 76.5\% top-1 accuracy, which is a 7\% relative improvement over previous state-of-the-art, matching the performance of a supervised ResNet-50. When fine-tuned on only 1\% of the labels, we achieve 85.8\% top-5 accuracy, outperforming AlexNet with 100X fewer labels.},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Chen et al. - 2020 - A Simple Framework for Contrastive Learning of Visual Representations 1.pdf}
+}
+
+@article{chenWhyWeNeed2022,
+  title = {Why Do {{We Need Large Batchsizes}} in {{Contrastive Learning}}? {{A Gradient-Bias Perspective}}},
+  shorttitle = {Why Do {{We Need Large Batchsizes}} in {{Contrastive Learning}}?},
+  author = {Chen, Changyou and Zhang, Jianyi and Xu, Yi and Chen, Liqun and Duan, Jiali and Chen, Yiran and Tran, Son and Zeng, Belinda and Chilimbi, Trishul},
+  year = {2022},
+  month = dec,
+  journal = {Advances in Neural Information Processing Systems},
+  volume = {35},
+  pages = {33860--33875},
+  urldate = {2025-09-09},
   langid = {english},
-  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Chen et al. - 2020 - A Simple Framework for Contrastive Learning of Visual Representations 2.pdf;/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Chen et al. - 2020 - A Simple Framework for Contrastive Learning of Visual Representations 3.pdf}
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Chen et al. - 2022 - Why do We Need Large Batchsizes in Contrastive Learning A Gradient-Bias Perspective.pdf}
 }
 
 @misc{chesapeakebayprogramChesapeakeBayLand2023a,
@@ -547,6 +573,22 @@
   year = {2023},
   month = nov,
   copyright = {MIT}
+}
+
+@inproceedings{dascoliConViTImprovingVision2021,
+  title = {{{ConViT}}: {{Improving Vision Transformers}} with {{Soft Convolutional Inductive Biases}}},
+  shorttitle = {{{ConViT}}},
+  booktitle = {Proceedings of the 38th {{International Conference}} on {{Machine Learning}}},
+  author = {D'Ascoli, St{\'e}phane and Touvron, Hugo and Leavitt, Matthew L. and Morcos, Ari S. and Biroli, Giulio and Sagun, Levent},
+  year = {2021},
+  month = jul,
+  pages = {2286--2296},
+  publisher = {PMLR},
+  issn = {2640-3498},
+  urldate = {2025-09-09},
+  abstract = {Convolutional architectures have proven extremely successful for vision tasks. Their hard inductive biases enable sample-efficient learning, but come at the cost of a potentially lower performance ceiling. Vision Transformers (ViTs) rely on more flexible self-attention layers, and have recently outperformed CNNs for image classification. However, they require costly pre-training on large external datasets or distillation from pre-trained convolutional networks. In this paper, we ask the following question: is it possible to combine the strengths of these two architectures while avoiding their respective limitations? To this end, we introduce gated positional self-attention (GPSA), a form of positional self-attention which can be equipped with a ``soft" convolutional inductive bias. We initialise the GPSA layers to mimic the locality of convolutional layers, then give each attention head the freedom to escape locality by adjusting a gating parameter regulating the attention paid to position versus content information. The resulting convolutional-like ViT architecture, ConViT, outperforms the DeiT on ImageNet, while offering a much improved sample efficiency. We further investigate the role of locality in learning by first quantifying how it is encouraged in vanilla self-attention layers, then analysing how it is escaped in GPSA layers. We conclude by presenting various ablations to better understand the success of the ConViT. Our code and models are released publicly at https://github.com/facebookresearch/convit.},
+  langid = {english},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/D’Ascoli et al. - 2021 - ConViT Improving Vision Transformers with Soft Convolutional Inductive Biases 1.pdf;/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/D’Ascoli et al. - 2021 - ConViT Improving Vision Transformers with Soft Convolutional Inductive Biases.pdf}
 }
 
 @article{defriesNDVIderivedLandCover1994,
@@ -669,6 +711,23 @@
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Duro et al. - 2012 - A comparison of pixel-based and object-based image analysis with selected machine learning algorithm.pdf;/Users/dak/Zotero/storage/QTDMSRB9/display.html}
 }
 
+@article{duStackedConvolutionalDenoising2017,
+  title = {Stacked {{Convolutional Denoising Auto-Encoders}} for {{Feature Representation}}},
+  author = {Du, Bo and Xiong, Wei and Wu, Jia and Zhang, Lefei and Zhang, Liangpei and Tao, Dacheng},
+  year = {2017},
+  month = apr,
+  journal = {IEEE Transactions on Cybernetics},
+  volume = {47},
+  number = {4},
+  pages = {1017--1027},
+  issn = {2168-2275},
+  doi = {10.1109/TCYB.2016.2536638},
+  urldate = {2025-09-09},
+  abstract = {Deep networks have achieved excellent performance in learning representation from visual data. However, the supervised deep models like convolutional neural network require large quantities of labeled data, which are very expensive to obtain. To solve this problem, this paper proposes an unsupervised deep network, called the stacked convolutional denoising auto-encoders, which can map images to hierarchical representations without any label information. The network, optimized by layer-wise training, is constructed by stacking layers of denoising auto-encoders in a convolutional way. In each layer, high dimensional feature maps are generated by convolving features of the lower layer with kernels learned by a denoising auto-encoder. The auto-encoder is trained on patches extracted from feature maps in the lower layer to learn robust feature detectors. To better train the large network, a layer-wise whitening technique is introduced into the model. Before each convolutional layer, a whitening layer is embedded to sphere the input data. By layers of mapping, raw images are transformed into high-level feature representations which would boost the performance of the subsequent support vector machine classifier. The proposed algorithm is evaluated by extensive experimentations and demonstrates superior classification performance to state-of-the-art unsupervised networks.},
+  keywords = {Convolution,Convolutional codes,Data models,deep learning,denoising auto-encoders,Noise reduction,Robustness,Training,unsupervised learning,Visualization},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Du et al. - 2017 - Stacked Convolutional Denoising Auto-Encoders for Feature Representation.pdf}
+}
+
 @misc{earthresourcesobservationandscienceeroscenterNationalAgricultureImagery2017,
   title = {National {{Agriculture Imagery Program}} ({{NAIP}})},
   author = {{Earth Resources Observation and Science (EROS) Center}},
@@ -678,6 +737,23 @@
   urldate = {2023-06-25},
   abstract = {The National Agriculture Imagery Program (NAIP) is administered by the U.S. Department of Agriculture's Farm Service Agency (FSA) through the Aerial Photography Field Office (APFO) in Salt Lake City, Utah. NAIP acquires aerial imagery at a resolution of 1-meter ground sample distance (GSD) for the United States during the agricultural growing season, or leaf on conditions. The images are orthorectified which combines the image characteristics of an aerial photograph with the georeferenced qualities of a map. NAIP projects are contracted each year based upon available funding and the FSA acquisition cycle. The program began with a 5-year cycle in 2003 then switched over to a 3-year cycle in 2009, with 2008 being a transition year. Each individual image tile is based on a 3.75-minute longitude by 3.75-minute latitude quarter quadrangle plus a 300-meter buffer on all four sides. Tiles in the NAIP collection are natural color (red, green, and blue bands) or color near infra-red (red, green, blue, and near infrared bands) and may contain as much as 10 percent cloud cover per tile. The U.S. Geological Survey (USGS) Earth Resources Observation and Science (EROS) Center distributes NAIP products in GeoTIFF and JPEG2000 format. The JPEG2000 format is a compressed file with embedded georeferencing information. The 10:1 lossy compression makes the file size smaller by reorganizing the data, but it also slightly degrades the imagery. NAIP quarter quads are projected to the Universal Transverse Mercator (UTM) coordinate system and referenced to NAD83. Compressed data in the JPEG 2000 format acquired after 2013 are referenced to WGS84 and utilize the WGS 1984 Web Mercator Auxiliary Sphere projection. APFO has stringent imagery compliance guidelines, and all deliverables are inspected using automated and visual methods to ensure accuracy and compliance with specifications. NAIP transitioned to an absolute accuracy specification beginning in 2006, which tied the imagery to ground control points rather than existing orthorectified imagery. Contracts mandate that all well-defined points tested shall fall within 6 meters of true ground at a 95\% confidence level. Beginning in 2009, all states flown adhered to this specification.},
   keywords = {National Agriculture Imagery Program}
+}
+
+@article{elshamliDomainAdaptationUsing2017,
+  title = {Domain {{Adaptation Using Representation Learning}} for the {{Classification}} of {{Remote Sensing Images}}},
+  author = {Elshamli, Ahmed and Taylor, Graham W. and Berg, Aaron and Areibi, Shawki},
+  year = {2017},
+  month = sep,
+  journal = {IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing},
+  volume = {10},
+  number = {9},
+  pages = {4198--4209},
+  issn = {2151-1535},
+  doi = {10.1109/JSTARS.2017.2711360},
+  urldate = {2025-09-09},
+  abstract = {Traditional machine learning (ML) techniques are often employed to perform complex pattern recognition tasks for remote sensing images, such as land-use classification. In order to obtain acceptable classification results, these techniques require there to be sufficient training data available for every particular image. Obtaining training samples is challenging, particularly for near real-time applications. Therefore, past knowledge must be utilized to overcome the lack of training data in the current regime. This challenge is known as domain adaptation (DA), and one of the common approaches to this problem is based on finding invariant representations for both the training and test data, which are often assumed to come from different ``domains.'' In this study, we consider two deep learning techniques for learning domain-invariant representations: Denoising autoencoders (DAE) and domain-adversarial neural networks (DANN). While the DAE is a typical two-stage DA technique (unsupervised invariant representation learning followed by supervised classification), DANN is an end-to-end approach where invariant representation learning and classification are considered jointly during training. The proposed techniques are applied to both hyperspectral and multispectral images under different DA scenarios. Results obtained show that the proposed techniques outperform traditional approaches, such as principal component analysis (PCA) and kernel PCA, and can also compete with a fully supervised model in the multispatial scenario.},
+  keywords = {Adversarial neural network,Agriculture,autoencoders (AEs),deep learning,domain adaptation (DA),Earth,land-use classification,Machine learning,Neural networks,Principal component analysis,Remote sensing,representation learning,Training},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Elshamli et al. - 2017 - Domain Adaptation Using Representation Learning for the Classification of Remote Sensing Images.pdf}
 }
 
 @article{englishLandCoverChange2011,
@@ -908,6 +984,25 @@
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/He et al. - 2015 - Deep Residual Learning for Image Recognition 1.pdf;/Users/dak/Zotero/storage/8M24XS69/1512.html}
 }
 
+@inproceedings{heMaskedAutoencodersAre2022,
+  title = {Masked {{Autoencoders Are Scalable Vision Learners}}},
+  booktitle = {2022 {{IEEE}}/{{CVF Conference}} on {{Computer Vision}} and {{Pattern Recognition}} ({{CVPR}})},
+  author = {He, Kaiming and Chen, Xinlei and Xie, Saining and Li, Yanghao and Dollar, Piotr and Girshick, Ross},
+  year = {2022},
+  month = jun,
+  pages = {15979--15988},
+  publisher = {IEEE},
+  address = {New Orleans, LA, USA},
+  doi = {10.1109/CVPR52688.2022.01553},
+  urldate = {2025-08-15},
+  abstract = {This paper shows that masked autoencoders (MAE) are scalable self-supervised learners for computer vision. Our MAE approach is simple: we mask random patches of the input image and reconstruct the missing pixels. It is based on two core designs. First, we develop an asymmetric encoder-decoder architecture, with an encoder that operates only on the visible subset of patches (without mask tokens), along with a lightweight decoder that reconstructs the original image from the latent representation and mask tokens. Second, we find that masking a high proportion of the input image, e.g., 75\%, yields a nontrivial and meaningful self-supervisory task. Coupling these two designs enables us to train large models efficiently and effectively: we accelerate training (by 3{\texttimes} or more) and improve accuracy. Our scalable approach allows for learning high-capacity models that generalize well: e.g., a vanilla ViT-Huge model achieves the best accuracy (87.8\%) among methods that use only ImageNet-1K data. Transfer performance in downstream tasks outperforms supervised pretraining and shows promising scaling behavior.},
+  copyright = {https://doi.org/10.15223/policy-029},
+  isbn = {978-1-6654-6946-3},
+  langid = {english},
+  annotation = {4477 citations (Crossref) [2025-08-15]},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/He et al. - 2022 - Masked Autoencoders Are Scalable Vision Learners.pdf}
+}
+
 @article{heydariMetaanalysisDeepNeural2019a,
   title = {Meta-Analysis of Deep Neural Networks in Remote Sensing: {{A}} Comparative Study of Mono-Temporal Classification to Support Vector Machines},
   shorttitle = {Meta-Analysis of Deep Neural Networks in Remote Sensing},
@@ -1026,6 +1121,43 @@
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Inglada et al. - 2017 - Operational High Resolution Land Cover Map Production at the Country Scale Using Satellite Image Tim 1.pdf;/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Inglada et al. - 2017 - Operational High Resolution Land Cover Map Production at the Country Scale Using Satellite Image Tim.pdf}
 }
 
+@article{jaiswalSurveyContrastiveSelfSupervised2021,
+  title = {A {{Survey}} on {{Contrastive Self-Supervised Learning}}},
+  author = {Jaiswal, Ashish and Babu, Ashwin Ramesh and Zadeh, Mohammad Zaki and Banerjee, Debapriya and Makedon, Fillia},
+  year = {2021},
+  month = mar,
+  journal = {Technologies},
+  volume = {9},
+  number = {1},
+  pages = {2},
+  publisher = {Multidisciplinary Digital Publishing Institute},
+  issn = {2227-7080},
+  doi = {10.3390/technologies9010002},
+  urldate = {2024-10-07},
+  abstract = {Self-supervised learning has gained popularity because of its ability to avoid the cost of annotating large-scale datasets. It is capable of adopting self-defined pseudolabels as supervision and use the learned representations for several downstream tasks. Specifically, contrastive learning has recently become a dominant component in self-supervised learning for computer vision, natural language processing (NLP), and other domains. It aims at embedding augmented versions of the same sample close to each other while trying to push away embeddings from different samples. This paper provides an extensive review of self-supervised methods that follow the contrastive approach. The work explains commonly used pretext tasks in a contrastive learning setup, followed by different architectures that have been proposed so far. Next, we present a performance comparison of different methods for multiple downstream tasks such as image classification, object detection, and action recognition. Finally, we conclude with the limitations of the current methods and the need for further techniques and future directions to make meaningful progress.},
+  copyright = {http://creativecommons.org/licenses/by/3.0/},
+  langid = {english},
+  keywords = {contrastive learning,discriminative learning,image/video classification,object detection,self-supervised learning,transfer learning,unsupervised learning},
+  annotation = {768 citations (Crossref) [2024-10-07]},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Jaiswal et al. - 2021 - A Survey on Contrastive Self-Supervised Learning.pdf}
+}
+
+@misc{jakubikFoundationModelsGeneralist2023,
+  title = {Foundation {{Models}} for {{Generalist Geospatial Artificial Intelligence}}},
+  author = {Jakubik, Johannes and Roy, Sujit and Phillips, C. E. and Fraccaro, Paolo and Godwin, Denys and Zadrozny, Bianca and Szwarcman, Daniela and Gomes, Carlos and Nyirjesy, Gabby and Edwards, Blair and Kimura, Daiki and Simumba, Naomi and Chu, Linsong and Mukkavilli, S. Karthik and Lambhate, Devyani and Das, Kamal and Bangalore, Ranjini and Oliveira, Dario and Muszynski, Michal and Ankur, Kumar and Ramasubramanian, Muthukumaran and Gurung, Iksha and Khallaghi, Sam and Hanxi and Li and Cecil, Michael and Ahmadi, Maryam and Kordi, Fatemeh and Alemohammad, Hamed and Maskey, Manil and Ganti, Raghu and Weldemariam, Kommy and Ramachandran, Rahul},
+  year = {2023},
+  month = nov,
+  number = {arXiv:2310.18660},
+  eprint = {2310.18660},
+  publisher = {arXiv},
+  doi = {10.48550/arXiv.2310.18660},
+  urldate = {2024-10-10},
+  abstract = {Significant progress in the development of highly adaptable and reusable Artificial Intelligence (AI) models is expected to have a significant impact on Earth science and remote sensing. Foundation models are pre-trained on large unlabeled datasets through self-supervision, and then fine-tuned for various downstream tasks with small labeled datasets. This paper introduces a first-of-a-kind framework for the efficient pre-training and fine-tuning of foundational models on extensive geospatial data. We have utilized this framework to create Prithvi, a transformer-based geospatial foundational model pre-trained on more than 1TB of multispectral satellite imagery from the Harmonized Landsat-Sentinel 2 (HLS) dataset. Our study demonstrates the efficacy of our framework in successfully fine-tuning Prithvi to a range of Earth observation tasks that have not been tackled by previous work on foundation models involving multi-temporal cloud gap imputation, flood mapping, wildfire scar segmentation, and multi-temporal crop segmentation. Our experiments show that the pre-trained model accelerates the fine-tuning process compared to leveraging randomly initialized weights. In addition, pre-trained Prithvi compares well against the state-of-the-art, e.g., outperforming a conditional GAN model in multi-temporal cloud imputation by up to 5pp (or 5.7\%) in the structural similarity index. Finally, due to the limited availability of labeled data in the field of Earth observation, we gradually reduce the quantity of available labeled data for refining the model to evaluate data efficiency and demonstrate that data can be decreased significantly without affecting the model's accuracy. The pre-trained 100 million parameter model and corresponding fine-tuning workflows have been released publicly as open source contributions to the global Earth sciences community through Hugging Face.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Computer Vision and Pattern Recognition,Computer Science - Machine Learning},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Jakubik et al. - 2023 - Foundation Models for Generalist Geospatial Artificial Intelligence.pdf;/Users/dak/Zotero/storage/7L6Z5WGJ/2310.html}
+}
+
 @article{jantzUrbanizationLossResource2005,
   title = {Urbanization and the {{Loss}} of {{Resource Lands}} in the {{Chesapeake Bay Watershed}}},
   author = {Jantz, Patrick and Goetz, Scott and Jantz, Claire},
@@ -1043,6 +1175,25 @@
   keywords = {Baseque country,Biological diversity,Forestry management,Pine plantations,Pinus radiata},
   annotation = {102 citations (Crossref) [2025-09-04]},
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Jantz et al. - 2005 - Urbanization and the Loss of Resource Lands in the Chesapeake Bay Watershed.pdf}
+}
+
+@article{jeanTile2VecUnsupervisedRepresentation2019,
+  title = {{{Tile2Vec}}: {{Unsupervised Representation Learning}} for {{Spatially Distributed Data}}},
+  shorttitle = {{{Tile2Vec}}},
+  author = {Jean, Neal and Wang, Sherrie and Samar, Anshul and Azzari, George and Lobell, David and Ermon, Stefano},
+  year = {2019},
+  month = jul,
+  journal = {Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume = {33},
+  number = {01},
+  pages = {3967--3974},
+  issn = {2374-3468},
+  doi = {10.1609/aaai.v33i01.33013967},
+  urldate = {2025-09-09},
+  abstract = {Geospatial analysis lacks methods like the word vector representations and pre-trained networks that significantly boost performance across a wide range of natural language and computer vision tasks. To fill this gap, we introduce Tile2Vec, an unsupervised representation learning algorithm that extends the distributional hypothesis from natural language --- words appearing in similar contexts tend to have similar meanings --- to spatially distributed data. We demonstrate empirically that Tile2Vec learns semantically meaningful representations for both image and non-image datasets. Our learned representations significantly improve performance in downstream classification tasks and, similarly to word vectors, allow visual analogies to be obtained via simple arithmetic in the latent space.},
+  copyright = {Copyright (c) 2019 Association for the Advancement of Artificial Intelligence},
+  langid = {english},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Jean et al. - 2019 - Tile2Vec Unsupervised Representation Learning for Spatially Distributed Data.pdf}
 }
 
 @article{jensenSpectralTexturalFeatures1979,
@@ -1257,6 +1408,27 @@
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Lagrange et al. - 2015 - Benchmarking classification of earth-observation data From learning explicit features to convolutio.pdf;/Users/dak/Zotero/storage/7N2WFJZV/7326745.html}
 }
 
+@article{liangRemoteSensingImage2018,
+  title = {Remote {{Sensing Image Classification Based}} on {{Stacked Denoising Autoencoder}}},
+  author = {Liang, Peng and Shi, Wenzhong and Zhang, Xiaokang},
+  year = {2018},
+  month = jan,
+  journal = {Remote Sensing},
+  volume = {10},
+  number = {1},
+  pages = {16},
+  publisher = {Multidisciplinary Digital Publishing Institute},
+  issn = {2072-4292},
+  doi = {10.3390/rs10010016},
+  urldate = {2025-01-20},
+  abstract = {Focused on the issue that conventional remote sensing image classification methods have run into the bottlenecks in accuracy, a new remote sensing image classification method inspired by deep learning is proposed, which is based on Stacked Denoising Autoencoder. First, the deep network model is built through the stacked layers of Denoising Autoencoder. Then, with noised input, the unsupervised Greedy layer-wise training algorithm is used to train each layer in turn for more robust expressing, characteristics are obtained in supervised learning by Back Propagation (BP) neural network, and the whole network is optimized by error back propagation. Finally, Gaofen-1 satellite (GF-1) remote sensing data are used for evaluation, and the total accuracy and kappa accuracy reach 95.7\% and 0.955, respectively, which are higher than that of the Support Vector Machine and Back Propagation neural network. The experiment results show that the proposed method can effectively improve the accuracy of remote sensing image classification.},
+  copyright = {http://creativecommons.org/licenses/by/3.0/},
+  langid = {english},
+  keywords = {Back Propagation neural network,deep learning,land cover classification,stacked denoising autoencoder},
+  annotation = {59 citations (Crossref) [2025-01-20]},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Liang et al. - 2018 - Remote Sensing Image Classification Based on Stacked Denoising Autoencoder.pdf}
+}
+
 @article{liDeepLearningUrban2024,
   title = {Deep Learning for Urban Land Use Category Classification: {{A}} Review and Experimental Assessment},
   shorttitle = {Deep Learning for Urban Land Use Category Classification},
@@ -1373,6 +1545,25 @@
   keywords = {convolutional neural network,crop type mapping,patch strategy,polarimetric decomposition,recurrent neural network,synthetic aperture radar,time series},
   annotation = {5 citations (Crossref) [2025-08-26]},
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Liu et al. - 2023 - Crop Type Mapping Based on Polarization Information of Time Series Sentinel-1 Images Using Patch-Bas.pdf}
+}
+
+@article{liuSelfSupervisedLearningGenerative2023,
+  title = {Self-{{Supervised Learning}}: {{Generative}} or {{Contrastive}}},
+  shorttitle = {Self-{{Supervised Learning}}},
+  author = {Liu, Xiao and Zhang, Fanjin and Hou, Zhenyu and Mian, Li and Wang, Zhaoyu and Zhang, Jing and Tang, Jie},
+  year = {2023},
+  month = jan,
+  journal = {IEEE Transactions on Knowledge and Data Engineering},
+  volume = {35},
+  number = {1},
+  pages = {857--876},
+  issn = {1558-2191},
+  doi = {10.1109/TKDE.2021.3090866},
+  urldate = {2024-10-07},
+  abstract = {Deep supervised learning has achieved great success in the last decade. However, its defects of heavy dependence on manual labels and vulnerability to attacks have driven people to find other paradigms. As an alternative, self-supervised learning (SSL) attracts many researchers for its soaring performance on representation learning in the last several years. Self-supervised representation learning leverages input data itself as supervision and benefits almost all types of downstream tasks. In this survey, we take a look into new self-supervised learning methods for representation in computer vision, natural language processing, and graph learning. We comprehensively review the existing empirical methods and summarize them into three main categories according to their objectives: generative, contrastive, and generative-contrastive (adversarial). We further collect related theoretical analysis on self-supervised learning to provide deeper thoughts on why self-supervised learning works. Finally, we briefly discuss open problems and future directions for self-supervised learning. An outline slide for the survey is provided{\textasciicircum}11.},
+  keywords = {Computational modeling,Computer architecture,Context modeling,contrastive learning,Data models,deep learning,generative model,Predictive models,Self-supervised learning,Supervised learning,Task analysis},
+  annotation = {560 citations (Crossref) [2024-10-07]},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Liu et al. - 2023 - Self-Supervised Learning Generative or Contrastive.pdf;/Users/dak/Zotero/storage/LMHQZU47/9462394.html}
 }
 
 @inproceedings{longFullyConvolutionalNetworks2015,
@@ -2222,6 +2413,41 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Strahler et al. - 1986 - On the nature of models in remote sensing.pdf;/Users/dak/Zotero/storage/CU7G37ZD/display.html}
 }
 
+@article{sunRingMoRemoteSensing2023,
+  title = {{{RingMo}}: {{A Remote Sensing Foundation Model With Masked Image Modeling}}},
+  shorttitle = {{{RingMo}}},
+  author = {Sun, Xian and Wang, Peijin and Lu, Wanxuan and Zhu, Zicong and Lu, Xiaonan and He, Qibin and Li, Junxi and Rong, Xuee and Yang, Zhujun and Chang, Hao and He, Qinglin and Yang, Guang and Wang, Ruiping and Lu, Jiwen and Fu, Kun},
+  year = {2023},
+  journal = {IEEE Transactions on Geoscience and Remote Sensing},
+  volume = {61},
+  pages = {1--22},
+  issn = {1558-0644},
+  doi = {10.1109/TGRS.2022.3194732},
+  urldate = {2024-10-10},
+  abstract = {Deep learning approaches have contributed to the rapid development of remote sensing (RS) image interpretation. The most widely used training paradigm is to use ImageNet pretrained models to process RS data for specified tasks. However, there are issues such as domain gap between natural and RS scenes and the poor generalization capacity of RS models. It makes sense to develop a foundation model with general RS feature representation. Since a large amount of unlabeled data is available, the self-supervised method has more development significance than the fully supervised method in RS. However, most of the current self-supervised methods use contrastive learning, whose performance is sensitive to data augmentation, additional information, and selection of positive and negative pairs. In this article, we leverage the benefits of generative self-supervised learning (SSL) for RS images and propose an RS foundation model framework called RingMo, which consists of two parts. First, a large-scale dataset is constructed by collecting two million RS images from satellite and aerial platforms, covering multiple scenes and objects around the world. Second, we propose an RS foundation model training method designed for dense and small objects in complicated RS scenes. We show that the foundation model trained on our dataset with RingMo method achieves state-of-the-art (SOTA) on eight datasets across four downstream tasks, demonstrating the effectiveness of the proposed framework. Through in-depth exploration, we believe it is time for RS researchers to embrace generative SSL and leverage its general representation capabilities to speed up the development of RS applications.},
+  keywords = {Adaptation models,Data models,Foundation model,masked image modeling (MIM),pretraining,Remote sensing,remote sensing (RS),Satellites,self-supervised,Self-supervised learning,Task analysis,Training,Vision Transformer (ViT)},
+  annotation = {69 citations (Crossref) [2024-10-10]},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Sun et al. - 2023 - RingMo A Remote Sensing Foundation Model With Masked Image Modeling.pdf;/Users/dak/Zotero/storage/A2RHR4S4/9844015.html}
+}
+
+@misc{szwarcmanPrithviEO20VersatileMultiTemporal2025,
+  title = {Prithvi-{{EO-2}}.0: {{A Versatile Multi-Temporal Foundation Model}} for {{Earth Observation Applications}}},
+  shorttitle = {Prithvi-{{EO-2}}.0},
+  author = {Szwarcman, Daniela and Roy, Sujit and Fraccaro, Paolo and G{\'i}slason, {\TH}orsteinn El{\'i} and Blumenstiel, Benedikt and Ghosal, Rinki and de Oliveira, Pedro Henrique and Almeida, Joao Lucas de Sousa and Sedona, Rocco and Kang, Yanghui and Chakraborty, Srija and Wang, Sizhe and Gomes, Carlos and Kumar, Ankur and Truong, Myscon and Godwin, Denys and Lee, Hyunho and Hsu, Chia-Yu and Asanjan, Ata Akbari and Mujeci, Besart and Shidham, Disha and Keenan, Trevor and Arevalo, Paulo and Li, Wenwen and Alemohammad, Hamed and Olofsson, Pontus and Hain, Christopher and Kennedy, Robert and Zadrozny, Bianca and Bell, David and Cavallaro, Gabriele and Watson, Campbell and Maskey, Manil and Ramachandran, Rahul and Moreno, Juan Bernabe},
+  year = {2025},
+  month = feb,
+  number = {arXiv:2412.02732},
+  eprint = {2412.02732},
+  primaryclass = {cs},
+  publisher = {arXiv},
+  doi = {10.48550/arXiv.2412.02732},
+  urldate = {2025-07-28},
+  abstract = {This technical report presents Prithvi-EO-2.0, a new geospatial foundation model that offers significant improvements over its predecessor, Prithvi-EO-1.0. Trained on 4.2M global time series samples from NASA's Harmonized Landsat and Sentinel-2 data archive at 30m resolution, the new 300M and 600M parameter models incorporate temporal and location embeddings for enhanced performance across various geospatial tasks. Through extensive benchmarking with GEO-Bench, the 600M version outperforms the previous Prithvi-EO model by 8{\textbackslash}\% across a range of tasks. It also outperforms six other geospatial foundation models when benchmarked on remote sensing tasks from different domains and resolutions (i.e. from 0.1m to 15m). The results demonstrate the versatility of the model in both classical earth observation and high-resolution applications. Early involvement of end-users and subject matter experts (SMEs) are among the key factors that contributed to the project's success. In particular, SME involvement allowed for constant feedback on model and dataset design, as well as successful customization for diverse SME-led applications in disaster response, land use and crop mapping, and ecosystem dynamics monitoring. Prithvi-EO-2.0 is available on Hugging Face and IBM terratorch, with additional resources on GitHub. The project exemplifies the Trusted Open Science approach embraced by all involved organizations.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Computer Vision and Pattern Recognition},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Szwarcman et al. - 2025 - Prithvi-EO-2.0 A Versatile Multi-Temporal Foundation Model for Earth Observation Applications.pdf;/Users/dak/Zotero/storage/QACPCW5E/2412.html}
+}
+
 @article{tehranyComparativeAssessmentObject2014,
   title = {A Comparative Assessment between Object and Pixel-Based Classification Approaches for Land Use/Land Cover Mapping Using {{SPOT}} 5 Imagery},
   author = {Tehrany, Mahyat Shafapour and Pradhan, Biswajeet and Jebuv, Mustafa Neamah},
@@ -2598,6 +2824,36 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   archiveprefix = {arXiv},
   keywords = {Computer Science - Computer Vision and Pattern Recognition},
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Xiao et al. - 2018 - Unified Perceptual Parsing for Scene Understanding.pdf;/Users/dak/Zotero/storage/RIN24257/1807.html}
+}
+
+@inproceedings{xieSimMIMSimpleFramework2022,
+  title = {{{SimMIM}}: {{A Simple Framework}} for {{Masked Image Modeling}}},
+  shorttitle = {{{SimMIM}}},
+  booktitle = {Proceedings of the {{IEEE}}/{{CVF Conference}} on {{Computer Vision}} and {{Pattern Recognition}}},
+  author = {Xie, Zhenda and Zhang, Zheng and Cao, Yue and Lin, Yutong and Bao, Jianmin and Yao, Zhuliang and Dai, Qi and Hu, Han},
+  year = {2022},
+  pages = {9653--9663},
+  urldate = {2025-09-09},
+  langid = {english},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Xie et al. - 2022 - SimMIM A Simple Framework for Masked Image Modeling 1.pdf}
+}
+
+@article{xieTransferLearningDeep2016,
+  title = {Transfer {{Learning}} from {{Deep Features}} for {{Remote Sensing}} and {{Poverty Mapping}}},
+  author = {Xie, Michael and Jean, Neal and Burke, Marshall and Lobell, David and Ermon, Stefano},
+  year = {2016},
+  month = mar,
+  journal = {Proceedings of the AAAI Conference on Artificial Intelligence},
+  volume = {30},
+  number = {1},
+  issn = {2374-3468},
+  doi = {10.1609/aaai.v30i1.9906},
+  urldate = {2025-09-09},
+  abstract = {The lack of reliable data in developing countries is a major obstacle to sustainable development, food security, and disaster relief. Poverty data, for example, is typically scarce, sparse in coverage, and labor-intensive to obtain. Remote sensing data such as high-resolution satellite imagery, on the other hand, is becoming increasingly available and inexpensive. Unfortunately, such data is highly unstructured and currently no techniques exist to automatically extract useful insights to inform policy decisions and help direct humanitarian efforts. We propose a novel machine learning approach to extract large-scale socioeconomic indicators from high-resolution satellite imagery. The main challenge is that training data is very scarce, making it difficult to apply modern techniques such as Convolutional Neural Networks (CNN). We therefore propose a transfer learning approach where nighttime light intensities are used as a data-rich proxy. We train a fully convolutional CNN model to predict nighttime lights from daytime imagery, simultaneously learning features that are useful for poverty prediction. The model learns filters identifying different terrains and man-made structures, including roads, buildings, and farmlands, without any supervision beyond nighttime lights. We demonstrate that these learned features are highly informative for poverty mapping, even approaching the predictive performance of survey data collected in the field.},
+  copyright = {Copyright (c)},
+  langid = {english},
+  keywords = {Computer Vision,Deep Learning,Poverty Mapping,Remote Sensing,Satellite Imagery,Transfer Learning},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Xie et al. - 2016 - Transfer Learning from Deep Features for Remote Sensing and Poverty Mapping.pdf}
 }
 
 @article{xuUrbanLandCover2010,
