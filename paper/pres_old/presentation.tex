@@ -1,0 +1,487 @@
+\documentclass[aspectratio=169, hideallsubsectionså]{beamer}
+\usepackage[backend=bibtex, sorting=none, style=numeric-comp]{biblatex}
+\addbibresource{bibliography_pres}
+
+\usetheme{Starkville}
+% \usecolortheme{beaver}
+\setbeamertemplate{caption}[numbered]
+\setbeamertemplate{bibliography item}{\insertbiblabel}
+\setlength\abovecaptionskip{-3pt}
+
+
+\title{Label-efficient Land Cover Classification at High Spatial Resolution using Multi-stage Pre-training}
+\author{\textbf{Dakota Hester}, Vitor Souza Martins, Lucas Borges Ferreira}
+\institute{Mississippi State University\\Department of Agricultural and Biological Engineering}
+\date{February 15, 2025}
+% \logo
+\logo{\includegraphics[height=5\baselineskip]{images/affiliation_logos/ABE_Logo_Vertical_White.png}}
+% \logo{\includegraphics[]{images/affiliation_logos/ABE_Logo_Vertical_White.png}}
+
+\begin{document}
+
+% \begin{frame}{ABE Seminar II}
+\begin{frame}{Mississippi State Univeristy\\Graduate Student Research Symposium 2025}
+    \titlepage
+\end{frame}
+
+\begin{frame}{Overview}
+    % \tableofcontents
+    \tableofcontents[hideallsubsections]
+\end{frame}
+
+\AtBeginSection[]
+  {
+     \begin{frame}<beamer>
+        \frametitle{Overview}
+        % highlight subsections in current section
+        % \tableofcontents[currentsection, subsectionstyle=show/show/hide]
+        % \tableofcontents[currentsection, ]
+        \tableofcontents[currentsection, hideallsubsections]
+     \end{frame}
+  }
+
+% \section{Introduction}
+
+% \begin{frame}{About me}
+%     \begin{columns}
+%         \begin{column}{0.5\textwidth}
+%             \begin{figure}
+%                 \begin{center}
+%                     \includegraphics[width=0.8\textwidth]{images/tish_state_park.jpg}
+%                     \caption{Tishomingo State Park}\label{fig:tish}
+%                 \end{center}
+%             \end{figure}
+%         \end{column}
+%         \begin{column}{0.5\textwidth}
+%             \begin{itemize}
+%                 \item<1-> From Tishomingo, MS
+%                 \item<2-> Lived in Starkville since 2018
+%                 \item<3-> Hobbies \& interests: cycling, aviation, coding
+%             \end{itemize}
+%         \end{column}
+%     \end{columns}
+% \end{frame}
+
+% \begin{frame}{Academic background}
+%     \small
+%     \begin{itemize}
+%         \item<1-> Graduated from MSU in 2021 with a B.S. in Computer Science (minor in mathematics)
+%         \item<2-> Started grad school in MSU Department of Sustainable Bioproducts in 2022
+%         \begin{itemize}
+%             \item<3-> Research focus --- deep learning for wood species identification 
+%             % \item<5-> Interest --- representation learning of tangential scans of wood imagery
+%         \end{itemize}
+%         \item<4-> Started PhD in Engineering with concentration in Biosystems Engineering in 2023
+%         \begin{itemize}
+%             \item<5-> Research focus --- deep learning for land cover classification at high spatial resolution
+%             % \item<8-> Interest --- reducing amount of data necessary for training accurate classifiers
+%         \end{itemize}
+%         \item<6-> January --- June 2024: Machine Learning Scientist Co-op with Bayer Crop Science R\&D
+%         \begin{itemize}
+%             \item<7-> Analytic Pipeline Development --- data science and AI for supporting decision-making in an advanced plant breeding pipeline 
+%             \item<8-> Specific investigations --- improving spatial and temporal availability of key soil quality indicators using high spatial resolution satellite imagery and machine learning
+%         \end{itemize}
+%     \end{itemize}
+% \end{frame}
+
+\section{Background}
+
+% \subsection{A gentle overview of LULC classification}
+
+% \begin{frame}{Land Use and Land Cover (LULC)}
+\begin{frame}{Land Cover}
+    \begin{columns}
+        \begin{column}{0.5\textwidth}
+            \small
+            \begin{itemize}
+                \item<1-> \alert{Land cover}: biophysical material covering the Earth's surface (e.g., water, vegetation, soil, structures, etc.) \cite{townshendLandCover1992}\ \alert{``What is there?''}
+                \item<2-> Land cover data is used in a wide range of disciplines, including agriculture, forestry, urban planning, and environmental science \cite{lovelandDevelopmentGlobalLand2000,grekousisOverview21Global2015, wulderLandCover2018}
+                % \item<2-> Access to imagery is good, \alert{knowledge of what is in the imagery is better}.
+                % \item<2-> \alert{Land use}: human interaction with the land cover (e.g., agriculture, forest practices, urban development, etc.) \cite{andersonLanduseClassificationSchemes1971,andersonLandUseLand1976}\ \alert{``How is it being used?''}
+                % \item<3-> LULC data are used in a wide range of disciplines, including agriculture, forestry, urban planning, and environmental science \cite{lovelandDevelopmentGlobalLand2000,grekousisOverview21Global2015, wulderLandCover2018}
+                
+            \end{itemize}
+        \end{column}
+        \begin{column}{0.5\textwidth}
+            \vspace{-0.4cm}
+            \begin{figure}
+                \centering
+                % \includegraphics[height=0.9\textheight]{images/ms_lc_map.pdf}
+                \includegraphics[height=0.9\textheight]{images/sampling/MS_High_Res.pdf}
+                % \vspace*{-0.5cm}
+                \caption{Land cover map of Mississippi.}
+                \label{fig:lulc_example}
+            \end{figure}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+% \end{document}
+
+\begin{frame}{Classifying LULC}
+    \begin{itemize}
+        \item<1-> Prior to the advent of GIS, LULC data was human-interpreted from aerial photography \cite{andersonLanduseClassificationSchemes1971,andersonLandUseLand1977}.
+        \item<2-> With advent of satellite remote sensing in 1980s, researchers and practitioners began using automated algorithms to classify LULC \cite{scarpace1980land}.
+        \item<3-> Most classical approaches to LULC classification paradigms were pixel-wise statistical models that used coarse resolution multispectral data \cite{gislasonRandomForestsLand2006,gislasonRandomForestsLand2006,bakerAdvancesClassificationLand1991}.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Pixel-wise Classification}
+    \begin{itemize}
+        \item<1-> Traditional land cover classifiers usually operate by transforming a feature vector into output class probabilities for a given pixel.
+        \item<2-> Common data sources include:
+        \begin{itemize}
+            \item<3-> Surface reflectance data
+            \item<4-> Derived spectral indices (i.e., NDVI, EVI, NDWI, etc.)
+            \item<5-> Ancillary information (i.e., topography, soil, etc) \cite{kavzogluEffectsAuxiliaryAncillary2023,wulderLandCover2018}
+        \end{itemize}
+        \item<6-> Non-parametric, supervised classifiers are often used (e.g., Decision Trees, Random Forests, Support Vector Machines, etc.) \cite{gislasonRandomForestsLand2006,gislasonRandomForestsLand2006,bakerAdvancesClassificationLand1991}.
+        \item<7-> Non-parametric, supervised classifiers are often used (e.g., Decision Trees, Random Forests, Support Vector Machines, etc.) \cite{gislasonRandomForestsLand2006,gislasonRandomForestsLand2006,bakerAdvancesClassificationLand1991}.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Pixel-wise Classification}
+    \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{images/pixelwise_classification.png}
+        \vspace{-1cm}
+        \caption{Pixel-wise classification workflow.}
+    \end{figure}
+\end{frame}
+
+% \subsection{Challenges of high spatial resolution data}
+
+\begin{frame}{Land Cover at High Spatial Resolution}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.49\linewidth]{images/lc_res_compare/30m_LCMap_Wimauma_FL.png}
+        \includegraphics[width=0.49\linewidth]{images/lc_res_compare/1m_LCMap_Wimauma_FL.png}
+        \caption{Comparison of land cover maps at 30 m (left) and 1 m (right) spatial resolution.}\label{fig:lc_res_compare}
+    \end{figure}
+\end{frame}
+
+
+\begin{frame}{Decreased Class Discriminability}
+    Classifying pixels gets \alert{more difficult} as spatial resolution \alert{increases}~\cite{markhamLandCoverClassification1981,woodcockFactorScaleRemote1987}.
+    \vspace{-9pt}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.8\textwidth]{images/inter_intra_class_variation.jpg}
+        \vspace{-3pt}
+        \caption{As spatial resolution increases, inter-class variance decreases \cite{woodcockFactorScaleRemote1987}.}\label{fig:variance}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Decreased Class Discriminability}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.8\textwidth]{images/noisy_landcover.png}
+        \caption{Applying a pixel-wise classifier to high spatial resolution data typically results in noisy classification maps.}\label{fig:noisy_lc}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Object-Based Image Analysis (OBIA)}
+    \begin{itemize}
+        \item<1-> One approach to classifying high spatial resolution data is to use \alert{segmentation} to group neighboring pixels that share similar spectral characteristics into \alert{objects}.
+        \item<2-> Instead of classifying individual pixels, the classifier operates on the objects.
+        \item<3-> Object-based image analysis (OBIA) addresses local variance concerns and produces cleaner, more accurate classification maps \cite{blaschkeObjectOrientedImageProcessing2000a,blaschkeObjectBasedImage2010}.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Object-Based Image Analysis (OBIA)}
+    \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{images/OBIA.pdf}
+        \vspace{0.1cm}
+        \caption{OBIA workflow.}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{OBIA Drawbacks}
+    \begin{itemize}
+        \item<1-> OBIA is more complex, and requires more human supervision that pixel-wise classification methods \cite{hossainSegmentationObjectBasedImage2019}.
+        \item<2-> Ideally, we would like to have a generalizable method that can produce accurate classification maps without the need for extensive human intervention.
+    \end{itemize}
+\end{frame}
+
+% \subsection{Deep learning methods}
+
+% \subsubsection{Convolutional Neural Networks}
+
+\begin{frame}{``Why do we need deep models?''}
+    \begin{itemize}
+        % \item<1-> Deep learning models are more complex, resource intensive, and difficult to train compared to traditional classifiers \cite{kaplanScalingLawsNeural2020}.
+        % \item<2-> However, deep models have several advantages:
+        \item<1-> Deep learning models have several key advantages over traditional classifiers:
+        \begin{enumerate}
+            \item<2-> \alert{Feature extraction} --- deep models can learn complex hierarchies of \alert{spatial} features that are difficult to engineer by hand \cite{joginFeatureExtractionUsing2018}.
+            \item<3-> \alert{Flexibility} --- the nature of deep learning architectures allows them to be applied to a wide range of tasks across different modalities, and can be modified to best suit a given task \cite{hongMoreDiverseMeans2021}.
+            \item<4-> \alert{End-to-end learning} --- unlike traditional methods, deep models can be trained in an end-to-end fashion, where little to no pre-processing or post-processing is required \cite{hossainSegmentationObjectBasedImage2019,kotaridisRemoteSensingImage2021,neupaneDeepLearningBasedSemantic2021,zangLandUseMappingHighSpatial2021}.
+        \end{enumerate}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Spatial Feature Extraction}
+    \begin{itemize}
+        \item<1-> Convolutional filters emphasize local spatial patterns images.
+        \item<2-> A small filter moves across input imagery, performing a dot product with the input regions it covers at each location.
+        \item<3-> The result is a \alert{feature map} that highlights the presence of certain spatial patterns at different locations in the input image.
+        \item<4-> The behavior of the filter is determined by its size, stride, and its parameters.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Convolutional Filter}
+    \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{images/conv_example.jpg}
+        \vspace{3pt}
+        \caption{A convolutional operation on an aerial image. This convolutional filter highlights vertical lines.}\label{fig:convolution}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Convolutional Neural Networks (CNNs)}
+    \begin{itemize}
+        \item<1-> Multiple convolutional filters can be applied to an input to extract feature maps that highlight different spatial patterns.
+        \item<2-> These feature maps can then be passed to more convolutional filters to extract more complex patterns.
+        \item<3-> The parameters of the convolutional filters are learned through an iterative process, where the gradient of a loss function that measures the difference between the predicted output and the true output with respect to the parameters is used to update the parameters \cite{lecunGradientbasedLearningApplied1998,loArtificialConvolutionNeural1995}.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Convolutional Neural Networks (CNNs)}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.875\textwidth]{images/resnet18.pdf}
+        \caption{A ResNet-18 CNN architecture \cite{heDeepResidualLearning2015b}. A sampling of learned convolutional filters from the first layer is shown.} \label{fig:resnet18}
+    \end{figure}
+\end{frame}
+
+\subsubsection{Semantic Segmentation}
+
+\begin{frame}{Semantic Segmentation}
+    \begin{itemize}
+        \item<1-> A naive approach to land cover classification would be to assign a single label to each tile that is passed through a CNN, where this label represents the dominant land cover class in the tile \cite{marmanisDeepLearningEarth2016,scottTrainingDeepConvolutional2017,songPatchBasedLightConvolutional2019}.
+        \item<2-> However, feature maps learned by a CNN are inherently \alert{spatially structured}, and these feature maps can be leveraged to produce dense, pixel-wise classification maps through a process called \alert{semantic segmentation}.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Encoder-Decoder Architectures}
+    \begin{itemize}
+        \item<1-> In an encoder-decoder architecture, an \alert{encoder} CNN extracts features from the input such that a \alert{decoder} network can upsample the features to the original input resolution \cite{longFullyConvolutionalNetworks2015}.
+        \item<2-> The decoder network learns to generate a pixel-wise classification map from the features extracted by the encoder.
+        \item<3-> The most popular encoder-decoder network architecture is U-Net\cite{ronnebergerUNetConvolutionalNetworks2015d}.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{U-Net}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.7\textwidth]{images/unet2.pdf}
+        \caption{U-Net architecture \cite{ronnebergerUNetConvolutionalNetworks2015d}.}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Data Requirements}
+    \begin{itemize}
+        \item<1-> While deep learning networks are powerful, their primary drawback is the amount of data required to train them.
+        \item<2-> For example, ResNet-50, a popular CNN architecture, has over 25,000,000 parameters that need to be learned \cite{heDeepResidualLearning2015b}.
+        \item<3-> For land cover, this is especially problematic, as high resolution data is complex and difficult to annotate at scale \cite{maTransferLearningEnvironmental2024}.
+        \item<4-> One approach to mitigate this issue is to use \alert{transfer learning}, where a network can be \alert{pre-trained} on a related task with a large amount of data, then \alert{fine-tuned} on the target task with a smaller amount of data \cite{yosinskiHowTransferableAre2014}.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Transfer Learning}
+    \begin{figure}
+        \centering
+        \includegraphics[height=0.9\textheight]{images/transfer_learning.png}
+        \caption{Transfer learning paradigm.} \label{fig:transfer_learning}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Denoising Autoencoder}
+    \begin{itemize}
+        \item<1-> While labeled data is optimal for pre-training, some pre-training tasks can be performed in a \alert{self-supervised} manner, where the network learns to predict some property of the input data without requiring labels \cite{liangRemoteSensingImage2018}.
+        % 
+        \item<2-> Denoising autoencoders are a type of CNN that are trained to remove noise from an input image \cite{gondaraMedicalImageDenoising2016}.
+        \item<3-> In effect, noise is added to an input image, then train the network to predict the original image from the noisy image.
+        \item<4-> The network needs to learn \alert{features} that are \alert{robust} to noise while being meaningful for reconstruction \cite{vincentExtractingComposingRobust2008}.
+    \end{itemize}
+\end{frame}
+
+
+
+\begin{frame}{Our Goal}
+    \begin{itemize}
+        \item<1-> Our overarching goal is to develop a 1m resolution land cover map that covers the entire state of Mississippi with a high degree of accuracy.
+        \item<2-> Data annotation is expensive and time-consuming, so the main focus of our work is to devise a creative pre-training strategy that combines self-supervised pre-training with a supervised fine-tuning stage to reduce the amount of labeled data required for training a deep model.
+        \item<3-> We construct a large U-Net model that undergoes various pre-training regimens, then fine-tune the model on only \alert{119} tiles of fully annotated data from the state of Mississippi.
+        \item<4-> Transfer learning is not an uncommon approach, but self-supervised pre-training is not common in the remote sensing community --- especially in the context of land cover classification. As such, we are most interested in the performance of our self-supervised model.
+    \end{itemize}
+\end{frame}
+
+\section{Methodology}
+
+% \subsection{Model Configuration}
+
+\begin{frame}{Our U-Net}
+    \begin{itemize}
+        \item<1-> Our U-Net architecture is based on the original U-Net architecture proposed by Ronneberger, et al. \cite{ronnebergerUNetConvolutionalNetworks2015d}.
+        \item<2-> In place of the original encoder network, we use a ResNet-152 architecture \cite{heDeepResidualLearning2015b}.
+        \item<3-> Overall, our complete U-Net architecture has over 100,000,000 parameters, making it a powerful model, but also difficult to train --- especially in the absence of large amounts of data.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Training Strategy}
+    \begin{itemize}
+        \item<1-> The ResNet-152 model has already been pre-trained on ImageNet, a large corpus of ``natural'' images.
+        \item<2-> We append a lightweight decoder network to the ResNet-152 encoder to form a denoising autoencoder. Training is performed using unannotated data over the state of Mississippi.
+        \item<3-> We then place the encoder in a U-Net architecture and train the network on a moderate amount of labeled data from another region where high-resolution data is available.
+        \item<4-> Finally, the U-Net is fine-tuned on our limited amount of labeled data from Mississippi.
+    \end{itemize}
+\end{frame}
+
+
+% \subsection{Data Sources}
+
+\begin{frame}{USDA National Agricultural Imagery Program}
+    \begin{itemize}
+        \item<1-> USDA NAIP imagery covers CONUS with 3-year revisit cycle at 0.6 m spatial resolution.
+        \item<2-> NAIP imagery is available in 4 spectral bands (RGB + NIR).
+        \item<3-> Our study uses 2023 NAIP imagery over Mississippi
+        \begin{itemize}
+            \item<4-> Color infrared composites (Red, Green, and NIR bands) resampled to 1m spatial resolution
+            \item<5-> Imagery is clipped into tiles of 256x256 pixels
+            \item<6-> 20\% of tiles are placed in the pre-training set, while 5\% in pre-training validation set (377,913 and 94,480 tiles, respectively)
+            \item<7-> For fine-tuning, 250 tiles total were selected to be labeled (119 in training set, 61 in validation set, and 70 in test set)
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Chesapeake Bay Land Cover Data}
+    \begin{itemize}
+        \item<1-> In order to enhance the model's ability to fit the data, we introduce a second pre-training stage using fully annotated data from the Chesapeake Bay Land Cover dataset.
+        \item<2-> 2018 NAIP tiles and corresponding land cover data extracted from Fairfax County, VA.
+        \item<3-> Why Fairfax County? 
+        \begin{itemize}
+            \item<4-> High density of hard-to-classify impervious land cover types (i.e., roads, buildings, etc.) 
+        \end{itemize}
+        \item<5-> Why not directly apply these tiles to the fine-tuning stage?
+        \begin{itemize}
+            \item<6-> The land cover legend differs from our desired classification scheme.
+            \item<7-> High resolution ancillary canopy height data was used to construct the data, which we do not have for Mississippi.
+            \item<8-> Generalization of the model to Mississippi is not guaranteed with data from Chesapeake Bay Watershed. 
+        \end{itemize}
+        \item<9-> 10,220 tiles used for training and 5,110 for validation.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Training Strategy}
+    \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{images/MSFT_stages.png}
+        \caption{Model training flowchart.} % TODO: Add caption
+        \label{fig:training_flowchart}
+    \end{figure}
+\end{frame}
+
+
+\section{Results}
+
+\begin{frame}{Pre-training Strategies}
+% \begin{itemize}
+    Pre-training with a denoising autoencoder improved the performance of the model under the 2-stage pre-training strategy.
+    \vspace{-0.2cm}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.8\textwidth]{images/charts/s2_metrics_reduced.png}
+        % \vspace*{-0.3cm}
+        \caption{Performance of models on the Mississippi land cover dataset.} % TODO: Add caption
+        \label{fig:s2_metrics}
+    \end{figure}
+    % \end{itemize}
+\end{frame}
+
+\begin{frame}{Pre-training Strategies}
+    % \begin{itemize}
+    An additional fully supervised pre-training stage substantially improves the performance of the model.
+    \vspace{-0.2cm}
+    \begin{figure}
+        \centering
+        \includegraphics[width=0.8\textheight]{images/charts/s1_vs_s2.png}
+        \vspace*{-0.3cm}
+        \caption{Performance of the best model with and without additional supervised pre-training.} % TODO: Add caption
+        \label{fig:s1_metrics}
+    \end{figure}
+    % \end{itemize}
+\end{frame}
+
+\begin{frame}{Confusion Matrix}
+    \begin{figure}
+        \centering
+        \vspace{-0.2cm}
+        \includegraphics[width=0.6\textwidth]{images/confusion_matrix.png}
+        \caption{Confusion matrix of the final model on the Mississippi land cover dataset.} % TODO: Add caption
+        \label{fig:confusion_matrix}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Mississippi Hi-Res Land Cover}
+    \begin{figure}
+        \centering
+        \includegraphics[width=\textwidth]{images/AGOL_Mississippi.png}
+        \caption{\href{https://msstate.maps.arcgis.com/apps/instant/imageryviewer/index.html?appid=e4ba9ff7b9824ba084eb5dcd6d919c24}{2023 Mississippi Land Cover Map}.} % TODO: Add caption
+        \label{fig:warren_co_lc}
+    \end{figure}
+\end{frame}
+
+\section{Conclusion}
+
+\begin{frame}{Summary}
+    \begin{itemize}
+        \item<1-> Large scale pre-training of a deep model using an unsupervised regimen can enable the training of an over-parameterized deep model on a small amount of labeled data.
+        \item<2-> Further, additional pre-training using a modest amount of labeled data can boost the performance of the model even further.
+        \item<3-> Still, classifying more visually intricate land cover classes remains a challenge, even with a large model.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Future Works}
+    \begin{itemize}
+        \item<1-> More data --- clear need to improve the accuracy of cultivated crops and barren land classes.
+        \item<2-> Post-processing using OBIA-inspired techniques to refine classification map edges.
+        \item<3-> Applying model to super-resolved satellite imagery.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Acknowledgements}
+
+    \begin{columns}
+        \begin{column}{0.33\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=0.8\textwidth]{images/affiliation_logos/MAFES_VERTICAL_WEB_maroon.png}
+            \end{figure}
+        \end{column}
+        \begin{column}{0.33\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=0.8\textwidth]{images/affiliation_logos/HPC_VERTICAL_WEB_maroon.png}
+            \end{figure}
+        \end{column}
+        \begin{column}{0.33\textwidth}
+            \begin{figure}
+                \centering
+                \includegraphics[width=0.8\textwidth]{images/affiliation_logos/ole_miss.png}
+            \end{figure}
+            \begin{center}
+                \small
+                Mississippi Center for Supercomputing Research
+            \end{center}
+        \end{column}
+    \end{columns}
+\end{frame}
+
+\section*{}
+\begin{frame}[allowframebreaks]{References}
+    \printbibliography
+\end{frame}
+
+\end{document} 
