@@ -58,7 +58,7 @@ def parse_arguments() -> argparse.Namespace:
         '--n_train_samples',
         type=int,
         default=250,
-        choices=[250, 500, 750],
+        # choices=[250, 500, 750],
         help="Number of samples to use for training. Choose from 250, 500, or 750 samples. This is used to limit the number of samples in the dataset for faster training.",
     )
     
