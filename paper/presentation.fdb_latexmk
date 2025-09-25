@@ -1,14 +1,14 @@
 # Fdb version 4
-["bibtex presentation"] 1757540131.02694 "presentation.aux" "presentation.bbl" "presentation" 1757540131.17563 0
-  "./bibliography.bib" 1757540095.58003 399623 bb15ad8d54aae11628e6df1d6705539b ""
+["bibtex presentation"] 1758207228.56879 "presentation.aux" "presentation.bbl" "presentation" 1758207470.27994 0
+  "./bibliography.bib" 1757554671.66506 399623 bb15ad8d54aae11628e6df1d6705539b ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/bibtex/bst/base/apalike.bst" 1741388039 24635 604dafcc79f521a11ea73e506e1fbd98 ""
-  "presentation.aux" 1757526001.69602 4327 8f90946d12238879ad51bd52d98b5ba5 "lualatex"
+  "presentation.aux" 1758207469.96915 8641 58a73452d691e905cfd435b9548b4468 "lualatex"
   (generated)
   "presentation.bbl"
   "presentation.blg"
   (rewritten before read)
-["lualatex"] 1757525994.6812 "/Users/dak/projects/ms-land-cover/paper/presentation.tex" "presentation.pdf" "presentation" 1757540131.1757 0
-  "/Users/dak/projects/ms-land-cover/paper/presentation.tex" 1757525808.39217 7579 f10372265ae769f0392c5c5ea9667efc ""
+["lualatex"] 1758207460.40389 "/Users/dak/projects/ms-land-cover/paper/presentation.tex" "presentation.pdf" "presentation" 1758207470.28013 0
+  "/Users/dak/projects/ms-land-cover/paper/presentation.tex" 1758207460.23344 12834 b289ba986c7b468c934f6331073fbb6a ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/map/pdftex/updmap/pdftex.map" 1741388039 5466553 2748998d7db8078826afa1f272036265 ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex7.tfm" 1741388039 1004 54797486969f23fa377b128694d548df ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/tfm/public/amsfonts/cmextra/cmex8.tfm" 1741388039 988 bdf658c3bfc2d96d3c8b02cfc1c94c20 ""
@@ -40,6 +40,7 @@
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/tfm/public/lm/ec-lmsso8.tfm" 1741388039 11312 6908420b41cb9ad797e206f7391721ea ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmmi10.pfb" 1741388039 36299 5f9df58c2139e7edcf37c8fca4bd384d ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/cm/cmss10.pfb" 1741388039 24457 5cbb7bdf209d5d1ce9892a9b80a307cc ""
+  "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/amsfonts/symbols/msam7.pfb" 1741388039 33366 60462f3d16c3d0f024f1f856e64b09cd ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/lm/lmss10.pfb" 1741388039 97408 f595704ec2a07246c2d6f7b602587452 ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/lm/lmss12.pfb" 1741388039 96107 daf52840b555e3b38f9679b629b5e2df ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/fonts/type1/public/lm/lmss17.pfb" 1741388039 97155 77b0a2ea02ee9c950117adae5f41f9c9 ""
@@ -158,8 +159,8 @@
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/beamer/beamerbasetwoscreens.sty" 1741388039 1848 a36eaf6bee3ae23c7df106497df8f842 ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/beamer/beamerbaseverbatim.sty" 1741388039 4016 c25a9e117ac7f79cd712d692979a9ed5 ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/beamer/beamercolorthemedefault.sty" 1741388039 7202 1f79be9366ab4084ba924d7ab3a08756 ""
-  "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/beamer/beamercolorthemeorchid.sty" 1741388039 825 00d1909bb78322ff02c6a717d43a1eca ""
-  "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/beamer/beamercolorthemewhale.sty" 1741388039 1003 64c64faa8cc4168b6b274c7b9adbbf8b ""
+  "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/beamer/beamercolorthemedolphin.sty" 1741388039 1040 b538a65d0db08dfefed48d27f91af20b ""
+  "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/beamer/beamercolorthemerose.sty" 1741388039 843 18c134400220a47e6b88e63a82ffe6f4 ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/beamer/beamerfontthemedefault.sty" 1741388039 4226 4a3a91ecbea18e5e04836d585ff0e257 ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/beamer/beamericonarticle.20.pdf" 1741388039 2958 4e0c4a6e994e5c4d9da11c477e927f0f ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/beamer/beamericonarticle.pdf" 1741388039 2936 6cc3ef0682cbb62be8aa1b19f0a84ed6 ""
@@ -171,7 +172,7 @@
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/beamer/beamerinnerthemerounded.sty" 1741388039 1002 063bf9e9a79365fd3185a6b9a8e96af9 ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/beamer/beamerouterthemedefault.sty" 1741388039 6863 1d55acbe91655dfe8cdddb3dad95ae7c ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/beamer/beamerouterthemeinfolines.sty" 1741388039 2362 480b1768526a0d8bf6a6978690fa9cfd ""
-  "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/beamer/beamerthemeMadrid.sty" 1741388039 547 fddb0cdcc0d6e52398f228cd29a39f8a ""
+  "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/beamer/beamerthemeBoadilla.sty" 1741388039 892 ba8cb4bada99fd87675e1758ff674258 ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/beamer/beamerthemedefault.sty" 1741388039 345 b9f1afd5eccd808064d49a802f119443 ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/booktabs/booktabs.sty" 1741388039 6078 f1cb470c9199e7110a27851508ed7a5c ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-dist/tex/latex/diagbox/diagbox.sty" 1741388039 14481 3bd2c6a722b221038c31c25ef3d51ba6 ""
@@ -282,6 +283,7 @@
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-var/luatex-cache/generic/fonts/otl/lmsans10-regular.luc" 1757524707.47509 127668 28cb8bfe9c9384b1ab6653d5ab1cc004 ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-var/luatex-cache/generic/names/luaotfload-names.luc.gz" 1756536201.64358 406363 2c077d020a1d5fc346f1bef4f0efb759 ""
   "/opt/homebrew/Cellar/texlive/20250308_1/share/texmf-var/web2c/luahbtex/lualatex.fmt" 1756535950 5583089 053561cfbafc5ac559c0855e9e2d571f ""
+  "beamercolorthemeStarkville.sty" 1758206844.57201 1534 728761031693813be003a7711d8b9bb9 ""
   "images/BYOL_2.drawio.pdf" 1756239023.66341 3413779 308b02ea52d395d617bfcecd533826f6 ""
   "images/Inference_Results.png" 1756534864.38511 2255580 02b6a48dc66c91cca05d3e7b300ede03 ""
   "images/VA_PCs_Layout.png" 1756534864.64498 2237748 5da08aee2b9872a3c6cf27e2ec749702 ""
@@ -290,11 +292,12 @@
   "images/linear_probing_results.pdf" 1757525941.29444 24470 a8735ec9b37217db8709842a86ebff51 ""
   "images/qualitative_results.png" 1756924288.04199 2467160 607fd759e9fefdf58b311f4fde13ac55 ""
   "images/semantic_stratification.drawio.png" 1756534864.71039 3092010 f597224332e0dc2f47b33691125c32aa ""
-  "presentation.aux" 1757526001.69602 4327 8f90946d12238879ad51bd52d98b5ba5 "lualatex"
-  "presentation.bbl" 1757540131.13607 1151 f2b5ed6197fe9da4ecf8664bdbe30425 "bibtex presentation"
-  "presentation.nav" 1757526001.69726 2455 96130483b5151d1d21b06ed3bc5d37be "lualatex"
-  "presentation.out" 1757526001.69682 675 32c667281122f7d00f5a0917b699f812 "lualatex"
-  "presentation.tex" 1757525808.39217 7579 f10372265ae769f0392c5c5ea9667efc ""
+  "presentation.aux" 1758207469.96915 8641 58a73452d691e905cfd435b9548b4468 "lualatex"
+  "presentation.bbl" 1758207228.71116 3471 a3dd5fca0d1febfdd69293b8cf8dd715 "bibtex presentation"
+  "presentation.nav" 1758207469.97058 3229 6b0a637e2221c8ddf6871090afd5c4e6 "lualatex"
+  "presentation.out" 1758207469.9703 887 25214ea381ee0fc35ea18f786a3d2666 "lualatex"
+  "presentation.tex" 1758207460.23344 12834 b289ba986c7b468c934f6331073fbb6a ""
+  "tables/confusion_matrix.tex" 1757470252.17731 9845 5bdda363798b58019d2f299206611cab ""
   (generated)
   "presentation.aux"
   "presentation.log"

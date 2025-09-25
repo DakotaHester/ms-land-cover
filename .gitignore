@@ -74,3 +74,4 @@ data/shapefiles*.egg-info
 data/old_splits
 data/assessment
 /paper/paper_old.zip
+*.xbb

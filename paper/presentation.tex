@@ -9,8 +9,15 @@
 \usepackage[utf8]{inputenc}
 \usepackage{natbib}
 
-\usetheme{Madrid}
-\usecolortheme{default}
+% \usetheme{Madrid}
+\usetheme{Boadilla}
+\usecolortheme{Starkville}
+
+\setbeamertemplate{caption}[numbered]
+\setbeamertemplate{navigation symbols}{}
+\setbeamertemplate{footline}[frame number]
+\setbeamercovered{transparent}
+
 
 \UseTblrLibrary{booktabs}
 \UseTblrLibrary{diagbox}
@@ -18,9 +25,11 @@
 % \newcommand{\citep}[1]{\cite{#1}}
 
 \title[Label-Efficient Land Cover Mapping]{Learning with Less: Label-Efficient Land Cover Classification at Very High Resolution}
-\author{Author Order?}
-% \institute{A Conference Presentation}
-\date{\today}
+\author{Dakota Hester}
+\institute{Mississippi State University \\ Agricultural \& Biological Engineering}
+\date{September 18, 2025}
+% \date{\today}
+
 
 \begin{document}
 
@@ -31,33 +40,33 @@
 %------------------------------------------------
 \section{Introduction}
 %------------------------------------------------
-\begin{frame}{Deep learning semantic segmentation models are capable of producing accurate land cover maps at VHSR}
+\begin{frame}{Deep Learning for Accurate VHSR Land Cover Mapping}
     \begin{itemize}
-        \item<1-> DL models incorporate spatial + spectral features to produce detailed maps in an end-to-end manner \citep{}.
-        \item<2-> VHSR (\(<\)\SI{5}{\meter}) land use/land cover products reveal fine-scale features critical for many applications \citep{}.
-        \item<3-> Modern CNN/ViT models are more than capable of crossing the ``resolution barrier'' that plauged earlier methods \citep{}.
+        \item<1-> DL models incorporate spatial + spectral features to produce detailed maps in an end-to-end manner \citep{yuanReviewDeepLearning2021}.
+        \item<2-> VHSR (\(<\)\SI{5}{\meter}) land use/land cover products reveal fine-scale features critical for many applications \citep{liImpactsSpatialResolutions2022}.
+        \item<3-> Modern CNN/ViT models are more than capable of crossing the ``resolution barrier'' that plagued earlier methods \citep{woodcockFactorScaleRemote1987, sherrahFullyConvolutionalNetworks2016}.
     \end{itemize}
 \end{frame}
 
 
-\begin{frame}{Practical barriers land cover mapping with semantic segmentation at VHSR}
+\begin{frame}{Practical Barriers to VHSR Land Cover Mapping}
     \vspace{1cm}
     % \textbf{The Problem:}
     \begin{itemize}
-        \item DL models are powerful but data-hungry \citep{zhuDeepLearningRemote2017a}.
-        \item Most research into VHSR land cover mapping use benchmark datasets with abundant labels over small areas \citep{2DSemanticLabel,2DSemanticLabeling}
-        \item Creating large, labeled datasets for new areas is a major bottleneck in terms of human capital
+        \item<1->DL models are powerful but data-hungry \citep{zhuDeepLearningRemote2017a}.
+        \item<2-> Most research into VHSR land cover mapping use benchmark datasets with abundant labels over small areas \citep{2DSemanticLabel,2DSemanticLabeling}
+        \item<3-> Creating large, labeled datasets for new areas is a major bottleneck in terms of human capital \citep{huTransferringDeepConvolutional2015}.
     \end{itemize}
 \end{frame}
 
-\begin{frame}{Two-part approach to operational VHSR land cover mapping with few labels}
+\begin{frame}{A Two-Part Approach to Label-Efficient VHSR Land Cover Mapping}
     \begin{center}
         How can we train accurate models with limited labeled data?
     \end{center}
     \vspace{0.5cm}
     \begin{itemize}
-        \item \textbf{Part 1:} Sample smarter. Use existing, coarse land cover data to guide selection of a small but informative training set based on approximate composition of candidate patches.
-        \item \textbf{Part 2:} Pre-train better. Use self-supervised learning on large amounts VHSR imagery to learn robust, domain-specific features without labels.
+        \item<2-> \textbf{Part 1:} Sample smarter. Use existing, coarse land cover data to guide selection of a small but informative training set based on approximate composition of candidate patches.
+        \item<3-> \textbf{Part 2:} Pre-train better. Use self-supervised learning on large amounts VHSR imagery to learn robust, domain-specific features without labels.
     \end{itemize}
 \end{frame}
 
@@ -67,25 +76,54 @@
 
 \begin{frame}{Part 1: Smarter Sampling with Semantic Stratification}
     \begin{itemize}
-        \item \textbf{Idea:} Don't just sample randomly. Select patches that are representative of the diverse land cover compositions in the study area.
-        \item \textbf{Method:} Use existing, coarse land cover data (like NLCD) to guide our sampling.
+        \item<2-> \textbf{Idea:} Don't just sample randomly. Select patches that are representative of the diverse land cover compositions in the study area.
+        \item<3-> \textbf{Method:} Use existing, coarse land cover data (like NLCD) to guide our sampling.
     \end{itemize}
-    \begin{figure}
-        \includegraphics[width=\textwidth]{images/semantic_stratification.drawio.png}
-        \caption{We cluster candidate patches based on their land cover mix (from NLCD) and sample from these clusters.}
-    \end{figure}
+    \visible<4->{
+        \begin{figure}
+            \includegraphics[width=\textwidth]{images/semantic_stratification.drawio.png}
+            \caption{We use NLCD \citep{unitedstatesgeologicalsurveyAnnualNationalLand2025} data to select appropriate training patches from an AOI given a grid of candidate patches.}
+        \end{figure}
+    }
 \end{frame}
 
 \begin{frame}{Semantic Stratification: The Result}
     \begin{figure}
-        \includegraphics[width=0.9\linewidth]{images/VA_PCs_Layout.png}
+        \includegraphics[width=0.95\linewidth]{images/VA_PCs_Layout.png}
         \caption{Patches within the same cluster tend share land cover characteristics.}
     \end{figure}
 \end{frame}
 
-\begin{frame}{Validation: Does it Work?}
+% \begin{frame}{Validating a semantic stratification approach}
+%     \begin{itemize}
+%         \item<1-> Use Chesapeake Bay LULC data \citep{claggettChesapeakeBayLand2025} to simulate a realistic VHSR land cover mapping task from USDA NAIP imagery~\citep{earthresourcesobservationandscienceeroscenterNationalAgricultureImagery2017}.
+%         \item<2-> Compare three sampling strategies for selecting \(N_\text{train}\) training patches:
+%         \begin{enumerate}
+%             \item<3-> Random sampling
+%             \item<4-> Spatially stratified sampling
+%             \item<5-> Semantic stratification (our proposed method)
+%         \end{enumerate}
+%         \item<6-> Use stratified k-fold cross-validation to evaluate performance across \(N_\text{train} = 250, 500, 750\) training patches with DeepLabv3+ \citep{chenEncoderDecoderAtrousSeparable2018}.
+%         \item<7-> Repeat sampling 10 times with different random seeds to account for variability, average across all runs of the k-folds to get mean mIoU, then use 2-way ANOVA + Tukey's HSD to test for significance.
+%     \end{itemize}
+% \end{frame}
+
+\begin{frame}{Validating Our Sampling Method}
+    \begin{itemize}
+        \item<1-> \textbf{Goal:} Test if semantic stratification is better than other methods.
+        \item<2-> \textbf{Data:} Chesapeake Bay VHSR imagery and labels.
+        \item<3-> \textbf{Experiment:}
+        \begin{itemize}
+            \item Compare 3 sampling methods: Random, Spatial, and Semantic (ours).
+            \item Train DeepLabv3+ models with different training set sizes (\(N=250, 500, 750\)).
+            \item Use rigorous statistical tests (ANOVA, Tukey's HSD) to confirm results.
+        \end{itemize}
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Semantic Stratification Performance}
     \begin{center}
-        Yes! Semantic stratification leads to better models.
+        Semantic stratification leads to better models.
     \end{center}
     \begin{figure}
         \includegraphics[width=\textwidth]{images/cpb_sampling_methods_boxplot.pdf}
@@ -99,18 +137,44 @@
 
 \begin{frame}{Part 2: Better Pre-training with Self-Supervision}
     \begin{itemize}
-        \item \textbf{Idea:} Leverage vast amounts of \textit{unlabeled} imagery to learn meaningful features before fine-tuning on our small labeled dataset.
-        \item \textbf{Method:} Use Bootstrap Your Own Latent (BYOL), a self-supervised learning technique \citep{grillBootstrapYourOwn2020}.
+        \item<1-> \textbf{Idea:} Leverage vast amounts of \textit{unlabeled} imagery to learn meaningful features before fine-tuning on our small labeled dataset.
+        \item<2-> \textbf{Method:} Use Bootstrap Your Own Latent (BYOL), a self-supervised learning technique \citep{grillBootstrapYourOwn2020}.
     \end{itemize}
-    \begin{figure}
-        \includegraphics[width=\textwidth]{images/BYOL_2.drawio.pdf}
-        \caption{BYOL trains a network to predict a different augmented view of the same image, learning robust, transformation-invariant features.}
-    \end{figure}
+    \visible<3->{
+        \begin{figure}
+            \includegraphics[width=\textwidth]{images/BYOL_2.drawio.pdf}
+            \caption{BYOL trains a network to predict a different augmented view of the same image, learning robust, transformation-invariant features.}
+        \end{figure}
+    }
+    % \begin{figure}
+    %     \includegraphics[width=\textwidth]{images/BYOL_2.drawio.pdf}
+    %     \caption{BYOL trains a network to predict a different augmented view of the same image, learning robust, transformation-invariant features.}
+    % \end{figure}
 \end{frame}
 
-\begin{frame}{Validation: Are the Features Better?}
+% \begin{frame}{Pre-training procedure}
+%     \begin{itemize}
+%         \item<1-> Use semantic stratification to select 1,000 tiles for annotation, then randomly sample 20\% of the remaining tiles for self-supervised pre-training.
+%         \item<2-> Pre-train a ResNet-101 backbone with BYOL, starting with both random weights and ImageNet weights \citep{russakovskyImageNetLargeScale2015}.
+%         \item<3-> Linearly probe the learned features by training a simple linear classifier on frozen features from the labeled training set to evaluate embedding quality.
+%         \item<4-> Place in semantic segmentation models and fine-tune on the labeled training set, comparing to models initialized with ImageNet weights.
+%         \item<5-> Use stratified k-fold cross-validation to evaluate performance across \(N_\text{train} = 250, 500, 750\).
+%     \end{itemize}
+% \end{frame}
+
+\begin{frame}{Pre-Training Procedure}
+    \begin{itemize}
+        \item<1-> Pre-train a ResNet-101 backbone with BYOL on a large set of unlabeled NAIP imagery.
+        \item<2-> Evaluate learned features using linear probing on a small labeled set.
+        \item<3-> Fine-tune full segmentation models (e.g., U-Net, DeepLabv3+) on labeled sets of varying sizes (\(N=250, 500, 750\)).
+        \item<4-> Compare performance against standard ImageNet pre-training.
+    \end{itemize}
+\end{frame}
+
+\begin{frame}{Assessing Pre-Trained Feature Quality}
     \begin{center}
-        Yes! The learned features are far more effective for our task.
+        % Yes! The learned features are far more effective for our task.
+        Embeddings learned via BYOL are better suited for classification under linear probing.
     \end{center}
     \begin{figure}
         \includegraphics[width=0.7\textwidth]{images/linear_probing_results.pdf}
@@ -128,39 +192,63 @@
     \end{figure}
 \end{frame}
 
+\begin{frame}{Qualitative Comparison}
+    \begin{figure}
+        \includegraphics[width=\textwidth]{images/qualitative_results.png}
+        \caption{Using ImageNet and BYOL pre-training enables a model to produce classification maps of high visual fidelity under low training data scenarios.}
+    \end{figure}
+\end{frame}
+
+\section{Mississippi Land Cover Inference}
+
+\begin{frame}{Mississippi Land Cover Product}
+    \begin{itemize}
+        \item<1-> Selected models trained using best combination of pre-training steps, architectures, and \(N_\text{train}\) from validation experiments to form ensemble for final inference \citep{marmanisSemanticSegmentationAerial2016}.
+        \begin{itemize}
+            \item<2-> ImageNet + BYOL pre-training
+            \item<3-> U-Net~\citep{ronnebergerUNetConvolutionalNetworks2015}
+            \item<4-> \(N_\text{train} = 750\)
+            \item<5-> Ensemble of 4 models trained on different folds
+        \end{itemize}
+        \item<6-> Sliding window inference with test-time augmentations \citep{moshkovTesttimeAugmentationDeep2020} to generate land cover map for entire state of Mississippi from 2023 NAIP imagery.
+        \item<7-> Use 25,000 randomly sampled, spatially independent points for validation and accuracy assessment
+    \end{itemize}
+\end{frame}
+
+
+\begin{frame}{Final Result: A 1 m Land Cover Map of Mississippi}
+    % \begin{itemize}
+    %     \item Using our two-part strategy, we trained an ensemble of models with only 1,000 labeled samples.
+    %     \item This produced the first publicly-available, 1-meter resolution land cover map for the entire state.
+    % \end{itemize}
+    \begin{figure}
+        \includegraphics[width=\textwidth]{images/Inference_Results.png}
+        \caption{Our 1 m product provides far greater spatial fidelity compared to NLCD (30 m).}
+    \end{figure}
+\end{frame}
+
+\begin{frame}{Confusion Matrix}
+    \input{tables/confusion_matrix.tex}
+    \begin{center}
+        Final mIoU = 62.77\%
+    \end{center}
+\end{frame}
+
 %------------------------------------------------
 \section{Results \& Conclusion}
 %------------------------------------------------
 
-\begin{frame}{Final Result: A 1m Land Cover Map of Mississippi}
-    \begin{itemize}
-        \item Using our two-part strategy, we trained an ensemble of models with only 1,000 labeled samples.
-        \item This produced the first publicly-available, 1-meter resolution land cover map for the entire state.
-    \end{itemize}
-    \begin{figure}
-        \includegraphics[width=\textwidth]{images/Inference_Results.png}
-        \caption{Our result (left) provides far greater detail than existing products like NLCD (right).}
-    \end{figure}
-\end{frame}
-
-\begin{frame}{Visual Assessment}
-    \begin{figure}
-        \includegraphics[width=\textwidth]{images/qualitative_results.png}
-        \caption{The model accurately captures fine-scale features like individual buildings, roads, and vegetation boundaries.}
-    \end{figure}
-\end{frame}
-
 \begin{frame}{Conclusion}
     \begin{itemize}
-        \item High-quality, large-area VHSR land cover mapping is possible with very limited labeled data.
-        \vspace{1cm}
-        \item \textbf{Key Takeaways:}
+        \item<1-> High-quality, large-area VHSR land cover mapping is possible with very limited labeled data.
+        % \vspace{1cm}
+        \item<2-> \textbf{Key Takeaways:}
         \begin{enumerate}
-            \item \textbf{Sample Smarter:} Semantic stratification using existing coarse data is a powerful way to build more informative training sets.
-            \item \textbf{Pre-train Better:} Self-supervised learning on unlabeled domain-specific imagery is highly effective at bridging the domain gap.
+            \item<3-> \textbf{Sample Smarter:} Semantic stratification using existing coarse data to guide sample selection can be used to build more informative training datasets.
+            \item<4-> \textbf{Pre-train Better:} Self-supervised learning on unlabeled domain-specific imagery is highly effective at bridging the domain gap between ImageNet and remote sensing imagery.
         \end{enumerate}
-        \vspace{1cm}
-        \item This work provides a blueprint for label-efficient deep learning in remote sensing.
+        % \vspace{1cm}
+        \item<5-> This work provides a blueprint for label-efficient deep learning in remote sensing.
     \end{itemize}
 \end{frame}
 
