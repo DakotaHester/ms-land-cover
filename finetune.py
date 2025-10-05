@@ -378,8 +378,9 @@ def main() -> None:
     
     # num_classes = 8
     
-    if args.model == 'deeplabv3plus':
+    if args.model in ('deeplabv3plus', 'pan', 'pspnet', 'danet'):
         
+        # output_stride = 16
         backbone = ResNetBackbone(
             in_channels=args.n_bands,
             pretrained=args.encoder_weights == 'imagenet',
@@ -394,13 +395,19 @@ def main() -> None:
             else:
                 raise FileNotFoundError(f'Encoder weights not found at {args.encoder_weights}')
         
-        model = DeepLabV3Plus(
-            backbone=backbone,
-            num_classes=num_classes,
-        )
+        if args.model == 'deeplabv3plus':
+            model = DeepLabV3Plus(backbone=backbone, num_classes=num_classes,)
+        elif args.model == 'danet':
+            model = DANet(backbone=backbone, num_classes=num_classes)
+        elif args.model == 'pan':
+            model = PAN(backbone=backbone, num_classes=num_classes)
+        elif args.model == 'pspnet':
+            model = PSPNet(backbone=backbone, num_classes=num_classes)
+            
         model = model.to(device)
     
-    elif args.model in ['unet', 'attention_unet', 'multiscale_linear_probe', 'linear_probe', 'upernet', 'pspnet', 'bisenet', 'danet', 'pan']:
+    
+    elif args.model in ['unet', 'attention_unet', 'multiscale_linear_probe', 'linear_probe', 'upernet', 'bisenet']:
         
         backbone = ResNetBackboneUNet(
             in_channels=args.n_bands,
@@ -446,14 +453,8 @@ def main() -> None:
             # Use the same backbone instance as above
         if args.model == 'upernet':
             model = UPerNet(backbone=backbone, num_classes=num_classes)
-        elif args.model == 'pspnet':
-            model = PSPNet(backbone=backbone, num_classes=num_classes)
         elif args.model == 'bisenet':
             model = BiSeNet(backbone=backbone, num_classes=num_classes)
-        elif args.model == 'danet':
-            model = DANet(backbone=backbone, num_classes=num_classes)
-        elif args.model == 'pan':
-            model = PAN(backbone=backbone, num_classes=num_classes)
         
         model = model.to(device)
     

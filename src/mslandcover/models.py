@@ -1919,7 +1919,7 @@ class Decoder(nn.Module):
 
 class ResNetBackbone(nn.Module):
     """
-    Wraps a ResNet-152 to output (low_level_feat, high_level_feat).
+    Wraps a ResNet-101 to output (low_level_feat, high_level_feat).
     output_stride=16: remove stride in layer4; stride=8: also in layer3.
     """
     def __init__(self, output_stride: int = 16, pretrained: bool = True, in_channels=4) -> None:
