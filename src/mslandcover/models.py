@@ -2603,14 +2603,14 @@ class GAUModule(nn.Module):
     Global Attention Upsample Module, the decoder block of PAN.
     This is the corrected implementation based on Figure 4 from the paper.
     """
-    def __init__(self, low_channels, high_channels, mid_channels=256):
+    def __init__(self, low_channels, high_channels):
         super().__init__()
         
         # Branch for processing high-level features to get global context
-        self.conv_high = ConvBlock(high_channels, mid_channels, kernel_size=1, padding=0)
+        self.conv_high = ConvBlock(high_channels, high_channels, kernel_size=1, padding=0)
         
         # Branch for processing low-level features
-        self.conv_low = ConvBlock(low_channels, mid_channels, kernel_size=3, padding=1)
+        self.conv_low = ConvBlock(low_channels, high_channels, kernel_size=3, padding=1)
 
     def forward(self, low_features, high_features):
         # CORRECTION 1: Use Global Average Pooling on high-level features for context
