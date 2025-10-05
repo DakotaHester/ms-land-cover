@@ -1,65 +1,113 @@
 \section{Discussion}\label{sec:discussion}
 
 \subsection{Data-efficient land cover classification for large areas at VHSR}
+% \note{This subsection has been edited to remove explicit mentions of the stratification method as a contribution. The focus remains on the feasibility of data-efficient mapping.}
 This work demonstrated that deep learning semantic segmentation models for dense land cover classification at VHSR can be effectively trained with limited labeled data.
-Our approach combined a machine-learning driven semantic stratification strategy that uses existing coarse resolution land cover maps to select informative training samples based on their land cover characteristics.
-We also leveraged a self-supervised learning pre-training stage that averages large amounts of freely-available unannotated VHSR imagery to enable an image encoder to learn semantically meaningful image representations prior to fine-tuning on the target land cover classification task.
-We achieve high land cover classification accuracy with only 1,000 labeled training samples, which is a small fraction of the amount of labeled data typically used to train deep learning models for similar tasks.
+% We leveraged a self-supervised learning pre-training stage that averages large amounts of unannotated VHSR imagery to enable an image encoder to learn semantically meaningful image representations prior to fine-tuning on the target land cover classification task.
+We leveraged a self-supervised learning pre-training stage that utilizes large amounts of freely available unannotated VHSR imagery to enable an image encoder to learn semantically meaningful image representations prior to fine-tuning on the target land cover classification task.
+We achieved high land cover classification accuracy with only 1,000 labeled training samples, which is a small fraction of the amount of labeled data typically used to train deep learning models for similar tasks.
 For example, the ISPRS Potsdam and Vaihingen datasets can be used to create \num{23,750} and \num{8,873} 256 \(\times\) 256 pixel training patches, respectively.
 Additionally, these datasets only cover small urban areas, while our work concerns a substantially larger extent with multiple diverse ecoregions.
-Our work aims to demonstrate that accurate land cover maps at VHSR can be produced over large areas even under data-scarce scenarios when sufficient care is taken to select training samples that are informative and representative of the target area, and when models are trained using an approach that maximizes the utility of limited labeled data using transfer learning techniques and self-supervised pre-training.
 The results of our experiment provide strong evidence to support this claim, and we apply this methodology to produce a \SI{1}{\meter} resolution land cover map for the entire state of Mississippi.
 As shown in Figure~\ref{fig:inference_results}, the final land cover product produced using our approach provides a comprehensive and detailed characterization of surface phenomena across the entire state of Mississippi, far surpassing the spatial fidelity of existing land cover products such as the NLCD.
 Our final land cover map captures fine-scale land cover features such as individual buildings, roads, small bodies of water, precise agricultural field delineations, forest clearings, and mixed urban-vegetation interfaces that are indistinguishable in the NLCD land cover data.
+As~\citet{boyleHighResolutionSatelliteImagery2014} and \citet{fisherImpactSatelliteImagery2018} noted, the ability to classify fine-scale land cover features is critical for a wide variety of applications, and has been shown to have a substantial impact on the accuracy and utility of downstream applications that rely on land cover data, such as water quality modeling, land use assessment, and conservation biology.
+Not only do we hope that our final land cover product will be useful for such applications, but we also hope that our results demonstrate a viable approach for applied researchers and practitioners to produce accurate VHSR land cover maps at large scales with limited human resources for collecting ground truth data.
 
-\subsection{Implications of BYOL pre-training}
+\input{figures/inference_results.tex}
 
+% \subsection{Implications of BYOL pre-training}
+% \note{This subsection is the core of the new discussion and is retained in its entirety, as it directly analyzes the results of the self-supervised learning experiments.}
 The thematic accuracy assessment results shown in Table~\ref{tab:confusion_matrix} show that our final land cover product achieves exceptional accuracy on the open water and tree canopy/woody vegetation classes in particular, but tends to struggle with the barren land and impervious surfaces classes.
 Indeed, there is some substantial confusion between the barren land and impervious surfaces classes, which is likely due to the fact that these surfaces are spectrally similar in the NAIP imagery used in this work.
 The inclusion of an additional blue band in the model input may help alleviate this issue by providing additional spectral information, but the set of transformations used by BYOL are designed for three-channel inputs and are not directly compatible with four-channel multispectral imagery.
 For example, random color jittering is applied, which adjusts the brightness, contrast, saturation, and hue of the input image.
 The saturation and hue adjustment transformations are explicitly defined for three-channel imagery as a mapping from the RGB color space to the HSV color space, and thus cannot be directly applied to imagery with more than three bands.
 For remote sensing applications, this is a significant limitation of BYOL and other transformation-based self-supervised learning methods that rely on image augmentations to learn transformation-invariant image representations, and we suggest that future work should investigate the development of transformation strategies that are directly compatible with multispectral imagery that contain more than three bands.
-Reconstruction-based self-supervised learning methods (e.g., MIM) may also be a promising avenue for future research, as these methods do not inherently rely on image augmentations to facilitate feature representation learning.
+Reconstruction-based self-supervised learning methods (e.g., MIM) may also be a promising avenue for future research, as these methods do not inherently rely on image augmentations to facilitate feature representation learning, if data and computational resources are sufficient such that a Transformer-based architecture can be used~\citep{zhangObjectCentricMaskedImage2023,linSSMAESpatialSpectral2023, reedScaleMAEScaleAwareMasked2023}.
 
 Still, BYOL was shown to be an effective pre-training strategy for learning meaningful image representations from the raw NAIP imagery used in this work.
 We note that for linear probing, the embeddings produced by the encoder pre-trained using BYOL alone performed the best, slightly outperforming the BYOL model initialized with ImageNet weights and substantially outperforming the ImageNet pre-trained model.
-This suggests that these embeddings are somewhat linearly separable with respect to the land cover classes of interest, and that BYOL facilitates the learning of semantically meaningful image representations even without fine-tuning.
-However, fine-tuning the BYOL model initialized with ImageNet weights consistently outperformed both the BYOL model with random initialization and the ImageNet pre-trained model across all semantic segmentation architectures and training dataset sizes.
-This suggests that the general image features learned from ImageNet are still useful for land cover classification when the model is fine-tuned as part of a more complex semantic segmentation architecture.
-Still, the BYOL model with random initialization was competitive with the ImageNet pre-trained model in many cases, suggesting that BYOL is able to learn semantically meaningful image representations from scratch using only unannotated VHSR imagery.
+One observation from the quantitative assessment of the model is the discrepancy between the performance of the pre-trained models when used as fixed feature extractors for linear probing compared to when they are fine-tuned as part of an end-to-end trainable semantic segmentation architecture.
+When only working with fixed embeddings, the BYOL model with random initialization outperformed the BYOL model initialized with ImageNet weights, which in turn outperformed the ImageNet pre-trained model.
+This suggests that the embeddings produced by the BYOL model with random initialization are fairly linearly separable with respect to the land cover classes of interest, even in the absence of any supervised fine-tuning.
 This is a promising result, as it contributes to the growing body of evidence that self-supervised learning methods can be just as effective (if not more so) than traditional supervised pre-training methods for remote sensing applications~\citep{liGlobalLocalContrastive2022, bergSelfSupervisedLearningScene2022, taoSelfSupervisedRemoteSensing2023}.
-% Further, we observe that the model struggles to produce accurate delinations of large buildings (see Figure~\ref{fig:})
-
-\input{figures/inference_results.tex}
-
-\subsection{A new approach to selecting training patches for land cover classification}
-One notable contribution of this work is the semantic stratification approach to selecting training samples.
-The dense prediction nature of semantic segmentation models makes labelling large amounts of training data accurately a time-consuming and labor-intensive task, particularly for VHSR imagery where objects of interest can be small and numerous.
-As such, selecting training samples that are representative of the target area is a critical yet oft overlooked aspect of training deep learning models for land cover classification.
-To our knowledge, this is the first work to propose a stratification approach explicitly designed for selecting patch-based training samples for training semantic segmentation models for land cover classification.
-We posit that utilizing existing land cover maps (even coarse resolution ones) can serve as a useful guide for selecting strata based on the composition of land cover classes within a population of candidate training patches.
-In this way, training samples are selected based on their semantic content to ensure that the training dataset is representative of the land cover characteristics of the target area.
-Our results in Section~\ref{sec:results:semantic_stratification} provide strong evidence to support this claim, as we observe a statistically significant \num{3.11}\% increase in mIoU over random sampling at \(N_\text{train} = 750\).
-This demonstrates that curating a semantically diverse training set is not just theoretically sound but practically impactful, especially as sample size increases.
+This also serves to provide a quantitative demonstration of the domain gap between ImageNet and remote sensing imagery, and the benefits of pre-training on in-domain data, as echoed by findings in other recent works~\citep{neumannTrainingGeneralRepresentations2020}.
+Still, when fine-tuning the entire model as part of a semantic segmentation architecture, the BYOL model initialized with ImageNet weights consistently outperformed both the BYOL model with random initialization and the ImageNet pre-trained model across all architectures and training dataset sizes.
+This is a critical observation, as it suggests that the broader, more general image features learned from ImageNet are highly relevant to the land cover classification task when a more complex decoder network is used to learn task-specific features during fine-tuning, suggesting that in spite of the apparent domain gap, ImageNet pre-training is still worthwhile for remote sensing applications.
+In light of this, we suggest that future work should examine remote sensing-oriented self-supervised learning and/or foundation model pre-training through the lens of utilizing pre-text tasks to adapt general image features learned from large-scale datasets such as ImageNet to close domain gaps as opposed to building entirely new models from scratch using only in-domain data, as the former approach appears to yield better performance within the context of fine-tuning for downstream remote sensing tasks~\citep{zhangConsecutivePreTrainingKnowledge2022}.
+% This suggests that these embeddings are somewhat linearly separable with respect to the land cover classes of interest, and that BYOL facilitates the learning of semantically meaningful image representations even without fine-tuning.
+% However, fine-tuning the BYOL model initialized with ImageNet weights consistently outperformed both the BYOL model with random initialization and the ImageNet pre-trained model across all semantic segmentation architectures and training dataset sizes.
+% This suggests that the general image features learned from ImageNet are still useful for land cover classification when the model is fine-tuned as part of a more complex semantic segmentation architecture.
+% Still, the BYOL model with random initialization was competitive with the ImageNet pre-trained model in many cases, suggesting that BYOL is able to learn semantically meaningful image representations from scratch using only unannotated VHSR imagery.
 
 
-We note that this approach is not perfect and does not always guarantee that strata are perfectly homogeneous in terms of land cover characteristics, as can be seen in Cluster 122 of Figure~\ref{fig:va_pcs}.
-We theorize that the coarse resolution of the NLCD land cover data (\SI{30}{\meter}) relative to the size of our candidate training patches (\SI{256}{\meter}) may contribute to this imprecision, as at these scales, a single patch only contains approximately 73 data points from the NLCD land cover map.
-If we opt for a \SI{10}{\meter} resolution land cover map, such as Google's Dynamic World product~\citep{brownDynamicWorldRealtime2022}, ESRI's annual land cover product~\citep{karraGlobalLandUse2021}, or the European Space Agency's WorldCover product~\citep{zanagaESAWorldCover102022}, we would have 655 data points per candidate training patch, potentially providing a more accurate representation of land cover composition within each patch.
-Additionally, we opted to use only the first two principal components of the NLCD histograms to define our strata, which explained roughly \num{95}\% of the variance in the data, but adding additional principal components could potentially improve the quality of the strata if the remaining variance corresponds to meaningful variation in patch composition.
-We hope that this work inspires future research into stratification approaches for selecting training samples for land cover classification, as we believe that the importance of quality training data selection is often overlooked in the context of semantic segmentation models for producing land cover datasets at VHSR.
+
+% \note{The entire subsection "A new approach to selecting training patches for land cover classification" has been deleted. It was dedicated to discussing the results and implications of the stratification experiment, which is no longer part of this paper.}
 
 
-% \subsection{Semantic stratification using existing land cover maps}
+% \section{Discussion}\label{sec:discussion}
 
-% \note{Semantic stratir/ication discussion}
-% \note{Pros and cons}
-% \note{Maybe discuss the use of higher resolution data sources}
+% \subsection{Data-efficient land cover classification for large areas at VHSR}
+% This work demonstrated that deep learning semantic segmentation models for dense land cover classification at VHSR can be effectively trained with limited labeled data.
+% Our approach combined a machine-learning driven semantic stratification strategy that uses existing coarse resolution land cover maps to select informative training samples based on their land cover characteristics.
+% We also leveraged a self-supervised learning pre-training stage that averages large amounts of freely-available unannotated VHSR imagery to enable an image encoder to learn semantically meaningful image representations prior to fine-tuning on the target land cover classification task.
+% We achieve high land cover classification accuracy with only 1,000 labeled training samples, which is a small fraction of the amount of labeled data typically used to train deep learning models for similar tasks.
+% For example, the ISPRS Potsdam and Vaihingen datasets can be used to create \num{23,750} and \num{8,873} 256 \(\times\) 256 pixel training patches, respectively.
+% Additionally, these datasets only cover small urban areas, while our work concerns a substantially larger extent with multiple diverse ecoregions.
+% Our work aims to demonstrate that accurate land cover maps at VHSR can be produced over large areas even under data-scarce scenarios when sufficient care is taken to select training samples that are informative and representative of the target area, and when models are trained using an approach that maximizes the utility of limited labeled data using transfer learning techniques and self-supervised pre-training.
+% The results of our experiment provide strong evidence to support this claim, and we apply this methodology to produce a \SI{1}{\meter} resolution land cover map for the entire state of Mississippi.
+% As shown in Figure~\ref{fig:inference_results}, the final land cover product produced using our approach provides a comprehensive and detailed characterization of surface phenomena across the entire state of Mississippi, far surpassing the spatial fidelity of existing land cover products such as the NLCD.
+% Our final land cover map captures fine-scale land cover features such as individual buildings, roads, small bodies of water, precise agricultural field delineations, forest clearings, and mixed urban-vegetation interfaces that are indistinguishable in the NLCD land cover data.
 
-% \subsection{Implications of self-supervised learning for VHSR land cover mapping}
+% \subsection{Implications of BYOL pre-training}
 
-% \note{Mention inference results}
+% The thematic accuracy assessment results shown in Table~\ref{tab:confusion_matrix} show that our final land cover product achieves exceptional accuracy on the open water and tree canopy/woody vegetation classes in particular, but tends to struggle with the barren land and impervious surfaces classes.
+% Indeed, there is some substantial confusion between the barren land and impervious surfaces classes, which is likely due to the fact that these surfaces are spectrally similar in the NAIP imagery used in this work.
+% The inclusion of an additional blue band in the model input may help alleviate this issue by providing additional spectral information, but the set of transformations used by BYOL are designed for three-channel inputs and are not directly compatible with four-channel multispectral imagery.
+% For example, random color jittering is applied, which adjusts the brightness, contrast, saturation, and hue of the input image.
+% The saturation and hue adjustment transformations are explicitly defined for three-channel imagery as a mapping from the RGB color space to the HSV color space, and thus cannot be directly applied to imagery with more than three bands.
+% For remote sensing applications, this is a significant limitation of BYOL and other transformation-based self-supervised learning methods that rely on image augmentations to learn transformation-invariant image representations, and we suggest that future work should investigate the development of transformation strategies that are directly compatible with multispectral imagery that contain more than three bands.
+% Reconstruction-based self-supervised learning methods (e.g., MIM) may also be a promising avenue for future research, as these methods do not inherently rely on image augmentations to facilitate feature representation learning.
 
-% \subsection{Analysis of inference results}
+% Still, BYOL was shown to be an effective pre-training strategy for learning meaningful image representations from the raw NAIP imagery used in this work.
+% We note that for linear probing, the embeddings produced by the encoder pre-trained using BYOL alone performed the best, slightly outperforming the BYOL model initialized with ImageNet weights and substantially outperforming the ImageNet pre-trained model.
+% This suggests that these embeddings are somewhat linearly separable with respect to the land cover classes of interest, and that BYOL facilitates the learning of semantically meaningful image representations even without fine-tuning.
+% However, fine-tuning the BYOL model initialized with ImageNet weights consistently outperformed both the BYOL model with random initialization and the ImageNet pre-trained model across all semantic segmentation architectures and training dataset sizes.
+% This suggests that the general image features learned from ImageNet are still useful for land cover classification when the model is fine-tuned as part of a more complex semantic segmentation architecture.
+% Still, the BYOL model with random initialization was competitive with the ImageNet pre-trained model in many cases, suggesting that BYOL is able to learn semantically meaningful image representations from scratch using only unannotated VHSR imagery.
+% This is a promising result, as it contributes to the growing body of evidence that self-supervised learning methods can be just as effective (if not more so) than traditional supervised pre-training methods for remote sensing applications~\citep{liGlobalLocalContrastive2022, bergSelfSupervisedLearningScene2022, taoSelfSupervisedRemoteSensing2023}.
+% % Further, we observe that the model struggles to produce accurate delinations of large buildings (see Figure~\ref{fig:})
+
+% \input{figures/inference_results.tex}
+
+% \subsection{A new approach to selecting training patches for land cover classification}
+% One notable contribution of this work is the semantic stratification approach to selecting training samples.
+% The dense prediction nature of semantic segmentation models makes labelling large amounts of training data accurately a time-consuming and labor-intensive task, particularly for VHSR imagery where objects of interest can be small and numerous.
+% As such, selecting training samples that are representative of the target area is a critical yet oft overlooked aspect of training deep learning models for land cover classification.
+% To our knowledge, this is the first work to propose a stratification approach explicitly designed for selecting patch-based training samples for training semantic segmentation models for land cover classification.
+% We posit that utilizing existing land cover maps (even coarse resolution ones) can serve as a useful guide for selecting strata based on the composition of land cover classes within a population of candidate training patches.
+% In this way, training samples are selected based on their semantic content to ensure that the training dataset is representative of the land cover characteristics of the target area.
+% Our results in Section~\ref{sec:results:semantic_stratification} provide strong evidence to support this claim, as we observe a statistically significant \num{3.11}\% increase in mIoU over random sampling at \(N_\text{train} = 750\).
+% This demonstrates that curating a semantically diverse training set is not just theoretically sound but practically impactful, especially as sample size increases.
+
+
+% We note that this approach is not perfect and does not always guarantee that strata are perfectly homogeneous in terms of land cover characteristics, as can be seen in Cluster 122 of Figure~\ref{fig:va_pcs}.
+% We theorize that the coarse resolution of the NLCD land cover data (\SI{30}{\meter}) relative to the size of our candidate training patches (\SI{256}{\meter}) may contribute to this imprecision, as at these scales, a single patch only contains approximately 73 data points from the NLCD land cover map.
+% If we opt for a \SI{10}{\meter} resolution land cover map, such as Google's Dynamic World product~\citep{brownDynamicWorldRealtime2022}, ESRI's annual land cover product~\citep{karraGlobalLandUse2021}, or the European Space Agency's WorldCover product~\citep{zanagaESAWorldCover102022}, we would have 655 data points per candidate training patch, potentially providing a more accurate representation of land cover composition within each patch.
+% Additionally, we opted to use only the first two principal components of the NLCD histograms to define our strata, which explained roughly \num{95}\% of the variance in the data, but adding additional principal components could potentially improve the quality of the strata if the remaining variance corresponds to meaningful variation in patch composition.
+% We hope that this work inspires future research into stratification approaches for selecting training samples for land cover classification, as we believe that the importance of quality training data selection is often overlooked in the context of semantic segmentation models for producing land cover datasets at VHSR.
+
+
+% % \subsection{Semantic stratification using existing land cover maps}
+
+% % \note{Semantic stratir/ication discussion}
+% % \note{Pros and cons}
+% % \note{Maybe discuss the use of higher resolution data sources}
+
+% % \subsection{Implications of self-supervised learning for VHSR land cover mapping}
+
+% % \note{Mention inference results}
+
+% % \subsection{Analysis of inference results}
 

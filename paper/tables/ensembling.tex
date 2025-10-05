@@ -1,0 +1,29 @@
+\begin{table}[H]
+    \centering
+    \caption{Comparison between mean F1 scores from the best performing k-fold model configuration (U-Net with BYOL backbone initialized with ImageNet weights and fine-tuned using \(N_\text{train} = 750\) samples) and the final F1 scores from the ensembled model used to generate the final land cover map for the entire state of Mississippi.}\label{tab:final_f1_comparison}
+    \resizebox{\textwidth}{!}{
+    \begin{tblr}{
+    colspec={lcccccccc},
+    row{1} = {font=\bfseries},
+    % row{2} = {font=\itshape}, 
+    % hlines,
+    % vlines
+    }
+    \toprule
+    & {Open\\Water} & 
+    {Impervious\\Structures} & 
+    {Impervious\\Surfaces} & 
+    {Barren\\Land} & 
+    {Tree Canopy/\\Woody Vegetation} & 
+    {Low Vegetation/\\Herbaceous} & 
+    {Cultivated\\Crops} & 
+    {Unclassified} \\
+    \midrule
+    Mean Ensemble F1 & 92.24 & 75.28 & 63.39 & 63.96 & 94.84 & 77.01 & 76.55 & 49.04 \\
+    Final F1 & 92.91 & 75.83 & 69.85 & 67.77 & 94.93 & 78.40 & 78.00 & 46.96 \\
+    \midrule
+    Improvement & +0.67 & +0.55 & +6.46 & +3.81 & +0.09 & +1.40 & +1.45 & -2.09 \\
+    \bottomrule
+    \end{tblr}
+    }
+\end{table}
