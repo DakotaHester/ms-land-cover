@@ -146,7 +146,8 @@ for fold in $(seq 1 $n_folds); do
         # if fold > 4 and n_train != 500, skip
         if [[ $fold -gt 4 && $n_train -ne 500 ]]; then
             # echo "Skipping fold $fold for n_train $n_train (only 500 samples allowed
-            # continue
+            continue
+            # echo "Rerunning"
         fi
             for scheme in "${PRETRAIN_SCHEMES[@]}"; do
                 for model in "${MODELS[@]}"; do
