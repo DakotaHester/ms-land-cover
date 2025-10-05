@@ -139,10 +139,7 @@ COUNT=0
 
 n_folds=6
 for fold in $(seq 1 $n_folds); do
-    if [[ $fold -ne 2 ]]; then 
-        continue
-    fi
-    for n_train in 500; do
+    for n_train in 250 500 750; do
         # if fold > 4 and n_train != 500, skip
         if [[ $fold -gt 4 && $n_train -ne 500 ]]; then
             # echo "Skipping fold $fold for n_train $n_train (only 500 samples allowed
