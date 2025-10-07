@@ -2488,9 +2488,9 @@ class BiSeNet(nn.Module):
 class PAM(nn.Module):
     def __init__(self, in_channels):
         super().__init__()
-        self.inner_channels = self.inner_channels
-        self.query_conv = nn.Conv2d(in_channels, self.inner_channels, 1)
-        self.key_conv = nn.Conv2d(in_channels, self.inner_channels, 1)
+        self.inter_channels = in_channels // 8
+        self.query_conv = nn.Conv2d(in_channels, self.inter_channels, 1)
+        self.key_conv = nn.Conv2d(in_channels, self.inter_channels, 1)
         self.value_conv = nn.Conv2d(in_channels, in_channels, 1)
         self.gamma = nn.Parameter(torch.zeros(1))
 
