@@ -2488,8 +2488,9 @@ class BiSeNet(nn.Module):
 class PAM(nn.Module):
     def __init__(self, in_channels):
         super().__init__()
-        self.query_conv = nn.Conv2d(in_channels, in_channels // 8, 1)
-        self.key_conv = nn.Conv2d(in_channels, in_channels // 8, 1)
+        self.inner_channels = self.inner_channels
+        self.query_conv = nn.Conv2d(in_channels, self.inner_channels, 1)
+        self.key_conv = nn.Conv2d(in_channels, self.inner_channels, 1)
         self.value_conv = nn.Conv2d(in_channels, in_channels, 1)
         self.gamma = nn.Parameter(torch.zeros(1))
 
@@ -2498,7 +2499,7 @@ class PAM(nn.Module):
         query = self.query_conv(x).view(B, -1, H * W).permute(0, 2, 1)
         key = self.key_conv(x).view(B, -1, H * W)
         energy = torch.bmm(query, key)
-        attention = torch.softmax(energy, dim=-1)
+        attention = torch.softmax(energy / math.sqrt(self.inter_channels), dim=-1)
         value = self.value_conv(x).view(B, -1, H * W)
         out = torch.bmm(value, attention.permute(0, 2, 1)).view(B, C, H, W)
         return self.gamma * out + x
@@ -2513,7 +2514,7 @@ class CAM(nn.Module):
         proj_query = x.view(B, C, -1)
         proj_key = x.view(B, C, -1).permute(0, 2, 1)
         energy = torch.bmm(proj_query, proj_key)
-        attention = torch.softmax(energy, dim=-1)
+        attention = torch.softmax(energy / math.sqrt(proj_key.size(-1)), dim=-1)
         proj_value = x.view(B, C, -1)
         out = torch.bmm(attention, proj_value).view(B, C, H, W)
         return self.gamma * out + x
