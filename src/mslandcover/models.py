@@ -2688,134 +2688,60 @@ class PAN(nn.Module):
         
         return self.activation(out)
     
-    
-
-# ---- FCN using a provided ResNet backbone (do NOT modify backbone code) ----
 class FCN(nn.Module):
     """
-    FCN-8s style segmentation head for a ResNet backbone.
+    Faithful FCN-8s implementation using a ResNet-101 backbone.
 
-    Expects the provided backbone to return 5 feature maps where the last
-    three ([-3], [-2], [-1]) correspond to strides [8, 16, 32] respectively:
-      - features[-3] -> stride 8 (e.g., resnet.layer2 or layer3 depending on wrapper)
-      - features[-2] -> stride 16
-      - features[-1] -> stride 32
-
-    Parameters
+    References
     ----------
-    backbone : nn.Module
-        Pre-built backbone module (one of the ResNetBackbone* classes you provided).
-        It must accept input tensor x and return either a tuple or list of feature maps.
-    num_classes : int
-        Number of segmentation classes. If 1, final activation is Sigmoid; otherwise Softmax(dim=1).
-    mid_channels : int, optional
-        Internal channels used in refinement convs (default 256).
+    Long, Shelhamer, and Darrell. "Fully Convolutional Networks
+    for Semantic Segmentation." CVPR 2015 (arXiv:1411.4038v2).
+
+    Notes
+    -----
+    - Uses skip connections from strides 32, 16, and 8 feature maps.
+    - Performs elementwise summation of score maps (no refinement convs).
+    - Uses bilinear interpolation for upsampling (fixed, not learned).
+    - Returns probabilities (Sigmoid/Softmax) since the loss expects them.
     """
-    def __init__(self, backbone: nn.Module, num_classes: int, mid_channels: int = 256) -> None:
+    def __init__(self, backbone: nn.Module, num_classes: int) -> None:
         super().__init__()
         self.backbone = backbone
         self.num_classes = num_classes
 
-        # 1x1 scoring convs for the three fusion levels
-        # The in_channels are tied to ResNet101 default channel sizes:
-        # final (layer4) -> 2048, pool4 (layer3) -> 1024, pool3 (layer2) -> 512
-        # We allow for backbones that might vary, so we will infer channels lazily in forward
-        self.score_final = nn.Conv2d(2048, num_classes, kernel_size=1)  # will be safe for standard resnet101
+        # 1×1 convs to project backbone feature maps to class scores
+        self.score_final = nn.Conv2d(2048, num_classes, kernel_size=1)
         self.score_pool4 = nn.Conv2d(1024, num_classes, kernel_size=1)
         self.score_pool3 = nn.Conv2d(512, num_classes, kernel_size=1)
 
-        # small refinement convs applied after each fusion (keeps predictions smooth)
-        self.refine16 = nn.Sequential(
-            nn.Conv2d(num_classes, mid_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(mid_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(mid_channels, num_classes, kernel_size=1),
-        )
-        self.refine8 = nn.Sequential(
-            nn.Conv2d(num_classes, mid_channels, kernel_size=3, padding=1, bias=False),
-            nn.BatchNorm2d(mid_channels),
-            nn.ReLU(inplace=True),
-            nn.Conv2d(mid_channels, num_classes, kernel_size=1),
-        )
-
-        # Activation producing class probabilities (user requested probabilities, not logits)
+        # activation (not in paper, but required for your setup)
         if num_classes == 1:
             self.activation = nn.Sigmoid()
         else:
             self.activation = nn.Softmax(dim=1)
 
-        # Initialize the scoring convs with small weights (like in FCN papers zero-init last conv is common;
-        # here we use kaiming for convs and zeros for final 1x1 biases)
-        self._init_weights()
-
-    def _init_weights(self):
-        for m in [self.score_final, self.score_pool4, self.score_pool3]:
-            nn.init.kaiming_normal_(m.weight, a=0.0, mode="fan_out", nonlinearity="relu")
-            if m.bias is not None:
-                nn.init.zeros_(m.bias)
-        for m in list(self.refine16.modules()) + list(self.refine8.modules()):
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(m.weight, a=0.0, mode="fan_out", nonlinearity="relu")
-                if m.bias is not None:
-                    nn.init.zeros_(m.bias)
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.ones_(m.weight)
-                nn.init.zeros_(m.bias)
-
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        Forward pass.
-
-        Returns
-        -------
-        probs : torch.Tensor
-            Tensor of shape [B, num_classes, H, W] containing class probabilities.
-        """
-        input_h, input_w = x.shape[-2], x.shape[-1]
-
+        input_h, input_w = x.shape[-2:]
         feats = self.backbone(x)
-        # the backbone may return a tuple or list of feature maps.
-        # we expect at least 3 final maps; use the last three for fusion.
-        if not isinstance(feats, (list, tuple)):
-            raise RuntimeError("Backbone must return an iterable (list/tuple) of features.")
 
-        if len(feats) < 3:
-            raise RuntimeError("Backbone must return at least 3 feature maps (got {}).".format(len(feats)))
+        # Expect final three feature maps correspond to strides [8,16,32]
+        pool3 = feats[-3]  # stride 8
+        pool4 = feats[-2]  # stride 16
+        final = feats[-1]  # stride 32
 
-        pool3 = feats[-3]  # expected stride 8
-        pool4 = feats[-2]  # expected stride 16
-        final = feats[-1]  # expected stride 32
+        # score from deepest layer (stride 32)
+        score_final = self.score_final(final)
 
-        # Safety: if the backbone channel sizes differ, adapt scoring convs dynamically (rare)
-        # (Note: typically unnecessary for the ResNetBackbone/ResNetBackboneUNet you provided)
-        # We'll check and adapt if shapes differ from expected 512/1024/2048.
-        if final.shape[1] != self.score_final.in_channels:
-            self.score_final = nn.Conv2d(final.shape[1], self.num_classes, kernel_size=1).to(final.device)
-        if pool4.shape[1] != self.score_pool4.in_channels:
-            self.score_pool4 = nn.Conv2d(pool4.shape[1], self.num_classes, kernel_size=1).to(pool4.device)
-        if pool3.shape[1] != self.score_pool3.in_channels:
-            self.score_pool3 = nn.Conv2d(pool3.shape[1], self.num_classes, kernel_size=1).to(pool3.device)
-
-        # Score the deepest features
-        score_final = self.score_final(final)  # [B, C, H/32, W/32]
-
-        # Upsample ×2 -> to H/16, add score from pool4
-        size_pool4 = (pool4.shape[-2], pool4.shape[-1])
-        score_final_upsampled = F.interpolate(score_final, size=size_pool4, mode="bilinear", align_corners=False)
+        # upsample x2 and fuse with pool4 (stride 16)
+        score_final_up = F.interpolate(score_final, size=pool4.shape[-2:], mode="bilinear", align_corners=False)
         score_pool4 = self.score_pool4(pool4)
-        fused16 = score_final_upsampled + score_pool4  # [B, C, H/16, W/16]
-        # small refinement
-        fused16 = self.refine16(fused16)
+        fuse16 = score_final_up + score_pool4
 
-        # Upsample ×2 -> to H/8, add score from pool3
-        size_pool3 = (pool3.shape[-2], pool3.shape[-1])
-        fused16_upsampled = F.interpolate(fused16, size=size_pool3, mode="bilinear", align_corners=False)
+        # upsample x2 and fuse with pool3 (stride 8)
+        fuse16_up = F.interpolate(fuse16, size=pool3.shape[-2:], mode="bilinear", align_corners=False)
         score_pool3 = self.score_pool3(pool3)
-        fused8 = fused16_upsampled + score_pool3  # [B, C, H/8, W/8]
-        fused8 = self.refine8(fused8)
+        fuse8 = fuse16_up + score_pool3
 
-        # Final upsample to input resolution
-        out = F.interpolate(fused8, size=(input_h, input_w), mode="bilinear", align_corners=False)
-
-        # Activation -> probabilities (user-requested)
+        # final upsample to input resolution
+        out = F.interpolate(fuse8, size=(input_h, input_w), mode="bilinear", align_corners=False)
         return self.activation(out)

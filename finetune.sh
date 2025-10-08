@@ -64,7 +64,8 @@ fi
 # MODELS=("unet" "deeplabv3plus" "linear_probe")
 # MODELS=("deeplabv3plus" "unet" "attention_unet" "linear_probe" "upernet" "pspnet" "bisenet" "danet" "pan")
 # MODELS=("unet")
-MODELS=("danet" "pan")
+# MODELS=("danet" "pan")
+MODELS=("fcn")
 PRETRAIN_SCHEMES=("imagenet" "byol" "byol_randinit" "none")
 # FREEZE_ENCODERS=(false true) # Freeze encoder options
 
