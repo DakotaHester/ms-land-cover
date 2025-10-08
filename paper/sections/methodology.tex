@@ -157,6 +157,8 @@ DeepLabV3+ incorporates a simple decoder network that upsamples the output of th
 DeepLabV3+ is a popular choice for land cover classification at high spatial resolutions, and has been widely adopted in the remote sensing community \note{CITE!}
 DeepLabV3+ was orignally designed to use a modified ResNet-101 encoder, and as such minimal effort is necessary to replace the original encoder with our pre-trained ResNet-101 encoder.
 
+\note{Paper OS = 16, our implementation uses OS = 16}
+
 \paragraph{BiSeNet}
 
 Most semantic segmentation architectures operated using a single-stream framework, where a single encoder network passes extracted features to a decoder network that produces the final segmentation map, with varying degrees of complexity in the encoder and decoder networks, or the use of additional sub-networks to enhance the feature extraction process.
@@ -175,9 +177,13 @@ However, PAN's FPA module aims to retain localization information in the feature
 Like Attention U-Net, Global attention Upsample (GAU) modules are used in the decoder to serve as a form of gating mechanism that attends to the most relevant channels in the feature maps before adding them to the upsampled feature maps from the previous stage of the decoder (as opposed to attending spatially and concatenating the feature maps in Attention U-Net).
 ResNet-101 is used as the encoder in the original PAN architecture, and as such no modifications are necessary to incorporate our pre-trained ResNet-101 encoder.
 
+\note{Paper: OS = 16, our implementation uses OS = 16}
+
 \paragraph{DANet}
 
 Architectures that incorporate attention mechanisms into the classification process 
+
+\note{Paper: OS = 8, our implementation uses OS = 16, implement with OS-8 yeilds to approx. 3.5 increase in FLOPS}
 
 
 
