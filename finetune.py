@@ -456,7 +456,7 @@ def main() -> None:
         elif args.model == 'bisenet':
             model = BiSeNet(backbone=backbone, num_classes=num_classes)
         elif args.model == 'fcn':
-            model = FCN(backbone=backbone, num_classes=num_clases)
+            model = FCN(backbone=backbone, num_classes=num_classes)
             
         model = model.to(device)
     
