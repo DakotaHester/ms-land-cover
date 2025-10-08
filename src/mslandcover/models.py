@@ -2502,7 +2502,7 @@ class PAM(nn.Module):
         attention = torch.softmax(energy / math.sqrt(self.inter_channels), dim=-1)
         value = self.value_conv(x).view(B, -1, H * W)
         out = torch.bmm(value, attention.permute(0, 2, 1)).view(B, C, H, W)
-        return self.gamma * out + x
+        return torch.tanh(self.gamma) * out + x
 
 class CAM(nn.Module):
     def __init__(self, in_channels):
@@ -2517,7 +2517,7 @@ class CAM(nn.Module):
         attention = torch.softmax(energy / math.sqrt(proj_key.size(-1)), dim=-1)
         proj_value = x.view(B, C, -1)
         out = torch.bmm(attention, proj_value).view(B, C, H, W)
-        return self.gamma * out + x
+        return torch.tanh(self.gamma) * out + x
 
 class DANet(nn.Module):
     def __init__(self, backbone, num_classes):
@@ -2653,6 +2653,7 @@ class PAN(nn.Module):
         
         # Final prediction layer
         self.final_conv = nn.Conv2d(512, num_classes, kernel_size=1)
+        self.activation = nn.Softmax(dim=1) if num_classes > 1 else nn.Identity()
 
     def forward(self, x):
         input_size = x.shape[-2:]
@@ -2685,4 +2686,4 @@ class PAN(nn.Module):
         # Upsample to original image size for final output
         out = F.interpolate(out, size=input_size, mode='bilinear', align_corners=False)
         
-        return out
+        return self.activation(out)
