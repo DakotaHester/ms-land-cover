@@ -62,7 +62,7 @@ fi
 # EXPERIMENT CONFIGURATION
 # =========================
 MODELS=("deeplabv3plus" "unet")
-PRETRAIN_SCHEMES=("none" "imagenet")
+PRETRAIN_SCHEMES=("none")
 STRATIFICATION_SCHEMES=("sss" "srs" "semss")
 N_TRAIN_SAMPLES=(250 500 750)
 N_REPS=10
@@ -178,7 +178,7 @@ for model in "${MODELS[@]}"; do
                                 if [[ "$TOTAL_JOBS" -lt "$MAX_JOBS" ]]; then
                                     break
                                 else
-                                    echo "[$(date)] $TOTAL_JOBS jobs in queue. Waiting to submit $JOB_NAME..."
+                                    # echo "[$(date)] $TOTAL_JOBS jobs in queue. Waiting to submit $JOB_NAME..."
                                     sleep 10
                                 fi
                             done

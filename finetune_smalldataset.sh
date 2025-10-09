@@ -37,10 +37,10 @@ MAX_JOBS=10
 FREEZE_DECODER=false         # --freeze_decoder (not supported atm)
 MINI_BATCH_SIZE=28           # --mini_batch_size
 FULL_BATCH_SIZE=28           # --full_batch_size
-LR=1e-5                      # --lr
+LR=5e-5                      # --lr
 NUM_EPOCHS=1000              # --num_epochs
-EARLY_STOPPING_PATIENCE=50   # --early_stopping_patience
-REDUCE_LR_PATIENCE=15        # --reduce_lr_patience
+EARLY_STOPPING_PATIENCE=100  # --early_stopping_patience
+REDUCE_LR_PATIENCE=25        # --reduce_lr_patience
 PRELOAD=false                # --load_data_from_disk
 NUM_WORKERS=$N_TASKS         # --num_workers
 SEED=1701                    # --seed
@@ -170,10 +170,10 @@ for fold in $(seq 1 $n_folds); do
 
                     FINISHED_FILE="${JOB_LOG_DIR}/finished.txt"
 
-                    if [[ -f "$FINISHED_FILE" ]]; then
-                        echo "Skipping $JOB_NAME (already finished)"
-                        continue
-                    fi
+                    # if [[ -f "$FINISHED_FILE" ]]; then
+                    #     echo "Skipping $JOB_NAME (already finished)"
+                    #     continue
+                    # fi
 
                     if [[ "$EXECUTION_MODE" == "slurm" ]]; then
                         # SLURM EXECUTION MODE

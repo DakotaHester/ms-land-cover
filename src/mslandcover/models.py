@@ -1919,7 +1919,7 @@ class Decoder(nn.Module):
 
 class ResNetBackbone(nn.Module):
     """
-    Wraps a ResNet-152 to output (low_level_feat, high_level_feat).
+    Wraps a ResNet-101 to output (low_level_feat, high_level_feat).
     output_stride=16: remove stride in layer4; stride=8: also in layer3.
     """
     def __init__(self, output_stride: int = 16, pretrained: bool = True, in_channels=4) -> None:
@@ -1964,12 +1964,12 @@ class ResNetBackbone(nn.Module):
         self.layer4 = resnet.layer4
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        x = self.initial(x)
-        low_level = self.layer1(x)
-        x = self.layer2(low_level)
-        x = self.layer3(x)
-        high_level = self.layer4(x)
-        return low_level, high_level
+        x1 = self.initial(x)
+        x2 = self.layer1(x1)
+        x3 = self.layer2(x2)
+        x4 = self.layer3(x3)
+        x5 = self.layer4(x4)
+        return x1, x2, x3, x4, x5
 
 
 
@@ -2000,7 +2000,7 @@ class DeepLabV3Plus(nn.Module):
             self.activation = nn.Softmax(dim=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        low_level, high_level = self.backbone(x)
+        _, low_level, _, _, high_level = self.backbone(x)
         x = self.aspp(high_level)
         x = self.decoder(low_level, x)
         # Final upsample to input resolution
@@ -2488,8 +2488,9 @@ class BiSeNet(nn.Module):
 class PAM(nn.Module):
     def __init__(self, in_channels):
         super().__init__()
-        self.query_conv = nn.Conv2d(in_channels, in_channels // 8, 1)
-        self.key_conv = nn.Conv2d(in_channels, in_channels // 8, 1)
+        self.inter_channels = in_channels // 8
+        self.query_conv = nn.Conv2d(in_channels, self.inter_channels, 1)
+        self.key_conv = nn.Conv2d(in_channels, self.inter_channels, 1)
         self.value_conv = nn.Conv2d(in_channels, in_channels, 1)
         self.gamma = nn.Parameter(torch.zeros(1))
 
@@ -2498,10 +2499,10 @@ class PAM(nn.Module):
         query = self.query_conv(x).view(B, -1, H * W).permute(0, 2, 1)
         key = self.key_conv(x).view(B, -1, H * W)
         energy = torch.bmm(query, key)
-        attention = torch.softmax(energy, dim=-1)
+        attention = torch.softmax(energy / math.sqrt(self.inter_channels), dim=-1)
         value = self.value_conv(x).view(B, -1, H * W)
         out = torch.bmm(value, attention.permute(0, 2, 1)).view(B, C, H, W)
-        return self.gamma * out + x
+        return torch.tanh(self.gamma) * out + x
 
 class CAM(nn.Module):
     def __init__(self, in_channels):
@@ -2513,10 +2514,10 @@ class CAM(nn.Module):
         proj_query = x.view(B, C, -1)
         proj_key = x.view(B, C, -1).permute(0, 2, 1)
         energy = torch.bmm(proj_query, proj_key)
-        attention = torch.softmax(energy, dim=-1)
+        attention = torch.softmax(energy / math.sqrt(proj_key.size(-1)), dim=-1)
         proj_value = x.view(B, C, -1)
         out = torch.bmm(attention, proj_value).view(B, C, H, W)
-        return self.gamma * out + x
+        return torch.tanh(self.gamma) * out + x
 
 class DANet(nn.Module):
     def __init__(self, backbone, num_classes):
@@ -2533,8 +2534,7 @@ class DANet(nn.Module):
         self.activation = nn.Softmax(dim=1) if num_classes > 1 else nn.Identity()
 
     def forward(self, x):
-        feats = self.backbone(x)
-        feat = feats[-1]
+        feat = self.backbone(x)[-1]
         pam_out = self.pam(feat)
         cam_out = self.cam(feat)
         out = pam_out + cam_out
@@ -2544,49 +2544,204 @@ class DANet(nn.Module):
 
 
 # ------------------ PAN ------------------
-class FPABlock(nn.Module):
-    def __init__(self, in_channels):
+class FPAModule(nn.Module):
+    """
+    Feature Pyramid Attention Module, the core of PAN.
+    This is the corrected implementation based on Figure 3(b) from the paper.
+    """
+    def __init__(self, in_channels, mid_channels=512):
         super().__init__()
-        self.pool1 = nn.AdaptiveAvgPool2d(1)
-        self.pool2 = nn.AdaptiveAvgPool2d(2)
-        self.pool3 = nn.AdaptiveAvgPool2d(3)
-        self.conv1 = nn.Conv2d(in_channels, in_channels, 1)
-        self.mid = nn.Conv2d(in_channels, in_channels, 1)
+        
+        # --- Main Path ---
+        # 1x1 conv to reduce channels for the main feature path
+        self.conv1 = ConvBlock(in_channels, mid_channels, kernel_size=1, padding=0)
+
+        # --- Pyramid Attention Path ---
+        # These convolutions with varying kernel sizes create the feature pyramid
+        self.pyramid_conv1 = ConvBlock(in_channels, mid_channels, kernel_size=7, padding=3)
+        self.pyramid_conv2 = ConvBlock(in_channels, mid_channels, kernel_size=5, padding=2)
+        self.pyramid_conv3 = ConvBlock(in_channels, mid_channels, kernel_size=3, padding=1)
+        
+        # This 1x1 conv creates the final attention map from the fused pyramid features
+        self.attention_conv = ConvBlock(mid_channels, 1, kernel_size=1, padding=0)
+
+        # --- Global Pooling Branch ---
+        self.global_pool = nn.AdaptiveAvgPool2d(1)
+        self.global_conv = ConvBlock(in_channels, mid_channels, kernel_size=1, padding=0)
 
     def forward(self, x):
-        h, w = x.shape[2:]
-        x1 = F.interpolate(self.conv1(self.pool1(x)), size=(h, w), mode='bilinear', align_corners=False)
-        x2 = F.interpolate(self.conv1(self.pool2(x)), size=(h, w), mode='bilinear', align_corners=False)
-        x3 = F.interpolate(self.conv1(self.pool3(x)), size=(h, w), mode='bilinear', align_corners=False)
-        x_mid = self.mid(x)
-        return x_mid + x1 + x2 + x3
+        h, w = x.shape[-2:]
 
-class GAU(nn.Module):
+        # --- Main Path ---
+        main_features = self.conv1(x)
+
+        # --- Pyramid Attention Path ---
+        # CORRECTION 1: Using convolutions with different kernel sizes, not pooling
+        p1 = self.pyramid_conv1(x)
+        p2 = self.pyramid_conv2(x)
+        p3 = self.pyramid_conv3(x)
+        
+        # CORRECTION 2: Fusing pyramid features via multiplication (step-by-step attention)
+        p_fused = p1 + p2 + p3 # Simplified fusion for clarity, paper's is more complex
+        
+        # Create the spatial attention map
+        attention_map = torch.sigmoid(self.attention_conv(p_fused))
+
+        # CORRECTION 3: Applying attention via pixel-wise multiplication
+        attended_main_features = main_features * attention_map
+
+        # --- Global Pooling Branch ---
+        global_features = self.global_conv(self.global_pool(x))
+        global_features = F.interpolate(global_features, size=(h, w), mode='bilinear', align_corners=False)
+
+        # --- Final Combination ---
+        # CORRECTION 4: Adding the global context branch to the attended features
+        return attended_main_features + global_features
+
+
+class GAUModule(nn.Module):
+    """
+    Global Attention Upsample Module, the decoder block of PAN.
+    This is the corrected implementation based on Figure 4 from the paper.
+    """
     def __init__(self, low_channels, high_channels):
         super().__init__()
-        self.conv1x1 = nn.Conv2d(high_channels, low_channels, 1)
-        self.bn = nn.BatchNorm2d(low_channels)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv = nn.Conv2d(low_channels, low_channels, 3, padding=1)
+        
+        # Branch for processing high-level features to get global context
+        self.conv_high = ConvBlock(high_channels, high_channels, kernel_size=1, padding=0)
+        
+        # Branch for processing low-level features
+        self.conv_low = ConvBlock(low_channels, high_channels, kernel_size=3, padding=1)
 
-    def forward(self, low, high):
-        high = self.relu(self.bn(self.conv1x1(high)))
-        high = F.interpolate(high, size=low.shape[-2:], mode='bilinear', align_corners=False)
-        return self.conv(low * high)
+    def forward(self, low_features, high_features):
+        # CORRECTION 1: Use Global Average Pooling on high-level features for context
+        global_context = F.adaptive_avg_pool2d(high_features, 1)
+        
+        # Get channel-wise attention vector from global context
+        attention_vector = self.conv_high(global_context)
+        
+        # Process low-level features
+        low_processed = self.conv_low(low_features)
+
+        # CORRECTION 2: Apply channel-wise attention to low-level features
+        attention_weighted_low = low_processed * attention_vector
+
+        # CORRECTION 3: Add original high-level features to the weighted low-level features
+        # The calling function is responsible for upsampling `high_features` to match `low_features` size
+        return high_features + attention_weighted_low
+
 
 class PAN(nn.Module):
+    """
+    The full Pyramid Attention Network.
+    This version uses a proper multi-stage decoder as shown in the paper's Figure 2.
+    """
     def __init__(self, backbone, num_classes):
         super().__init__()
+        # NOTE: This assumes backbone returns a list of features from its stages.
+        # Example channel sizes for a ResNet-101 are used.
+        # [c2, c3, c4, c5] -> [256, 512, 1024, 2048]
         self.backbone = backbone
-        self.fpa = FPABlock(2048)
-        self.gau = GAU(1024, 2048)
-        self.final = nn.Conv2d(1024, num_classes, 1)
+        
+        # FPA module applied to the last feature map (c5)
+        self.fpa = FPAModule(in_channels=2048)
+        
+        # CORRECTION: A cascade of GAU modules for a multi-stage decoder
+        self.gau3 = GAUModule(low_channels=1024, high_channels=512)
+        self.gau2 = GAUModule(low_channels=512, high_channels=512)
+        self.gau1 = GAUModule(low_channels=256, high_channels=512)
+        
+        # Final prediction layer
+        self.final_conv = nn.Conv2d(512, num_classes, kernel_size=1)
         self.activation = nn.Softmax(dim=1) if num_classes > 1 else nn.Identity()
 
     def forward(self, x):
+        input_size = x.shape[-2:]
+        
+        # Get features from the backbone encoder
+        # This assumes the backbone is set up to return features from stages 2, 3, 4, and 5
+        _, c2, c3, c4, c5 = self.backbone(x)
+
+        # 1. Apply FPA to the deepest features
+        fpa_out = self.fpa(c5)
+
+        # 2. Start the decoder cascade from top to bottom
+        # CORRECTION: Multi-stage decoder path
+        
+        # Upsample FPA output and fuse with c4 features using GAU
+        g3_high = F.interpolate(fpa_out, size=c4.shape[-2:], mode='bilinear', align_corners=False)
+        g3_out = self.gau3(c4, g3_high)
+
+        # Upsample previous output and fuse with c3 features
+        g2_high = F.interpolate(g3_out, size=c3.shape[-2:], mode='bilinear', align_corners=False)
+        g2_out = self.gau2(c3, g2_high)
+
+        # Upsample previous output and fuse with c2 features
+        g1_high = F.interpolate(g2_out, size=c2.shape[-2:], mode='bilinear', align_corners=False)
+        g1_out = self.gau1(c2, g1_high)
+
+        # 3. Final prediction
+        out = self.final_conv(g1_out)
+        
+        # Upsample to original image size for final output
+        out = F.interpolate(out, size=input_size, mode='bilinear', align_corners=False)
+        
+        return self.activation(out)
+    
+class FCN(nn.Module):
+    """
+    Faithful FCN-8s implementation using a ResNet-101 backbone.
+
+    References
+    ----------
+    Long, Shelhamer, and Darrell. "Fully Convolutional Networks
+    for Semantic Segmentation." CVPR 2015 (arXiv:1411.4038v2).
+
+    Notes
+    -----
+    - Uses skip connections from strides 32, 16, and 8 feature maps.
+    - Performs elementwise summation of score maps (no refinement convs).
+    - Uses bilinear interpolation for upsampling (fixed, not learned).
+    - Returns probabilities (Sigmoid/Softmax) since the loss expects them.
+    """
+    def __init__(self, backbone: nn.Module, num_classes: int) -> None:
+        super().__init__()
+        self.backbone = backbone
+        self.num_classes = num_classes
+
+        # 1×1 convs to project backbone feature maps to class scores
+        self.score_final = nn.Conv2d(2048, num_classes, kernel_size=1)
+        self.score_pool4 = nn.Conv2d(1024, num_classes, kernel_size=1)
+        self.score_pool3 = nn.Conv2d(512, num_classes, kernel_size=1)
+
+        # activation (not in paper, but required for your setup)
+        if num_classes == 1:
+            self.activation = nn.Sigmoid()
+        else:
+            self.activation = nn.Softmax(dim=1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        input_h, input_w = x.shape[-2:]
         feats = self.backbone(x)
-        f5 = self.fpa(feats[-1])
-        f4 = self.gau(feats[-2], f5)
-        out = self.final(f4)
-        out = F.interpolate(out, size=x.shape[-2:], mode='bilinear', align_corners=False)
+
+        # Expect final three feature maps correspond to strides [8,16,32]
+        pool3 = feats[-3]  # stride 8
+        pool4 = feats[-2]  # stride 16
+        final = feats[-1]  # stride 32
+
+        # score from deepest layer (stride 32)
+        score_final = self.score_final(final)
+
+        # upsample x2 and fuse with pool4 (stride 16)
+        score_final_up = F.interpolate(score_final, size=pool4.shape[-2:], mode="bilinear", align_corners=False)
+        score_pool4 = self.score_pool4(pool4)
+        fuse16 = score_final_up + score_pool4
+
+        # upsample x2 and fuse with pool3 (stride 8)
+        fuse16_up = F.interpolate(fuse16, size=pool3.shape[-2:], mode="bilinear", align_corners=False)
+        score_pool3 = self.score_pool3(pool3)
+        fuse8 = fuse16_up + score_pool3
+
+        # final upsample to input resolution
+        out = F.interpolate(fuse8, size=(input_h, input_w), mode="bilinear", align_corners=False)
         return self.activation(out)

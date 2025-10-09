@@ -1,7 +1,7 @@
 import os
 from mslandcover.config import LEGEND_CLASSES
 from mslandcover.data.datasets import TestDataset
-from mslandcover.models import UNet, DeepLabV3Plus, ResNetBackboneUNet, ResNetBackbone, SimpleLinearProbingResNet, UPerNet, PSPNet, BiSeNet, DANet, PAN, AttentionUNet
+from mslandcover.models import UNet, DeepLabV3Plus, ResNetBackboneUNet, ResNetBackbone, SimpleLinearProbingResNet, UPerNet, PSPNet, BiSeNet, DANet, PAN, AttentionUNet, FCN
 from mslandcover.utils import load_pth, get_torch_device
 from argparse import ArgumentParser
 import geopandas as gpd
@@ -35,7 +35,7 @@ def parse_args() -> ArgumentParser:
     parser.add_argument(
         '--model',
         type=str,
-        choices=['deeplabv3plus', 'unet', 'attention_unet', 'linear_probe', 'upernet', 'pspnet', 'bisenet', 'danet', 'pan'],
+        choices=['deeplabv3plus', 'unet', 'attention_unet', 'linear_probe', 'upernet', 'pspnet', 'bisenet', 'danet', 'pan', 'fcn'],
         default='unet',
         help='Model architecture to use for the assessment.'
     )
@@ -167,6 +167,14 @@ def main():
         )
     elif args.model == 'pan':
         model = PAN(
+            backbone=ResNetBackboneUNet(
+                in_channels=args.n_bands,
+                pretrained=False,
+            ),
+            num_classes=8
+        )
+    elif args.model == 'fcn':
+        model = FCN(
             backbone=ResNetBackboneUNet(
                 in_channels=args.n_bands,
                 pretrained=False,

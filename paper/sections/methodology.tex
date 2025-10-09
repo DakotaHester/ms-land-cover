@@ -1,91 +1,23 @@
 \section{Methodology}\label{sec:methodology}
 
-% The proposed methodology consits of several main components: (1) the evaluation of our proposed ``semantic stratification'' routine for improved sample selection using data from the CBLC dataset, (2) curation and visual annotation of a limited land cover dataset using samples selected according to the porposed strategy applied over the state of Mississippi, (3) pre-training a deep ResNet-101 image encoder using BYOL, (4) fine-tuning of a semantic segmentation architecture with the pre-trained backbone using the limited ground truth data, and (5) producing and validating a large-scale \SI{1}{\meter} resolution land cover map over the state of Mississippi.
-% Our proposed methodology consisted of a multi-stage approach to land cover classification that aimed to produce a land cover product at high accuracy under data-scarce conditions using a machine-learning driven stratification protocol that aims to extract informative samples for training using existing coarse-resolution land cover products along with the use of a self-supervised learning schema to pre-train a large vision model for feature extraction from color-infrared aerial imagery in the absence of ground truth data.
-Our proposed methodology consisted of a multi-stage approach to model development that investigated the implications of sample selection and pre-training with the goal of producing an accurate VHSR land cover product over the state of Mississippi using a limited amount of annotated training data.
-First, we applied our proposed semantic stratification approach to train and evaluate a land cover classification model using a subset of the CBLC dataset in Virginia in order to validate the approach in the context of other stratification approaches.
-We then used this approach to select 1,000 sample tiles over the state of Mississippi for manual visual annotation to build a training dataset.
-A separate, larger dataset of unannotated sample tiles from the state of Mississippi was used to pre-train a ResNet-101 convolutional encoder using BYOL as a pretext task under a self-supervised learning framework.
-The ResNet-101 encoder was then used as a backbone for a semantic segmentation architecture that was fine-tuned using the annotated training dataset.
-Finally, several fine-tuned models were compiled into a model ensemble to produce a land cover map at \SI{1}{\meter} resolution over the state of Mississippi for the year 2023, with the final data product undergoing a thematic accuracy assessment using a point-based validation approach. An illustration providing an overview of the methodology is shown in Figure~\ref{fig:methodology_flowchart}.
+Our proposed methodology consisted of a multi-stage approach to model development that investigated the implications of pre-training with the goal of producing an accurate VHSR land cover product over the state of Mississippi using a limited amount of annotated training data.
+We first selected 1,000 256\(\times\)\SI{256}{\meter} patches of \SI{1}{\meter} NAIP imagery for visual annotation assisted using existing coarse resolution land cover data to guide the sampling process.
+BYOL was then used to pre-train a ResNet-101 CNN using a large corpus of pre-training data from the area of interest.
+The ResNet-101 model was then used as a backbone for a semantic segmentation architecture that was fine-tuned using the annotated training dataset.
+Finally, several fine-tuned models were compiled into a model ensemble to produce a land cover map at \SI{1}{\meter} resolution over the state of Mississippi for the year 2023, with the final data product undergoing a thematic accuracy assessment using a point-based validation approach.
+An illustration providing an overview of the methodology is shown in Figure~\ref{fig:methodology_flowchart}.
 
 \input{figures/methodology.tex}
 
-\subsection{Validation of semantic stratification approach using CBLC data}\label{sec:methodology:semantic_stratification}
-
-Our proposed stratification method relied on the use of existing land cover data to form strata according to the distribution and composition of land cover classes within a population of potential training samples over a given area.
-A high-level overview of this approach is shown in Figure~\ref{fig:stratification_flowchart}.
-Given an area of interest, we overlaid a grid of 256\(\times\)256 meter cells that intersected with the study area, and these cells served as the population of potential training samples.
-We then extracted zonal histograms of land cover class distribution within each cell using the NLCD land cover data as a reference.
-The NLCD classes were reclassified down to 7 classes in accordance with the chosen land cover classification scheme, as shown in Table~\ref{tab:nlcd_reclass}.
-The zonal histograms served as an informative feature vector for each cell, which effectively described the land cover composition within each cell.
-We scaled these histograms using the median and interquartile range of the histograms across all cells in the study area to ensure that the features were robustly normalized; non-parametric statistics were chosen over mean and standard deviation statistics to avoid the influence of outliers.
-Principal component analysis (PCA) was then applied to the scaled histograms to reduce the dimensionality of the feature space and to extract the most informative features.
-We selected the first two principal components, which collectively explained over 95\% of the variance in the land cover composition vectors, to serve as the features for stratification.
-K-means clustering was then applied to the PCA-transformed features to form strata based on the land cover composition of each cell.
-A total of 250 strata were used, balancing the need for fine-grained landscape representation with the goal of sampling 4 patches per stratum to achieve our target sample sizes.
-250 clusters was chosen to ensure the strata were sufficiently fine-grained to capture the variability in land cover composition across the study area.
-From each stratum, we randomly sampled 4 candidate training samples, with each being placed into a separate fold of the training dataset such that 4 folds formed a total of 1,000 training samples.
-
-\input{figures/sampling_flowchart.tex}
-
-\input{tables/nlcd_reclass.tex}
-
-In order to validate the effectiveness of the proposed stratification approach, we applied it to the task of land cover classification using the CBLC dataset.
-As comparisons, we also used simple random sampling and spatially stratified sampling approaches on the same dataset to create training datasets for comparison against our semantic stratification procedure.
-To form spatial strata, we treated the grid of candidate training samples as a graph where each cell is a node and edges were formed between neighboring cells.
-The METIS graph partitioning software was then applied to the graph to form 250 spatially contiguous strata of similar size using parallel multilevel graph partitioning algorithms \citep{karypisFastHighQuality1998, karypisMETISSoftwarePackage1997}.
-As with the semantic stratification approach, we sampled 4 candidate training samples from each stratum, with each sample being placed into a separate fold of the training dataset such that 4 folds formed a total of 1,000 training samples.
-We employed a stratified k-fold cross-validation approach to evaluate the performance of the land cover classification models trained using the three sampling approaches across 3 different potential training dataset sizes: 250, 500, and 750 samples.
-For a training size of 250, a single fold was used for training.
-For 500, two folds were combined, and for 750, three folds were combined.
-% This ensured that smaller training sets were proper subsets of the larger ones, allowing for a consistent evaluation of performance scaling.
-Figure~\ref{fig:fold_splits} illustrates the division of the training dataset into folds for the three different training sample sizes.
-
-\input{figures/kfold.tex}
-
-For the CBLC dataset, we produced and trained on 10 separate replications of simple random sampling, spatial stratification, and semantic stratification approaches to ensure that any observed differences in the performance of the models trained using these approaches were reproducible and not due to random chance.
-Further, 50,000 samples were randomly selected from the remaining candidate samples in the CBLC dataset to form a large test dataset that was used to evaluate the performance of the trained models.
-Candidate patches that lay within \SI{500}{\meter} of a training sample were excluded from consideration for the test dataset to ensure that spatial autocorrelation did not lead to data leakage between the training and test datasets. 
-As the CBLC dataset was derived using DEM and various ancillary data sources in addition to aerial imagery, we elected to reclassify the dataset down to 7 classes in accordance with our chosen land cover classification scheme, as shown in Table~\ref{tab:cpb_reclass}.
-
-\input{tables/chesapeake_bay_reclass.tex}
-
-Metrics were computed both on an overall basis and on a per-class basis to evaluate the performance of the models.
-% Considering the natural imbalance on the land cover classes, macro-averaged metrics are computed to ensure that the performance of the models is not dominated by the most common land cover classes.
-Specifically, we chose to utilize the mean Intersection over Union (mIoU) metric as the primary evaluation metric, as it is a commonly used metric for semantic segmentation tasks and is robust to class imbalance as the IoU for each class contributes equally to the overall metric.
-mIoU is computed as shown in Equation~\ref{eq:miou}, where \(C\) is the number of classes, \(\text{TP}_c\) is the number of true positives for class \(c\), \(\text{FP}_c\) is the number of false positives for class \(c\), and \(\text{FN}_c\) is the number of false negatives for class \(c\).
-
-\begin{equation}\label{eq:miou}
-    \text{mIoU} = \frac{1}{C} \sum_{c=1}^{C} \frac{\text{TP}_c}{\text{TP}_c + \text{FP}_c + \text{FN}_c}
-\end{equation}
-
-A DeepLabv3+ architecture with a ResNet-101 encoder network served as the model for which the semantic stratification approach was validated.
-A separate model was trained for each run of the cross-validation framework, with the model being trained for a maximum of 1,000 epochs using the AdamW optimizer with a learning rate of \(1 \times 10^{-4}\) and a batch size of 32~\citep{loshchilovDecoupledWeightDecay2019}.
-Focal loss was used as the loss function to address the class imbalance in the land cover classes as shown in Equation~\ref{eq:focal_loss}, where \(p_t\) is the model's estimated probability for the true class and \(\gamma=2.0\)~\citep{linFocalLossDense2017}.
-A warmup period of 10 epochs was used to linearly increase the learning rate from \(1 \times 10^{-5}\) to \(1 \times 10^{-4}\) at epoch 10, after which the learning rate was decayed by a factor of 0.1 after the validation loss fails to decrease for 15 epochs.
-After 50 epochs of no improvement in the validation loss, training was halted and the model with the lowest validation loss was selected as the final model for that run.
-Automatic mixed precision (AMP) training was used to speed up the training stage and reduce memory usage.
-Due to the limited size of the training datasets, we employed a strong set of image augmentations described in Table~\ref{tab:data_augmentations} on-the-fly to ensure that the models did not overfit to the training data.
-Each model was evaluated on the test dataset using the mIoU metric, and the results were averaged across the 10 replications and k-folds for each training dataset size and sampling strategy.
-To assess the impact of the sampling strategy on model performance, the average mIoU results across all folds were computed for each replication, sampling strategy, and training dataset size such that a two-way ANOVA could be performed to test the effects of stratification protocol, training dataset size, and their interaction on the model's accuracy.
-Pairwise comparisons were conducted using a Tukey HSD test to determine which sampling strategies and training dataset sizes yielded statistically significant differences in mIoU.
-For both the ANOVA and Tukey HSD tests, we use \(\alpha = 0.05\) as the threshold for statistical significance.
-
-\begin{equation}\label{eq:focal_loss}
-    \mathcal{L}_\text{Focal}(p_t) = -(1 - p_t)^\gamma \log(p_t)
-\end{equation}
-
-% \begin{equation} 
-%     \mathcal{L}_{\text{Focal}}(p_c, y_c) = - \sum_{c=1}^{C} y_c (1 - p_c)^\gamma \log(p_c) 
-% \end{equation}
-
-\input{tables/augmentations.tex}
-
-
 \subsection{Dataset curation and SAM-assisted visual annotation}\label{sec:methodology:dataset_curation}
 
-Once the semantic stratification approach was validated using the CBLC dataset, we applied it to the state of Mississippi to select 1,000 candidate training samples for manual visual annotation.
+To ensure representative sampling for k-fold cross-validation, we employed a stratified sampling strategy to select 1,000 candidate training samples for annotation.
+We overlaid a grid of 256\(\times\)\SI{256}{\meter} cells over Mississippi, which formed the population of potential training samples.
+For each cell, we extracted a zonal histogram of land cover class distribution using the NLCD dataset.
+These histograms served as feature vectors describing the land cover composition.
+We then applied PCA to reduce the dimensionality of the feature vectors and K-means clustering to form 250 strata based on land cover composition.
+Finally, we randomly sampled 4 candidate training samples from each stratum, placing each into a separate fold of the k-fold training dataset, resulting in 4 folds totaling 1,000 samples.
+
 A team of trained annotators was employed to visually annotate the selected samples according to the land cover classification scheme shown in Table~\ref{tab:class_legend}.
 Samples were randomly assigned to each annotator without regard to the sampling strategy used to select them such that each fold contained a mix of samples from each annotator.
 After the annotators completed their work, the annotations were reviewed and corrected by another annotator whose task was to ensure that the annotations were consistent and accurate.
@@ -94,13 +26,12 @@ By using positive and negative point prompts to create an initial mask correspon
 
 \input{tables/class_legend.tex}
 
-Aside from the samples selected for annotation, a large dataset of unannotated samples was also collected from the state of Mississippi using simple random sampling to form a large dataset of unannotated samples for pre-training the ResNet-101 encoder.
-20\% of the total number of candidate samples were selected for this dataset, while 5\% of the candidate samples were selected to serve as a pre-trained validation dataset to monitor for overfitting during the pre-training process, corresponding to 377,921 and 94,480 samples, respectively.
+Aside from the 1,000 samples selected for annotation, a large dataset of unannotated samples was also collected from the state of Mississippi using simple random sampling from the remaining candidate tiles to form a large dataset of unannotated samples for pre-training the ResNet-101 encoder.
+20\% of the total number of candidate samples were selected for pre-training, while 5\% were selected to serve as a pre-training validation dataset to monitor for overfitting during the pre-training process, corresponding to 377,921 and 94,480 samples, respectively.
 Once all sample tiles were selected, a point-based assessment dataset of 25,000 samples was created by randomly sampling points from the remaining candidate samples to serve as a testing dataset for both model evaluation and accurate assessment of the final land cover product.
 No points within \SI{200}{\meter} of a sampled tile were selected to prevent data leakage caused by spatial autocorrelation, and no points within \SI{1}{\kilo \meter} of a previously sampled point were selected to ensure that the assessment points were spatially independent of each other.
 These points were visually annotated by a single annotator using 2023 NAIP imagery.
-For model evaluation purposes, 256 \(\times\) 256 meter tiles were extracted around each point such that the point was at the center of the tile, and a model's prediction for the pixel corresponding to the point was compared to the point label to compute accuracy metrics.
-
+For model evaluation purposes, 256 \(\times\)\SI{256}{\meter} tiles were extracted around each point such that the point was at the center of the tile, and a model's prediction for the pixel corresponding to the point was compared to the point label to compute accuracy metrics.
 
 \subsection{Self-supervised pre-training using BYOL}\label{sec:methodology:self_supervised_pretraining}
 
@@ -108,7 +39,6 @@ The pre-training phase of the methodology is intended to leverage the large data
 BYOL uses a ``self-distillation'' approach to learn representations from images using two separate but inter-dependent networks: an online network that consists of the primary encoder and a target network that consists of an exponential moving average (EMA) of the online network's parameters~\citep{grillBootstrapYourOwn2020}.
 Given an input image, two separate augmented views of the image are created using a set of transformations.
 Each view is then passed through the online and target networks to produce feature vectors, as shown in Figure~\ref{fig:byol_workflow}.
-% The online network is trained to predict the feature vector produced by the target network given the other view as input, and backpropagation is used to update the weights of the online network based on the 
 The online network, which processes view \(v_1\), is then trained to predict the feature vector produced by the target network from view \(v_2\).
 However, the target network is not trained directly; instead, it is updated using an EMA of the online network weights, giving the online network a stable yet constantly updated target to learn from.
 The online network consists of an image encoder, a multi-layer perceptron (MLP) projection head, and an MLP prediction head, while the target network consists of an image encoder and an MLP projection head.
@@ -128,17 +58,42 @@ The target network's parameters \(\theta_\text{target}\) are updated according t
 
 We applied BYOL to a ResNet-101 encoder network using the large dataset of unannotated samples from the state of Mississippi.
 We tested two configurations of the BYOL pre-training process: one starting with ImageNet pre-trained weights at the beginning of the pre-training process and one starting with randomly initialized weights.
-The pre-training process was run for 300 epochs, with the learning annealed from \(1 \times 10^{-3}\) to 0 over the course of training using a cosine annealing schedule, with a warmup period of 10 epochs to linearly increase the learning rate from 0 to \(1 \times 10^{-3}\).
+The pre-training process was run for 300 epochs, with the learning rate reduced from \(1 \times 10^{-3}\) to 0 over the course of training using a cosine annealing schedule, with a warmup period of 10 epochs to linearly increase the learning rate from 0 to \(1 \times 10^{-3}\).
 The AdamW optimizer was used with a batch size of 4096: to achieve this large batch size while working within the memory constraints of a single Nvidia A100 GPU with 80 GB of VRAM, we employed gradient accumulation using a microbatch size of 256.
-As with the models in Section~\ref{sec:methodology:semantic_stratification}, AMP training was again used to increase training speed and reduce memory footprint.
-After each epoch, the model was evaluated on the pre-training validation dataset using the BYOL loss function (as during training) to monitor for overfitting: as BYOL does not use a traditional supervised loss function, a decreasing validation loss is not necessarily indicative of a model learning high-quality representations for downstream tasks, but rather an indication that the model is better able to predict the target network's output, which ideally corresponds to learning better representations assuming the representations have not collapsed (i.e., the model produces the same output regardless of input).
+Automatic mixed precision (AMP) training was used to speed up the training stage and reduce memory usage.
+After each epoch, the model was evaluated on the pre-training validation dataset using the BYOL loss function (as during training) to monitor for overfitting.
+
+% \subsection{Embedding evaluation through linear probing}\ref{lab}
 
 To evaluate the quality of the learned representations, we used a linear probing approach to determine how well the deep features extracted by the pre-trained networks could be used to classify land cover classes using a simple linear classifier.
 To accomplish this, the feature maps produced by the ResNet-101 encoder were upsampled to the original input resolution using bilinear interpolation, and a linear classifier was trained on top of these feature maps using the annotated training dataset from Section~\ref{sec:methodology:dataset_curation}.
 The linear classifier consisted of a single 1\(\times\)1 convolutional layer with a softmax activation function to produce class probabilities for each pixel.
-This classification model was fit using the same configuration as the models in Section~\ref{sec:methodology:semantic_stratification} to maintain a consistent framework for experimentation.
-K-fold cross-validation was again employed to minimize the influence of variation in the training dataset while evaluating the performance of this method across different training dataset sizes (250, 500, and 750 samples), using the strategy shown in Figure~\ref{fig:fold_splits}.
-The performance of the linear probing models was evaluated using the mIoU metrics on the point-based assessment dataset, with the results being compared between the two BYOL pre-training configurations as well as a baseline model that used the ResNet-101 encoder with ImageNet pre-trained weights without any BYOL pre-training.
+K-fold cross-validation was employed to minimize the influence of variation in the training dataset while evaluating the performance of this method across different training dataset sizes (\(N_\text{train} \in (250, 500, 750)\)); the splitting strategy for each \(N_\text{train}\) is shown in Figure~\ref{fig:fold_splits}.
+
+\input{figures/kfold.tex}
+
+A separate model was trained for each run of the cross-validation framework, with the model being trained for a maximum of 1,000 epochs using the AdamW optimizer with a learning rate of \(1 \times 10^{-4}\) and a batch size of 32~\citep{loshchilovDecoupledWeightDecay2019}.
+Focal loss was used as the loss function to address the class imbalance in the land cover classes as shown in Equation~\ref{eq:focal_loss}, where \(p_t\) is the model's estimated probability for the true class and \(\gamma=2.0\)~\citep{linFocalLossDense2017}.
+
+\begin{equation}\label{eq:focal_loss}
+    \mathcal{L}_\text{Focal}(p_t) = -(1 - p_t)^\gamma \log(p_t)
+\end{equation}
+
+
+A warmup period of 10 epochs was used to linearly increase the learning rate from \(1 \times 10^{-5}\) to \(1 \times 10^{-4}\) at epoch 10, after which the learning rate was decayed by a factor of 0.1 after the validation loss fails to decrease for 15 epochs.
+After 50 epochs of no improvement in the validation loss, training was halted and the model with the lowest validation loss was selected as the final model for that run.
+Automatic mixed precision (AMP) training was used to speed up the training stage and reduce memory usage.
+Due to the limited size of the training datasets, we employed a strong set of image augmentations on-the-fly to ensure that the models did not overfit to the training data (see Appendix~\ref{tab:data_augmentations}).
+Since each cross-validation run used its validation split to tune the optimizer and trigger early stopping, we did not use validation-split metrics for final performance reporting.
+Rather, the performance of the linear probing models was evaluated using the point-based assessment dataset, with the results being compared between the two BYOL pre-training configurations (i.e., different weight initialization strategies) as well as a baseline model that used the ResNet-101 encoder with ImageNet pre-trained weights without any BYOL pre-training.
+Considering the natural imbalance of the land cover classes, we chose the macro F1 score as the primary evaluation metric, as shown in Equation~\ref{eq:macro_f1}, where \(C\) is the number of classes, \(\text{TP}_c\) is the number of true positives for class \(c\), \(\text{FP}_c\) is the number of false positives for class \(c\), and \(\text{FN}_c\) is the number of false negatives for class \(c\).
+
+\begin{equation}\label{eq:macro_f1}
+    \text{Macro F1 Score} = \frac{1}{C} \sum_{c=1}^{C} \frac{2\text{TP}_c}{2\text{TP}_c + \text{FP}_c + \text{FN}_c}
+\end{equation}
+
+
+% \input{tables/augmentations.tex}
 
 \subsection{Selecting a semantic segmentation architecture and fine-tuning}\label{sec:methodology:semantic_segmentation}
 
@@ -146,11 +101,107 @@ Once the ResNet-101 encoders were pre-trained using BYOL, they were used as a ba
 We evaluated 8 different semantic segmentation architectures to determine which framework was best suited for the land cover classification task at hand.
 Table~\ref{tab:semantic_segmentation_models} lists the semantic segmentation architectures that were evaluated in this study.
 Notably, we excluded architectures that rely on Transformer-based backbones or employ specialized feature extraction backbones that cannot be easily replaced with a ResNet-101 encoder.
-Like the linear probing evaluation steps in Section~\ref{sec:results:self_supervised_learning}, each model was fine-tuned using the same configuration as the models in Section~\ref{sec:methodology:semantic_stratification} (i.e., AdamW optimizer, learning rate of \(1 \times 10^{-4}\), batch size of 32, focal loss function, AMP, etc.).
-During fine-tuning, the weights of the ResNet-101 encoder were unfrozen and updated along with the weights of the semantic segmentation architecture.
-Evaluation was again performed using cross-validation across 250, 500, and 750 training samples (Figure~\ref{fig:fold_splits}), and the performance of each model was assessed using each model's mIoU on the point-based assessment dataset to select the best-performing combination of pre-training procedure, semantic segmentation architecture, and training dataset size using the mean mIoU across the k-folds.
+
+% An example of how the ResNet-101 encoder is used in these architectures is shown in Figure~\ref{fig:unet}, where the standard convolutional encoder is replaced with the pre-trained ResNet.
 
 \input{tables/models.tex}
+
+\paragraph{U-Net}
+U-Net is a popular semantic segmentation architecture that was among the early adopters of the encoder-decoder framework for semantic segmentation tasks. 
+Under such a framework, the encoder network extracts hierarchical features from the input image, while the decoder network learns a mapping from these low-dimensional features to an output segmentation map that matches the original input resolution~\citep{ronnebergerUNetConvolutionalNetworks2015}.
+Notably, U-Net's decoder network is approximately symmetric to the encoder network, meaning that the feature maps are upsampled in stages that mirror the downsampling stages of the encoder.
+As such, skip connections can be used to pass feature maps from the encoder to the decoder at corresponding stages: the encoder's feature maps are concatenated with the decoder's feature maps at each stage to provide the decoder with relevant, resolution-specific information that otherwise would be lost during the downsampling process.
+U-Net's simple yet powerful architecture has made it a popular choice for remote sensing applications, and it has been widely adopted for land cover classification tasks at high spatial resolutions \note{CITE!}
+Our U-Net implementation differs from the original U-Net architecture in two key ways: first, we opt to use simple bilinear interpolation for upsampling in the decoder rather than transposed convolutions to reduce the presence of checkerboard artifacts in the output segmentation maps (see \citep{odenaDeconvolutionCheckerboardArtifacts2016} for more details); second, as we use a ResNet-101 encoder that downsamples the input image by a factor of 4 in the first stage (as opposed to the factor of 2 downsampling in the original U-Net), we modify the decoder to account for this difference by adding an additional upsampling stage to ensure that the output segmentation map matches the input resolution.
+An example of how the ResNet-101 encoder is used in this architecture is shown in Figure~\ref{fig:unet}, where the standard convolutional encoder is replaced with the pre-trained ResNet-101.
+
+\input{figures/unet.tex}
+
+\paragraph{Attention U-Net}
+
+As the name suggests, Attention U-NEt is a variant of the U-Net architecture that incorporates attention mechanisms that emphasize spatial regions of interest in the feature maps.
+This accomplished through the use of attention gates along the skip connections between the encoder and decoder, which learn to weight the features passed from the encoder to the decoder based on their relevance to the current task~\citep{oktayAttentionUNetLearning2018}.
+By focusing on the most relevant spatial regions, \citet{oktayAttentionUNetLearning2018} demonstrated that Attenntion U-Net achieved improved performance on medical image segmentation tasks compared to the original U-Net architecture, particularly with regards to localization of object boundaries.
+Like U-Net, our Attention U-Net implementation uses bilinear interpolation for upsampling in the decoder rather than transposed convolutions, and the decoder includes an additional upsampling stage to account for the ResNet-101 encoder's downsampling factor of 4 in the first stage.
+
+\paragraph{PSPNet}
+
+One of the limitations of more traditional encoder-decoder frameworks is that they can struggle to incorporate global context into their predictions, as the effective receptive field of CNNs at the highest-resolution feature maps is often too small to capture large-range relationships in the input image.
+PSPNet (Pyramid Scene Parsing Network) attemmpts to address this limitation through the use of a Pyramid Pooling Module (PPM) that aggregates global and multi-scale context in the final feature maps produced by the encoder~\citep{zhaoPyramidSceneParsing2017a}.
+The PPM is straightforward: 4 parallel pooling operations with different kernel sizes are applied to the encoder's final feature maps to produce pooled feature maps at different scales.
+These pooled feature maps are then projected down to a single channel using 1\(\times\)1 convolutions, upsampled to the original feature map resolution using bilinear interpolation, and concatenated with the original feature maps from the encoder.
+PSPNet foregoes the use of a complex, deep decoder network, instead opting for a simple 1\(\times\)1 convolutional layer followed by bilinear interpolation to produce the final segmentation map.
+Given that the original PSPNet architecture uses a slightly modified ResNet-101 encoder, it requires minimal modification to incorporate our pre-trained ResNet-101 encoder.
+However, for the purposes of simplicity, we do not use the auxiliary loss function employed in the original implementation, as the use of an auxiliary loss function is not unique to PSPNet (any of the architectures evaluated could employ an auxiliary loss function if desired).
+% Despite its simplicity, PSPNet demonstrated 
+
+
+\paragraph{UPerNet}
+
+Unlike most semantic segmentation architectures that only attempt to classify objects at a single scale, UPerNet (Unified Perceptual Parsing Network) is designed to classify objects as part of a hierarchical structure that operates at multiple levels of granularity.
+UPerNet classifies an image at one global level (i.e., scene classification) and at four local levels (object, part, material, and texture classification maps)~\citep{xiaoUnifiedPerceptualParsing2018}.
+The core component of UPerNet is Feature Pyramid Network (FPN), a U-Net like encoder-decoder architecture that serves as the primary feature extractor for UPerNet.
+The encoder network's downsampling stages are similar to those of ResNet-101, making substituting the orginal FPN encoder with a ResNet-101 encoder straightforward.
+A PPM network is placed after the encoder network in the FPN to aggregate global context from the feature maps prior to passing them to the decoder.
+Our implementation disregards the multi-level classification aspect of UPerNet, and only uses the object-level classification head to produce a single land cover classification map.
+This object-level classification head receives feature maps from all levels of the FPN decoder, classifies each pixel, and upsamples the output to match the input resolution.
+Classifying land cover using feature maps from all levels of the decoder allows the classification head to leverage features at multiple scales to inform its predictions, unlike more traditional encoder-decoder architectures that only consider the output from the final, highest-resolution feature map of the decoder.
+Alongside the use of the ResNet-101 encoder, our UPerNet implementation also incorporates the output of the PPM module into the final classification head in addition to the feature maps from the FPN decoder as a means of better incorporating global context into the final predictions.
+
+\paragraph{DeepLabV3+}
+
+DeepLabV3+ is an evolution of the DeepLab family of semantic segmentation architectures that incorporates atrous (dilated) convolutions and spatial pyramid pooling to capture multi-scale context in the feature maps~\citep{chenEncoderDecoderAtrousSeparable2018}.
+DeepLabV3+ is similar to PSPNet in that uses an Atrous Spatial Pyramid Pooling (ASPP) module to aggregate multi-scale context from the final feature maps produced by the encoder.
+Unlike PSPNet, the ASPP module uses parallel atrous convolutions to encoder feature maps at multiple scales as opposed to using pooling operations: the use of atrous (i.e., dilated) convolutions allows the network to capture features at multiple scales in a learned manner as opposed to the fixed pooling operations used in PSPNet.
+DeepLabV3+ incorporates a simple decoder network that upsamples the output of the ASPP module using bilinear interpolation, concatenates it with low-level feature maps from the encoder, and upsamples the result to produce the final segmentation map.
+DeepLabV3+ is a popular choice for land cover classification at high spatial resolutions, and has been widely adopted in the remote sensing community \note{CITE!}
+DeepLabV3+ was orignally designed to use a modified ResNet-101 encoder, and as such minimal effort is necessary to replace the original encoder with our pre-trained ResNet-101 encoder.
+
+\note{Paper OS = 16, our implementation uses OS = 16}
+
+\paragraph{BiSeNet}
+
+Most semantic segmentation architectures operated using a single-stream framework, where a single encoder network passes extracted features to a decoder network that produces the final segmentation map, with varying degrees of complexity in the encoder and decoder networks, or the use of additional sub-networks to enhance the feature extraction process.
+BiSeNet (Bilateral Segmentation Network) is a departure from this single-stream framework, instead opting for a dual-stream framework that aims to extract both low-resolution, high-level semantic information and high-resolutoin, low-level spatial features in parallel~\citep{yuBiSeNetBilateralSegmentation2018}.
+The first stream (or ``spatial path'') is a relatively shallow CNN that extracts high-resolution spatial features from the image that are important for accurate localization of object boundaries, while the second stream (or ``context path'') is a deep Xception CNN similar to a standard encoder network that extracts low-resolution, high-level semantic features.
+Features from the deeper layers of the context path are refined using a custom channel attention module (dubbed the Attention Refinement Module, or ARM) that uses global context to emphasize the most relevant channels in the feature maps.
+These features are fused in the Feature Fusion Module (FFM), a shallow decoder network that concatenates the feature maps from both streams, refines them using a convolutional layer, and applies a standard channel attention module to re-weight the features in the fused feature maps prior to the final classification head.
+Replacing the context path with our pre-trained ResNet-101 encoder is straightforward, and we make no modifications to the spatial path, ARM, FFM, or classification head.
+
+\paragraph{PAN}
+
+Incoporating multi-scale context into semantic segmentation models is a common theme among many modern architectures, but many of these frameworks utilize sub-networks or modules that are limited in their ability to capture highly complex relationships in the feature maps and re-weight them accordingly to emphasize the most relevant features.
+PAN (Pyramid Attention Network) attempts to address this limitation through the use of a Featyre Pyramid Attention (FPA) network module that utilizes convolutions with multiple kernel sizes to perform a spatial attention operation on the feature maps produced by the encoder~\citep{liPyramidAttentionNetwork2018}.
+Liek PSPNet and DeepLabV3+, PAN uses this FPA module with the goal of refining large-scale context in the final feature maps produced by the encoder.
+However, PAN's FPA module aims to retain localization information in the feature maps through the use of convolutional attention rather than pooling or atrous convolutions.
+Like Attention U-Net, Global attention Upsample (GAU) modules are used in the decoder to serve as a form of gating mechanism that attends to the most relevant channels in the feature maps before adding them to the upsampled feature maps from the previous stage of the decoder (as opposed to attending spatially and concatenating the feature maps in Attention U-Net).
+ResNet-101 is used as the encoder in the original PAN architecture, and as such no modifications are necessary to incorporate our pre-trained ResNet-101 encoder.
+
+\note{Paper: OS = 16, our implementation uses OS = 16}
+
+\paragraph{DANet}
+
+Architectures that incorporate attention mechanisms into the classification process 
+
+\note{Paper: OS = 8, our implementation uses OS = 16, implement with OS-8 yeilds to approx. 3.5 increase in FLOPS}
+
+
+
+
+Each model was fine-tuned using the same configuration as the models in Section~\ref{sec:methodology:self_supervised_pretraining} (i.e., AdamW optimizer, learning rate of \(1 \times 10^{-4}\), batch size of 32, focal loss function, AMP, etc.).
+During fine-tuning, the weights of the ResNet-101 encoder were unfrozen and updated along with the weights of the semantic segmentation architecture.
+Evaluation was again performed using cross-validation across 250, 500, and 750 training samples (Figure~\ref{fig:fold_splits}), and the performance of each model was assessed using each model's macro F1 score on the point-based assessment dataset to select the best-performing combination of pre-training procedure, semantic segmentation architecture, and training dataset size using the mean macro F1 score across the k-folds.
+
+
+% Metrics were computed both on an overall basis and on a per-class basis to evaluate the performance of the models.
+
+
+% \note{CRITICAL: This is the same issue as in the previous section. The reference to the training configuration is broken. This must be updated to point to a new, dedicated subsection describing the common training parameters.}
+% Like the linear probing evaluation steps in Section~\ref{sec:results:self_supervised_learning}, each model was fine-tuned using the same configuration as the models in Section~\ref{sec:methodology:semantic_stratification} (i.e., AdamW optimizer, learning rate of \(1 \times 10^{-4}\), batch size of 32, focal loss function, AMP, etc.).
+% During fine-tuning, the weights of the ResNet-101 encoder were unfrozen and updated along with the weights of the semantic segmentation architecture.
+% Evaluation was again performed using cross-validation across 250, 500, and 750 training samples (Figure~\ref{fig:fold_splits}), and the performance of each model was assessed using each model's mIoU on the point-based assessment dataset to select the best-performing combination of pre-training procedure, semantic segmentation architecture, and training dataset size using the mean mIoU across the k-folds.
+
+
 
 \subsection{Model ensembling and large-scale land cover mapping}\label{sec:methodology:model_ensembling}
 
@@ -159,7 +210,8 @@ Model ensembling was chosen as it is a popular approach to improving the robustn
 Each model in the ensemble produced a land cover probability vector for each pixel in the input image, and these class probability vectors were averaged across all models in the ensemble to produce a final class probability vector for each pixel, with the final predicted class being the class with the highest probability from the averaged class probabilities~\citep{marmanisSemanticSegmentationAerial2016}.
 A ``sliding window'' approach was used to process the imagery in \SI{256}{\meter} tiles with a stride of \SI{64}{\meter} to ensure that each pixel would be seen multiple times to further maximize the effects of the model ensemble.
 Additionally, test-time augmentations were employed to further improve the robustness of the predictions: at any given location, each model in the ensemble received an input that was randomly augmented using random horizontal and vertical flips along with random 90-degree rotations~\citep{moshkovTesttimeAugmentationDeep2020}.
-Evaluation of the final land cover product was performed using the point-based assessment dataset, with overall accuracy and per-class user accuracy and producer accuracy metrics being computed to assess the quality of the final product, as shown in Equation~\ref{eq:accuracy_metrics}.
+The final output tiles of the ensemble were weighted using element-wise multiplication with a 256\(\times\)256 Gaussian kernel to de-emphasize the probabilities of pixels near the edge of the classification maps in order to mitigate presence of edge artifacts in the final merged output.
+Evaluation of the final land cover product was performed using the point-based assessment dataset, with overall accuracy, per-class user accuracy, and per-class producer accuracy metrics being computed to assess the quality of the final product, as shown in Equation~\ref{eq:accuracy_metrics}.
 
 \begin{equation}\label{eq:accuracy_metrics}
 \begin{gathered}
@@ -172,5 +224,187 @@ Evaluation of the final land cover product was performed using the point-based a
 \subsection{Implementation details}
 
 All data preparation steps were performed using the \texttt{rioxarray}, \texttt{rasterio}, and \texttt{geopandas} libraries in Python \citep{aland.snowCortevaRioxarray01902025, gillies_2019, jorisvandenbosscheGeopandasGeopandasV1112025}.
-The scaling, PCA, and k-means clustering steps of the semantic stratification approach were performed using the \texttt{scikit-learn} library in Python \citep{scikit-learn}, while the \texttt{PyMETIS} wrapper for the METIS graph partitioning software was used to form spatial strata \citep{kloecknerPyMetis2025}.
+The scaling, PCA, and k-means clustering steps of the sample stratification approach were performed using the \texttt{scikit-learn} library in Python \citep{scikit-learn}.
 All deep learning models were implemented using the \texttt{PyTorch} and \texttt{Torchvision} libraries in Python 3~\citep{paszkePyTorchImperativeStyle2019, torchvision2016}.
+
+% \section{Methodology}\label{sec:methodology}
+
+% The proposed methodology consits of several main components: (1) the evaluation of our proposed ``semantic stratification'' routine for improved sample selection using data from the CBLC dataset, (2) curation and visual annotation of a limited land cover dataset using samples selected according to the porposed strategy applied over the state of Mississippi, (3) pre-training a deep ResNet-101 image encoder using BYOL, (4) fine-tuning of a semantic segmentation architecture with the pre-trained backbone using the limited ground truth data, and (5) producing and validating a large-scale \SI{1}{\meter} resolution land cover map over the state of Mississippi.
+% Our proposed methodology consisted of a multi-stage approach to land cover classification that aimed to produce a land cover product at high accuracy under data-scarce conditions using a machine-learning driven stratification protocol that aims to extract informative samples for training using existing coarse-resolution land cover products along with the use of a self-supervised learning schema to pre-train a large vision model for feature extraction from color-infrared aerial imagery in the absence of ground truth data.
+% First, we applied our proposed semantic stratification approach to train and evaluate a land cover classification model using a subset of the CBLC dataset in Virginia in order to validate the approach in the context of other stratification approaches.
+% We then used this approach to select 1,000 sample tiles over the state of Mississippi for manual visual annotation to build a training dataset.
+% A separate, larger dataset of unannotated sample tiles from the state of Mississippi was used to pre-train a ResNet-101 convolutional encoder using BYOL as a pretext task under a self-supervised learning framework.
+% The ResNet-101 encoder was then used as a backbone for a semantic segmentation architecture that was fine-tuned using the annotated training dataset.
+% Finally, several fine-tuned models were compiled into a model ensemble to produce a land cover map at \SI{1}{\meter} resolution over the state of Mississippi for the year 2023, with the final data product undergoing a thematic accuracy assessment using a point-based validation approach. An illustration providing an overview of the methodology is shown in Figure~\ref{fig:methodology_flowchart}.
+
+
+% % Our proposed methodology consisted of a multi-stage approach to model development that investigated the implications of sample selection and pre-training with the goal of producing an accurate VHSR land cover product over the state of Mississippi using a limited amount of annotated training data.
+
+% % The proposed methodology used in this work
+% % Our proposed methodology consisted of a multi-stage approach to model development that investigated the implications of sample selection and pre-training with the goal of producing an accurate VHSR land cover product over the state of Mississippi using a limited amount of annotated training data.
+
+% \input{figures/methodology.tex}
+
+% \subsection{Validation of semantic stratification approach using CBLC data}\label{sec:methodology:semantic_stratification}
+
+% Our proposed stratification method relied on the use of existing land cover data to form strata according to the distribution and composition of land cover classes within a population of potential training samples over a given area.
+% A high-level overview of this approach is shown in Figure~\ref{fig:stratification_flowchart}.
+% Given an area of interest, we overlaid a grid of 256\(\times\)256 meter cells that intersected with the study area, and these cells served as the population of potential training samples.
+% We then extracted zonal histograms of land cover class distribution within each cell using the NLCD land cover data as a reference.
+% The NLCD classes were reclassified down to 7 classes in accordance with the chosen land cover classification scheme, as shown in Table~\ref{tab:nlcd_reclass}.
+% The zonal histograms served as an informative feature vector for each cell, which effectively described the land cover composition within each cell.
+% We scaled these histograms using the median and interquartile range of the histograms across all cells in the study area to ensure that the features were robustly normalized; non-parametric statistics were chosen over mean and standard deviation statistics to avoid the influence of outliers.
+% Principal component analysis (PCA) was then applied to the scaled histograms to reduce the dimensionality of the feature space and to extract the most informative features.
+% We selected the first two principal components, which collectively explained over 95\% of the variance in the land cover composition vectors, to serve as the features for stratification.
+% K-means clustering was then applied to the PCA-transformed features to form strata based on the land cover composition of each cell.
+% A total of 250 strata were used, balancing the need for fine-grained landscape representation with the goal of sampling 4 patches per stratum to achieve our target sample sizes.
+% 250 clusters was chosen to ensure the strata were sufficiently fine-grained to capture the variability in land cover composition across the study area.
+% From each stratum, we randomly sampled 4 candidate training samples, with each being placed into a separate fold of the training dataset such that 4 folds formed a total of 1,000 training samples.
+
+% \input{figures/sampling_flowchart.tex}
+
+% \input{tables/nlcd_reclass.tex}
+
+% In order to validate the effectiveness of the proposed stratification approach, we applied it to the task of land cover classification using the CBLC dataset.
+% As comparisons, we also used simple random sampling and spatially stratified sampling approaches on the same dataset to create training datasets for comparison against our semantic stratification procedure.
+% To form spatial strata, we treated the grid of candidate training samples as a graph where each cell is a node and edges were formed between neighboring cells.
+% The METIS graph partitioning software was then applied to the graph to form 250 spatially contiguous strata of similar size using parallel multilevel graph partitioning algorithms \citep{karypisFastHighQuality1998, karypisMETISSoftwarePackage1997}.
+% As with the semantic stratification approach, we sampled 4 candidate training samples from each stratum, with each sample being placed into a separate fold of the training dataset such that 4 folds formed a total of 1,000 training samples.
+% We employed a stratified k-fold cross-validation approach to evaluate the performance of the land cover classification models trained using the three sampling approaches across 3 different potential training dataset sizes: 250, 500, and 750 samples.
+% For a training size of 250, a single fold was used for training.
+% For 500, two folds were combined, and for 750, three folds were combined.
+% % This ensured that smaller training sets were proper subsets of the larger ones, allowing for a consistent evaluation of performance scaling.
+% Figure~\ref{fig:fold_splits} illustrates the division of the training dataset into folds for the three different training sample sizes.
+
+% \input{figures/kfold.tex}
+
+% % For the CBLC dataset, we produced and trained on 10 separate replications of simple random sampling, spatial stratification, and semantic stratification approaches to ensure that any observed differences in the performance of the models trained using these approaches were reproducible and not due to random chance.
+% % Further, 50,000 samples were randomly selected from the remaining candidate samples in the CBLC dataset to form a large test dataset that was used to evaluate the performance of the trained models.
+% % Candidate patches that lay within \SI{500}{\meter} of a training sample were excluded from consideration for the test dataset to ensure that spatial autocorrelation did not lead to data leakage between the training and test datasets. 
+% % As the CBLC dataset was derived using DEM and various ancillary data sources in addition to aerial imagery, we elected to reclassify the dataset down to 7 classes in accordance with our chosen land cover classification scheme, as shown in Table~\ref{tab:cpb_reclass}.
+
+% % \input{tables/chesapeake_bay_reclass.tex}
+
+% Metrics were computed both on an overall basis and on a per-class basis to evaluate the performance of the models.
+% % Considering the natural imbalance on the land cover classes, macro-averaged metrics are computed to ensure that the performance of the models is not dominated by the most common land cover classes.
+% Specifically, we chose to utilize the mean Intersection over Union (mIoU) metric as the primary evaluation metric, as it is a commonly used metric for semantic segmentation tasks and is robust to class imbalance as the IoU for each class contributes equally to the overall metric.
+% mIoU is computed as shown in Equation~\ref{eq:miou}, where \(C\) is the number of classes, \(\text{TP}_c\) is the number of true positives for class \(c\), \(\text{FP}_c\) is the number of false positives for class \(c\), and \(\text{FN}_c\) is the number of false negatives for class \(c\).
+
+% \begin{equation}\label{eq:miou}
+%     \text{Macro F1 Score} = \frac{1}{C} \sum_{c=1}^{C} \frac{2\text{TP}_c}{2\text{TP}_c + \text{FP}_c + \text{FN}_c}
+% \end{equation}
+
+% A DeepLabv3+ architecture with a ResNet-101 encoder network served as the model for which the semantic stratification approach was validated.
+% A separate model was trained for each run of the cross-validation framework, with the model being trained for a maximum of 1,000 epochs using the AdamW optimizer with a learning rate of \(1 \times 10^{-4}\) and a batch size of 32~\citep{loshchilovDecoupledWeightDecay2019}.
+% Focal loss was used as the loss function to address the class imbalance in the land cover classes as shown in Equation~\ref{eq:focal_loss}, where \(p_t\) is the model's estimated probability for the true class and \(\gamma=2.0\)~\citep{linFocalLossDense2017}.
+% A warmup period of 10 epochs was used to linearly increase the learning rate from \(1 \times 10^{-5}\) to \(1 \times 10^{-4}\) at epoch 10, after which the learning rate was decayed by a factor of 0.1 after the validation loss fails to decrease for 15 epochs.
+% After 50 epochs of no improvement in the validation loss, training was halted and the model with the lowest validation loss was selected as the final model for that run.
+% Automatic mixed precision (AMP) training was used to speed up the training stage and reduce memory usage.
+% Due to the limited size of the training datasets, we employed a strong set of image augmentations described in Table~\ref{tab:data_augmentations} on-the-fly to ensure that the models did not overfit to the training data.
+% Each model was evaluated on the test dataset using the mIoU metric, and the results were averaged across the 10 replications and k-folds for each training dataset size and sampling strategy.
+% To assess the impact of the sampling strategy on model performance, the average mIoU results across all folds were computed for each replication, sampling strategy, and training dataset size such that a two-way ANOVA could be performed to test the effects of stratification protocol, training dataset size, and their interaction on the model's accuracy.
+% Pairwise comparisons were conducted using a Tukey HSD test to determine which sampling strategies and training dataset sizes yielded statistically significant differences in mIoU.
+% For both the ANOVA and Tukey HSD tests, we use \(\alpha = 0.05\) as the threshold for statistical significance.
+
+% \begin{equation}\label{eq:focal_loss}
+%     \mathcal{L}_\text{Focal}(p_t) = -(1 - p_t)^\gamma \log(p_t)
+% \end{equation}
+
+% % \begin{equation} 
+% %     \mathcal{L}_{\text{Focal}}(p_c, y_c) = - \sum_{c=1}^{C} y_c (1 - p_c)^\gamma \log(p_c) 
+% % \end{equation}
+
+% \input{tables/augmentations.tex}
+
+
+% \subsection{Dataset curation and SAM-assisted visual annotation}\label{sec:methodology:dataset_curation}
+
+% Once the semantic stratification approach was validated using the CBLC dataset, we applied it to the state of Mississippi to select 1,000 candidate training samples for manual visual annotation.
+% A team of trained annotators was employed to visually annotate the selected samples according to the land cover classification scheme shown in Table~\ref{tab:class_legend}.
+% Samples were randomly assigned to each annotator without regard to the sampling strategy used to select them such that each fold contained a mix of samples from each annotator.
+% After the annotators completed their work, the annotations were reviewed and corrected by another annotator whose task was to ensure that the annotations were consistent and accurate.
+% Annotators employed the Segment Anything Model 2 (SAM 2) hosted on the Computer Vision Annotation Tool (CVAT) annotation platform to assist with the visual annotation process \citep{cvat2023,raviSAM2Segment2024}.
+% By using positive and negative point prompts to create an initial mask corresponding to the boundaries of land cover classes in the imagery, annotators were able to quickly refine these masks to produce accurate annotations in a fraction of the time it would take to manually draw the masks.
+
+% \input{tables/class_legend.tex}
+
+% Aside from the samples selected for annotation, a large dataset of unannotated samples was also collected from the state of Mississippi using simple random sampling to form a large dataset of unannotated samples for pre-training the ResNet-101 encoder.
+% 20\% of the total number of candidate samples were selected for this dataset, while 5\% of the candidate samples were selected to serve as a pre-trained validation dataset to monitor for overfitting during the pre-training process, corresponding to 377,921 and 94,480 samples, respectively.
+% Once all sample tiles were selected, a point-based assessment dataset of 25,000 samples was created by randomly sampling points from the remaining candidate samples to serve as a testing dataset for both model evaluation and accurate assessment of the final land cover product.
+% No points within \SI{200}{\meter} of a sampled tile were selected to prevent data leakage caused by spatial autocorrelation, and no points within \SI{1}{\kilo \meter} of a previously sampled point were selected to ensure that the assessment points were spatially independent of each other.
+% These points were visually annotated by a single annotator using 2023 NAIP imagery.
+% For model evaluation purposes, 256 \(\times\) 256 meter tiles were extracted around each point such that the point was at the center of the tile, and a model's prediction for the pixel corresponding to the point was compared to the point label to compute accuracy metrics.
+
+
+% \subsection{Self-supervised pre-training using BYOL}\label{sec:methodology:self_supervised_pretraining}
+
+% The pre-training phase of the methodology is intended to leverage the large dataset of unannotated samples such that a ResNet-101 encoder can be trained to extract relevant features from the imagery that are well-suited for downstream land cover classification tasks.
+% BYOL uses a ``self-distillation'' approach to learn representations from images using two separate but inter-dependent networks: an online network that consists of the primary encoder and a target network that consists of an exponential moving average (EMA) of the online network's parameters~\citep{grillBootstrapYourOwn2020}.
+% Given an input image, two separate augmented views of the image are created using a set of transformations.
+% Each view is then passed through the online and target networks to produce feature vectors, as shown in Figure~\ref{fig:byol_workflow}.
+% % The online network is trained to predict the feature vector produced by the target network given the other view as input, and backpropagation is used to update the weights of the online network based on the 
+% The online network, which processes view \(v_1\), is then trained to predict the feature vector produced by the target network from view \(v_2\).
+% However, the target network is not trained directly; instead, it is updated using an EMA of the online network weights, giving the online network a stable yet constantly updated target to learn from.
+% The online network consists of an image encoder, a multi-layer perceptron (MLP) projection head, and an MLP prediction head, while the target network consists of an image encoder and an MLP projection head.
+% The online encoder's parameters are updated with respect to the loss function in Equation~\ref{eq:byol_loss}, where \(p\) is the output of the online network and \(z\) is the output of the target network.
+
+% \begin{equation}\label{eq:byol_loss}
+%     \mathcal{L}_\text{BYOL} = 2 - 2 \frac{\langle p, z \rangle}{\|p\| \|z\|}
+% \end{equation}
+
+% \input{figures/byol.tex}
+
+% The target network's parameters \(\theta_\text{target}\) are updated according to the EMA update rule shown in Equation~\ref{eq:ema_update}, where \(\theta_\text{online}\) is the current set of parameters for the online network and \(\tau\) is the decay factor for the EMA operation, and is increased from 0.996 to 1 over the course of pre-training according to a cosine annealing schedule.
+
+% \begin{equation}\label{eq:ema_update}
+%     \theta_\text{target} \leftarrow \tau \theta_\text{target} + (1 - \tau) \theta_\text{online}
+% \end{equation}
+
+% We applied BYOL to a ResNet-101 encoder network using the large dataset of unannotated samples from the state of Mississippi.
+% We tested two configurations of the BYOL pre-training process: one starting with ImageNet pre-trained weights at the beginning of the pre-training process and one starting with randomly initialized weights.
+% The pre-training process was run for 300 epochs, with the learning annealed from \(1 \times 10^{-3}\) to 0 over the course of training using a cosine annealing schedule, with a warmup period of 10 epochs to linearly increase the learning rate from 0 to \(1 \times 10^{-3}\).
+% The AdamW optimizer was used with a batch size of 4096: to achieve this large batch size while working within the memory constraints of a single Nvidia A100 GPU with 80 GB of VRAM, we employed gradient accumulation using a microbatch size of 256.
+% As with the models in Section~\ref{sec:methodology:semantic_stratification}, AMP training was again used to increase training speed and reduce memory footprint.
+% After each epoch, the model was evaluated on the pre-training validation dataset using the BYOL loss function (as during training) to monitor for overfitting: as BYOL does not use a traditional supervised loss function, a decreasing validation loss is not necessarily indicative of a model learning high-quality representations for downstream tasks, but rather an indication that the model is better able to predict the target network's output, which ideally corresponds to learning better representations assuming the representations have not collapsed (i.e., the model produces the same output regardless of input).
+
+% To evaluate the quality of the learned representations, we used a linear probing approach to determine how well the deep features extracted by the pre-trained networks could be used to classify land cover classes using a simple linear classifier.
+% To accomplish this, the feature maps produced by the ResNet-101 encoder were upsampled to the original input resolution using bilinear interpolation, and a linear classifier was trained on top of these feature maps using the annotated training dataset from Section~\ref{sec:methodology:dataset_curation}.
+% The linear classifier consisted of a single 1\(\times\)1 convolutional layer with a softmax activation function to produce class probabilities for each pixel.
+% This classification model was fit using the same configuration as the models in Section~\ref{sec:methodology:semantic_stratification} to maintain a consistent framework for experimentation.
+% K-fold cross-validation was again employed to minimize the influence of variation in the training dataset while evaluating the performance of this method across different training dataset sizes (250, 500, and 750 samples), using the strategy shown in Figure~\ref{fig:fold_splits}.
+% The performance of the linear probing models was evaluated using the mIoU metrics on the point-based assessment dataset, with the results being compared between the two BYOL pre-training configurations as well as a baseline model that used the ResNet-101 encoder with ImageNet pre-trained weights without any BYOL pre-training.
+
+% \subsection{Selecting a semantic segmentation architecture and fine-tuning}\label{sec:methodology:semantic_segmentation}
+
+% Once the ResNet-101 encoders were pre-trained using BYOL, they were used as a backbone for a semantic segmentation architecture that was fine-tuned using the annotated training dataset from Section~\ref{sec:methodology:dataset_curation}.
+% We evaluated 8 different semantic segmentation architectures to determine which framework was best suited for the land cover classification task at hand.
+% Table~\ref{tab:semantic_segmentation_models} lists the semantic segmentation architectures that were evaluated in this study.
+% Notably, we excluded architectures that rely on Transformer-based backbones or employ specialized feature extraction backbones that cannot be easily replaced with a ResNet-101 encoder.
+% Like the linear probing evaluation steps in Section~\ref{sec:results:self_supervised_learning}, each model was fine-tuned using the same configuration as the models in Section~\ref{sec:methodology:semantic_stratification} (i.e., AdamW optimizer, learning rate of \(1 \times 10^{-4}\), batch size of 32, focal loss function, AMP, etc.).
+% During fine-tuning, the weights of the ResNet-101 encoder were unfrozen and updated along with the weights of the semantic segmentation architecture.
+% Evaluation was again performed using cross-validation across 250, 500, and 750 training samples (Figure~\ref{fig:fold_splits}), and the performance of each model was assessed using each model's mIoU on the point-based assessment dataset to select the best-performing combination of pre-training procedure, semantic segmentation architecture, and training dataset size using the mean mIoU across the k-folds.
+
+% \input{tables/models.tex}
+
+% \subsection{Model ensembling and large-scale land cover mapping}\label{sec:methodology:model_ensembling}
+
+% Once the best-performing combination of pre-training procedure, semantic segmentation architecture, and training dataset size were determined, we used the models trained using this configuration across all folds to produce a model ensemble for large-scale land cover mapping over the state of Mississippi.
+% Model ensembling was chosen as it is a popular approach to improving the robustness and accuracy of machine learning models by combining the predictions of multiple distinct models to produce a final prediction.
+% Each model in the ensemble produced a land cover probability vector for each pixel in the input image, and these class probability vectors were averaged across all models in the ensemble to produce a final class probability vector for each pixel, with the final predicted class being the class with the highest probability from the averaged class probabilities~\citep{marmanisSemanticSegmentationAerial2016}.
+% A ``sliding window'' approach was used to process the imagery in \SI{256}{\meter} tiles with a stride of \SI{64}{\meter} to ensure that each pixel would be seen multiple times to further maximize the effects of the model ensemble.
+% Additionally, test-time augmentations were employed to further improve the robustness of the predictions: at any given location, each model in the ensemble received an input that was randomly augmented using random horizontal and vertical flips along with random 90-degree rotations~\citep{moshkovTesttimeAugmentationDeep2020}.
+% Evaluation of the final land cover product was performed using the point-based assessment dataset, with overall accuracy and per-class user accuracy and producer accuracy metrics being computed to assess the quality of the final product, as shown in Equation~\ref{eq:accuracy_metrics}.
+
+% \begin{equation}\label{eq:accuracy_metrics}
+% \begin{gathered}
+%     \text{Overall Accuracy} = \frac{\text{TP}}{\text{TP} + \text{FP} + \text{FN}} \\
+%     \text{Producer's Accuracy} = \frac{\text{TP}}{\text{TP} + \text{FN}} \\
+%     \text{User's Accuracy} = \frac{\text{TP}}{\text{TP} + \text{FP}}
+% \end{gathered}
+% \end{equation}
+
+% \subsection{Implementation details}
+
+% All data preparation steps were performed using the \texttt{rioxarray}, \texttt{rasterio}, and \texttt{geopandas} libraries in Python \citep{aland.snowCortevaRioxarray01902025, gillies_2019, jorisvandenbosscheGeopandasGeopandasV1112025}.
+% The scaling, PCA, and k-means clustering steps of the semantic stratification approach were performed using the \texttt{scikit-learn} library in Python \citep{scikit-learn}, while the \texttt{PyMETIS} wrapper for the METIS graph partitioning software was used to form spatial strata \citep{kloecknerPyMetis2025}.
+% All deep learning models were implemented using the \texttt{PyTorch} and \texttt{Torchvision} libraries in Python 3~\citep{paszkePyTorchImperativeStyle2019, torchvision2016}.
