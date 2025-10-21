@@ -1,15 +1,25 @@
 \section{Results}\label{sec:results}
 
+The evaluation of the self-supervised learning approach is divided into two parts: linear probing results and fine-tuning results.
+The linear probing results intend to give an indirect measure of the quality of the learned image representations of the pre-trained encoder in isolation (sans any segmentation heads or fine-tuning).
 As shown in Figure~\ref{fig:probing_metrics}, using fixed embeddings from a ResNet-101 model pre-trained using BYOL as input to a linear classifier yielded substantial improvements in macro F1 score over a classifier that uses embeddings from a model pre-trained only on ImageNet.
 The smallest training dataset size of \(N_\text{train} = 250\) exhibited the largest improvement in macro F1 score, with the BYOL pre-trained model achieving a macro F1 score of \num{52.50}\% compared to \num{33.17}\% for the ImageNet pre-trained model, an improvement of \num{19.32}\%.
 The embedding model where BYOL pre-training was initialized with ImageNet weights performs marginally worse than the model that begins BYOL pre-training with random weights: the average increase in macro F1 score over the ImageNet pre-trained model was \num{15.44}\% for the BYOL model with random initialization, compared to \num{14.87}\% for the BYOL model with ImageNet initialization.
 
 \input{figures/probing_metrics.tex}
 
-These trends shifted somewhat when the pre-trained image encoders were used as the backbone in semantic segmentation architectures that were the fine-tuned end-to-end.
+% These trends shifted somewhat when the pre-trained image encoders were used as the backbone in semantic segmentation architectures that were the fine-tuned end-to-end.
+While the linear probing results show vast improvements in representation quality when using BYOL pre-training, fine-tuning these pre-trained encoders using various semantic segmentation architectures resulted in different performance trends.
 Figure~\ref{fig:finetune_metrics} shows that while the BYOL models that were first initialized with ImageNet weights prior to BYOL pre-training outperformed ImageNet models with no additional pre-training, the BYOL models that were first initialized with random weights have more variable performance depending on the specifics of the semantic segmentation architecture.
 The BYOL encoder with random initialization outperformed the ImageNet pre-trained encoder in terms of mean macro F1 score across for the UPerNet and DeepLabv3+ models at \(N_\text{train} = 250\), but lagged behing all other architectures at \(N_\text{train} = 500\) and \(N_\text{train} = 750\).
-However, the BYOL model initialized with ImageNet weights prior to pre-training consistently outperformed the ImageNet pre-trained model across all architectures and training dataset sizes, echoing the results observed in the linear probing experiment (though to a lesser degree).
+Overall, the ImageNet pre-trained models had a mean macro F1 score of \num{67.34}\%, while the BYOL model with random initialization had a mean macro F1 score of \num{65.61}\%.
+However, the BYOL model initialized with ImageNet weights prior to pre-training consistently outperformed the ImageNet pre-trained model across all architectures and training dataset sizes, achieving a mean macro F1 score of \num{69.04}\%.
+
+Increasing the training dataset size generally led to improvements in macro F1 score across all architectures and pre-training strategies, though the magnitude of these improvements diminished as the dataset size increased.
+For example, the average increase in macro F1 score when increasing the training dataset size from \(N_\text{train} = 250\) to \(N_\text{train} = 500\) was \num{2.37}\%, while the average increase from \(N_\text{train} = 500\) to \(N_\text{train} = 750\) was only \num{0.69}\%.
+The impact of increasing training dataset size is most pronounced for the ImageNet pre-trained models, which saw a mean increase of \num{3.25}\% in macro F1 score when increasing the training dataset size from \(N_\text{train} = 250\) to \(N_\text{train} = 750\), compared to only \num{2.08}\% for the BYOL (ImageNet initialization) models and \num{2.37}\% for the BYOL (random initialization) models.
+In terms of semantic segmentation architecture, the U-Net models had the highest mean macro F1 score across all training dataset sizes and pre-training strategies (71.20\%), followed by Attention U-Net (70.85\%), UPerNet (69.01\%), DeepLabv3+ (67.96\%), PAN (67.32\%), and FCN (65.22\%).
+No correlation between model size (in terms of number of parameters) and macro F1 score was observed (\(r = 0.01\)), indicating that there was no clear relationship between model complexity and performance in this context.
 
 \input{figures/finetune_metrics.tex}
 
@@ -17,28 +27,37 @@ The best-performing pre-training, semantic segmentation architecture, and traini
 To illustrate the qualitative benefits of the BYOL pre-training approach, we highlight a particularly strong individual model run. 
 Run \#2 of the U-Net model with the BYOL backbone (ImageNet initialization) fine-tuned using \(N_\text{train} = 500\) samples achieved a macro F1 score of \num{75.84}\%.
 A qualitative assessment of this model's inference results is shown in Figure~\ref{fig:visual_assessment}, demonstrating that not only did the model outperform its ImageNet-only counterpart quantitatively (an increase of \num{2.06}\% macro F1 score for the same data split), but it also produced land cover maps with sharper object boundaries and fewer classification artifacts.
+Samples (a), (b), and (c) in Figure~\ref{fig:visual_assessment} show overall improvements in classification accuracy with additional pre-training across multiple land cover classes, particularly in homogenoues regions such as water bodies and fields (though some misclassifications still occur, such as in (c)).
+The importance of object localization is highlighted in samples (d), (e), and (f), where the ImageNet-only model tends to yield accpetable overall classification accuracy, but fails to accurately delineate small features such as roads and buildings, which are better captured by the model with additional BYOL pre-training.
+While these examples are illustrative and do not change the overall ranking reported above, they highlight the qualitative improvements of the BYOL pre-training approach, which are particularly important given the \SI{1}{\meter} spatial resolution of the ground truth labels.
 
 \input{figures/visual_assessment.tex}
 
 Despite this specific model's large individual performance, this model was an outlier in terms of performance across all k-folds, as the mean macro F1 score and overall accuracy across all k-folds for this model was \num{73.70}\% and \num{86.55}\%, respectively, falling short of the best-performing configuration in terms of mean macro F1 score.
 As such, the U-Net model with a BYOL backbone initialized with ImageNet weights and fine-tuned using \(N_\text{train} = 750\) samples was considered the best-performing model overall and was used to generate the final land cover map for the entire state of Mississippi.
-The k-fold models from this best-performing configuration were then ensembled and used to generate a final land cover map for the entire state of Mississippi using the procedure outlined in Section~\ref{sec:methodology:model_ensembling}.
+The 4 models trained using this best-performing configuration as part of the k-fold cross-validation procedure were subsequently used to generate a final land cover map for the entire state of Mississippi using the model ensembling and test-time augmentation procedure outlined in Section~\ref{sec:methodology:model_ensembling}.
 A visualization of the final comprehensive \SI{1}{\meter} resolution land cover map for Mississippi is shown in Figure~\ref{fig:inference_results}.
 The confusion matrix from final thematic accuracy assessment for the dataset is shown in Table~\ref{tab:confusion_matrix}.
 Overall, the final product's macro F1 score and overall accuracy were \num{75.58}\% and \num{87.14}\%, respectively, while the mean class-wise producer's accuracy and user's accuracy were \num{75.60}\% and \num{80.18}\%, respectively.
-This represents an increase of \num{1.54}\% in macro F1 score over the mean performance of the base k-fold models, which can be attributed to the model ensembling and test-time augmentation procedures outlined in Section~\ref{sec:methodology:model_ensembling}.
-Table~\ref{tab:final_f1_comparison} provides a class-wise comparison of the F1 scores between the performance of the models in the k-fold cross-validation and their performance when ensembled.
-Notably, the impervious surfaces and barren land classes saw dramatic improvements in F1 score after ensembling, with increases of \num{6.46}\% and \num{3.81}\%, respectively.
-Other classes saw more modest improvements, while the unclassified class saw a decrease in F1 score of \num{2.09}\%.
+Figure~\ref{fig:lc_comparison} provides a visual comparison of the final land cover product against comparable existing land cover datasets (NLCD, ESRI Annual Land Use Land Cover~\citep{karraGlobalLandUse2021}) over various land cover settings in Mississippi, providing a visual comparison of the increase in spatial detail our \SI{1}{\meter} resolution product provides over existing products with coarser spatial resolutions (\SI{10}{\meter} for ESRI LULC and \SI{30}{\meter} for NLCD).
 
 \input{figures/inference_results.tex}
 
 \input{tables/confusion_matrix.tex}
 
+\input{figures/lc_comparison.tex}
+
+The final land cover product's macro F1 score represents an increase of \num{1.54}\% over the mean performance of the base k-fold models, which can be attributed to the model ensembling and test-time augmentation procedures outlined in Section~\ref{sec:methodology:model_ensembling}.
+Table~\ref{tab:final_f1_comparison} provides a class-wise comparison of the F1 scores between the performance of the models in the k-fold cross-validation and their performance when ensembled.
+Notably, the impervious surfaces and barren land classes saw dramatic improvements in F1 score after ensembling, with increases of \num{6.46}\% and \num{3.81}\%, respectively.
+Other classes saw more modest improvements, while the unclassified class saw a decrease of \num{2.09}\% in F1 score after ensembling.
+The use of the model ensemble approximately quadrupled the time needed for inference compared to a single model, highlighting the trade-off between accuracy and computational efficiency when using model ensembling and test-time augmentation.
+For our purposes, we deemed the increase in accuracy worth the additional computational cost, which was not prohibitive given the available computational resources, and elected to use the ensembled predictions for the final land cover product.
+
 \input{tables/ensembling.tex}
 
-An online dashboard to visualize and interact with the final land cover product can be found at \url{https://www.gcerlab.com/projects/msland}, while the final land cover product can be downloaded from \url{https://doi.org/10.5281/zenodo.16762344}.
-The ground truth patches used to train the model can be found at \url{https://doi.org/10.5281/zenodo.15670823}.
+% An online dashboard to visualize and interact with the final land cover product can be found at \url{https://www.gcerlab.com/projects/msland}, while the final land cover product can be downloaded from \url{https://doi.org/10.5281/zenodo.16762344}.
+% The ground truth patches used to train the model can be found at \url{https://doi.org/10.5281/zenodo.15670823}.
 
 
 
