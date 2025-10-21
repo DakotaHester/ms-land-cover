@@ -1,11 +1,11 @@
-\section{Study area and data sources}\label{sec:study_area}
+\section{Data sources}\label{sec:study_area}
 
-\paragraph{Mississippi, USA}
-The overarching goal of this work is to develop a \SI{1}{\meter} resolution land cover map for the state of Mississippi to facilitate high-fidelity land analysis.
-Mississippi is located in the southeastern United States and is home to a wide range of land cover types.
-The region's humid subtropical climate and fertile soils in the Mississippi River Delta support a variety of agricultural activities~\cite{mississippistateuniversityextensionMississippiLandResource}, while the remainder of the state is characterized by forests and woodlands, which comprise the majority of land cover in the state~\cite{unitedstatesgeologicalsurveyAnnualNationalLand}.
-The Gulf coast region is home to a sprawling urban network intertwined with herbaceous wetlands and barren beaches~\cite{englishLandCoverChange2011}.
-The state's diverse land cover types, geographical position along the Mississippi River and Gulf Coast, and economic dependence on agriculture and natural resources make the need for accurate land cover information at high spatial resolution a priority to support natural resource management, agricultural planning, and environmental monitoring efforts.
+% \paragraph{Mississippi, USA}
+% The overarching goal of this work is to develop a \SI{1}{\meter} resolution land cover map for the state of Mississippi to facilitate high-fidelity land analysis.
+% Mississippi is located in the southeastern United States and is home to a wide range of land cover types.
+% The region's humid subtropical climate and fertile soils in the Mississippi River Delta support a variety of agricultural activities~\cite{mississippistateuniversityextensionMississippiLandResource}, while the remainder of the state is characterized by forests and woodlands, which comprise the majority of land cover in the state~\cite{unitedstatesgeologicalsurveyAnnualNationalLand}.
+% The Gulf coast region is home to a sprawling urban network intertwined with herbaceous wetlands and barren beaches~\cite{englishLandCoverChange2011}.
+% The state's diverse land cover types, geographical position along the Mississippi River and Gulf Coast, and economic dependence on agriculture and natural resources make the need for accurate land cover information at high spatial resolution a priority to support natural resource management, agricultural planning, and environmental monitoring efforts.
 
 % \paragraph{Virginia, USA}
 % In order to validate our proposed stratification approach, we also invesrtigate the performance of the proposed method using an existing land cover dataset.
@@ -22,26 +22,32 @@ The state's diverse land cover types, geographical position along the Mississipp
 
 % \subsection{Imagery and land cover dataset}\label{sec:data}
 
-\paragraph{National Agriculture Imagery Program (NAIP)}\label{sec:data:naip}
-The primary remote sensing data used in this work is aerial imagery sourced from the USDA's National Agriculture Imagery Program (NAIP)~\citep{earthresourcesobservationandscienceeroscenterNationalAgricultureImagery2017}.
-NAIP provides a publicly available archive of high-resolution multispectral imagery over the conterminous United States, with a spatial resolution of \SIrange{0.3}{1}{\meter} and a four-band spectral resolution (near-infrared, red, green, and blue).
+\subsection{NAIP aerial imagery}\label{sec:data:naip}
+% The primary remote sensing data used in this work is aerial imagery sourced from the USDA's National Agriculture Imagery Program (NAIP)~\citep{earthresourcesobservationandscienceeroscenterNationalAgricultureImagery2017}.
+The USDA's National Agricultural Imagery Program (NAIP) is a U.S. federal project that provides a publicly available archive of high-resolution multispectral imagery over the conterminous United States, with a spatial resolution of \SIrange{0.3}{1}{\meter}, a four-band spectral resolution (near-infrared, red, green, and blue), delivered as 8-bit orthorectified tiles~\citep{earthresourcesobservationandscienceeroscenterNationalAgricultureImagery2017}.
 NAIP imagery is collected on a state-by-state basis during the agricultural growing season, and each state is imaged once every 2--3 years.
-% We use 2023 NAIP imagery over Mississippi, and 2021 NAIP imagery over the CBW region in Virginia.
-Color-infrared (CIR) composites are generated using the near-infrared, red, and green bands to emphasize vegetation features in the imagery -- three bands are necessary in order to be compatible with BYOL, which is designed for three-channel inputs, and for easy comparison with models using ImageNet pre-trained weights, which also expect three-channel inputs.
-Additionally, we downsample imagery to \SI{1}{\meter} resolution using bilinear interpolation to match the resolution of the desired final land cover product.
-
-
-\paragraph{National Land Cover Database (NLCD)}\label{sec:data:nlcd}
-
-The stratification approach proposed in this work relies on an existing land cover product to select strata from which training samples are drawn.
-For this purpose, we opt for the USGS's National Land Cover Database (NLCD) to provide the necessary land cover information for stratification. 
-The NLCD has historically been among the most widely used land cover datasets in the United States, supporting numerous applications in human and ecosystem health studies, urban planning, natural hazard assessment, hydrology, and land management~\citep{sohlThirtyYearsUS2025}.
-The latest version of the NLCD (Annual NLCD) provides a yearly 20-class land cover product primarily derived from Landsat imagery at \SI{30}{\meter} resolution from 1985 to 2024~\citep{unitedstatesgeologicalsurveyAnnualNationalLand2025}.
-While the spatial resolution of the NLCD land cover product is substantially coarser than the \SI{1}{\meter} land cover product we aim to produce, the NLCD provides an accurate and comprehensive land cover product at a national scale and has a history of consistent use in the literature, making it a suitable choice to provide land cover information to guide the stratification process.
-To align with the collection year of the NAIP imagery used in this work, we use 2023 data over the state of Mississippi.
-A visualization of the NAIP imagery and NLCD data over this work's study area is provided in Figure~\ref{fig:study_area}.
+The lack of use restrictions on NAIP imagery has made it a popular choice for high spatial resolution remote sensing applications in the United States, including building footprint extraction~\citep{huangAerialImageryBasedBuilding2022}, forest measurements~\citep{hoglandMappingForestCharacteristics2018,daviesEstimatingJuniperCover2010}, and land cover classification~\citep{maxwellLandCoverClassification2017a, maxwellLargeAreaHighSpatial2019,hayesHighresolutionLandcoverClassification2014, martinsExploringMultiscaleObjectbased2020}.
+Color-infrared (CIR) composites are generated using the near-infrared, red, and green bands to emphasize vegetation features in the imagery.
+All 2023 CIR composites were obtained as county-level composites from the USDA NRCS Geospatial Data Gateway~\citep{usdaGeospatialDataGateway2016} in MrSID format in the appropriate UTM zone for each county (UTM Zone 15N for Western Mississippi, UTM Zone 16N for Eastern Mississippi) at \SI{0.6}{\meter} resolution.
+Each county-level composite was converted to GeoTiff format, reprojected to the MIssissippi Transverse Mercator coordinate reference system (EPSG:3813), and resampled to \SI{1}{\meter} resolution using bilinear interpolation.
+The total size of the NAIP imagery used in this work totaled \SI[number-unit-product={\text{ }}]{599.4}{\giga \byte}, for 82 total county-level GeoTiff files, an average of \SI[number-unit-product={\text{ }}]{7.31}{\giga \byte} per county, with individual county rasters ranging in size from \SI[number-unit-product={\text{ }}]{3.861}{\giga \byte} to \SI[number-unit-product={\text{ }}]{13.433}{\giga \byte},
+A visualization of the NAIP imagery used over the study area is provided in Figure~\ref{fig:study_area}.
+Note that three band images are necessary in order to be compatible with BYOL, which is designed for three-channel inputs, and for easy comparison with models using ImageNet pre-trained weights, which also expect three-channel inputs.
 
 \input{figures/study_area.tex}
+
+
+\subsection{NLCD land cover}\label{sec:data:nlcd}
+
+The stratification approach proposed (Section~\ref{sec:methodology:dataset_curation}) in this work relies on an existing land cover product to select strata from which training samples are drawn.
+For this purpose, we used the USGS's National Land Cover Database (NLCD) to provide the necessary land cover information for stratification. 
+The NLCD has historically been among the most widely used land cover datasets in the United States, supporting numerous applications in human and ecosystem health studies, urban planning, natural hazard assessment, hydrology, and land management~\citep{sohlThirtyYearsUS2025}.
+The latest version of the NLCD (Annual NLCD) provides a yearly 20-class land cover product primarily derived from Landsat imagery at \SI{30}{\meter} resolution from 1985 to 2024~\citep{unitedstatesgeologicalsurveyAnnualNationalLand2025}.
+While the spatial resolution of the NLCD land cover product is substantially coarser than the \SI{1}{\meter} land cover product we aim to produce, the NLCD provides a comprehensive land cover product at a national scale and has a history of consistent use in the literature~\citep{yangNewGenerationUnited2018, blackardMappingUSForest2008,netzelPatternBasedAssessmentLand2015}, making it a suitable choice to provide land cover information to guide the stratification process.
+To align with the collection year of the NAIP imagery used in this work, we use 2023 data over the state of Mississippi.
+% A visualization of the NAIP imagery and NLCD data over this work's study area is provided in Figure~\ref{fig:study_area}.
+
+
 
 % \paragraph{CBW Land Use/Land Cover (CBLC)}\label{sec:data:cblc}
 

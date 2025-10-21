@@ -6,23 +6,34 @@
 %     \begin{abstract}
 % }
 
+% \begin{abstract}
+
+
+% Deep learning methods for land cover classification are highly performant, particularly at high spatial resolutions where traditional pixel-wise or object-based approaches face limitations.
+% However, the wide parameter space of deep neural networks typically requires several thousand densely annotated imagery tiles to achieve reliable performance.
+% This is problematic, as data annotation is costly and time-consuming, creating a strategic barrier to widespread adoption of such models for land cover classification at high spatial resolutions.
+% % We address this challenge through two complementary approaches.
+% % First, we demonstrate that utilizing a stratification approach that groups candidate imagery tiles into semantic clusters using existing moderate resolution land cover products improves the quality of a training dataset compared to simple random sampling.
+% We demonstrate that applying Bootstrap Your Own Latent (BYOL) self-supervised learning to an ImageNet pre-trained ResNet-101 encoder using unannotated aerial imagery enhances the performance of a semantic segmentation network on a downstream land cover classification task, particularly when few samples are supplied during training.
+% When applied to a \SI{1}{\meter} resolution land cover task using linear probing, our BYOL model demonstrates average increases of 15.44\% and 14.87\% in macro F1 score and overall accuracy over a similar model pre-trained on ImageNet alone, illustrating the extent of the domain gap between general-purpose imagery often used for pre-training and high resolution remote sensing data.
+% % Using only 500 labeled samples during the training phase, our approach achieves 87.42\% overall accuracy and 63.00\% mIoU for comprehensive 8-class land cover mapping across Mississippi when the model is fine-tuned in a U-Net framework—improvements of 2.06\% and 2.77\% over ImageNet pre-training.
+% Fine-tuning the BYOL pre-trained encoder in a U-Net framework using 750 labeled samples achieves 86.43\% overall accuracy and 74.04\% macro F1 score for comprehensive 8-class land cover mapping across Mississippi, improvements of 0.32\% and 1.47\% over ImageNet pre-training.
+% We apply an ensemble of the best-performing models to produce the first publicly-available meter-scale land cover product for the state of Mississippi, USA using only 1,000 labeled training samples in total.
+% % Applying the best performing models to the entire state of Mississippi using an ensemble approach, we produce the first publicly-available 1 m resolution land cover map for the state, achieving an overall accuracy of 87.14\% and a mean class-wise producer's accuracy of 75.60\% on an independent thematic accuracy assessment.
+% % These results demonstrate that creative approaches to sample stratification and selection along with advanced pre-training can substantially reduce the need for hand-annotated data, breaking down hurdles for large-scale high spatial resolution land cover mapping.
+% These results demonstrate that self-supervised learning is an effective strategy for reducing the need for large volumes of human-annotated data, directly addressing a major hurdle to high spatial resolution land cover mapping at scale.
+
+% \end{abstract}
+
 \begin{abstract}
-
-
-Deep learning methods for land cover classification are highly performant, particularly at high spatial resolutions where traditional pixel-wise or object-based approaches face limitations.
-However, the wide parameter space of deep neural networks typically requires several thousand densely annotated imagery tiles to achieve reliable performance.
-This is problematic, as data annotation is costly and time-consuming, creating a strategic barrier to widespread adoption of such models for land cover classification at high spatial resolutions.
-% We address this challenge through two complementary approaches.
-% First, we demonstrate that utilizing a stratification approach that groups candidate imagery tiles into semantic clusters using existing moderate resolution land cover products improves the quality of a training dataset compared to simple random sampling.
-We demonstrate that applying Bootstrap Your Own Latent (BYOL) self-supervised learning to an ImageNet pre-trained ResNet-101 encoder using unannotated aerial imagery enhances the performance of a semantic segmentation network on a downstream land cover classification task, particularly when few samples are supplied during training.
-When applied to a \SI{1}{\meter} resolution land cover task using linear probing, our BYOL model demonstrates average increases of 15.44\% and 14.87\% in macro F1 score and overall accuracy over a similar model pre-trained on ImageNet alone, illustrating the extent of the domain gap between general-purpose imagery often used for pre-training and high resolution remote sensing data.
-% Using only 500 labeled samples during the training phase, our approach achieves 87.42\% overall accuracy and 63.00\% mIoU for comprehensive 8-class land cover mapping across Mississippi when the model is fine-tuned in a U-Net framework—improvements of 2.06\% and 2.77\% over ImageNet pre-training.
-Fine-tuning the BYOL pre-trained encoder in a U-Net framework using 750 labeled samples achieves 86.43\% overall accuracy and 74.04\% macro F1 score for comprehensive 8-class land cover mapping across Mississippi, improvements of 0.32\% and 1.47\% over ImageNet pre-training.
-We apply an ensemble of the best-performing models to produce the first publicly-available meter-scale land cover product for the state of Mississippi, USA using only 1,000 labeled training samples in total.
-% Applying the best performing models to the entire state of Mississippi using an ensemble approach, we produce the first publicly-available 1 m resolution land cover map for the state, achieving an overall accuracy of 87.14\% and a mean class-wise producer's accuracy of 75.60\% on an independent thematic accuracy assessment.
-% These results demonstrate that creative approaches to sample stratification and selection along with advanced pre-training can substantially reduce the need for hand-annotated data, breaking down hurdles for large-scale high spatial resolution land cover mapping.
-These results demonstrate that self-supervised learning is an effective strategy for reducing the need for large volumes of human-annotated data, directly addressing a major hurdle to high spatial resolution land cover mapping at scale.
-
+    Deep learning semantic segmentation methods have shown promising performance for very high \SI{1}{\meter} resolution land cover classification, but the challenge of collecting large volumes of representative training data creates a significant barrier to widespread adoption of such models for meter-scale land cover mapping over large areas.
+    Further, most very high spatial resolution imagery datasets contain relatively few spectral bands, making such models particularly reliant on spatial features to distinguish between classes, increasing the computational complexity of the models and the amount of training data required to achieve satisfactory performance.
+    In this study, we present a novel label-efficient approach for statewide \SI{1}{\meter} land cover classification using only 1,000 annotated reference image patches.
+    The methodology integrates recent research on self-supervised learning by applying the ``Bootstrap Your Own Latent'' pre-training strategy using large amount of unlabeled color-infrared aerial images (377,921 256×256 \SI{1}{\meter} pixel patches) to pre-train a ResNet-101 convolutional encoder.
+    The learned encoder weights were subsequently transferred into multiple segmentation architectures (FCN, U-Net, Attention U-Net, DeepLabV3+, UPerNet, PAN), which were then fine-tuned using very small training dataset sizes using cross-validation (250, 500, 750 patches).
+    Among the fine-tuned models, we obtained the 86.43\% overall accuracy and 74.04\% macro F1 score using an ensemble of the best performing U-Net models for comprehensive \SI{1}{\meter}, 8-class land cover mapping, covering over 123 billion pixels over the state of Mississippi, USA.
+    Detailed qualitative and quantitative analysis revealed accurate mapping of open water, forested areas, and developed regions, while highlighting challenges in accurate delineation between cropland, herbaceous, and barren land cover types.
+    These results show that self-supervised learning is an effective strategy for reducing the need for large volumes of manually annotated data, directly addressing a major limitation to high spatial resolution land cover mapping at scale.
 \end{abstract}
 
 % \IfClassLoadedTF{msuthesis}

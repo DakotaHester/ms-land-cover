@@ -8,7 +8,7 @@ The embedding model where BYOL pre-training was initialized with ImageNet weight
 
 These trends shifted somewhat when the pre-trained image encoders were used as the backbone in semantic segmentation architectures that were the fine-tuned end-to-end.
 Figure~\ref{fig:finetune_metrics} shows that while the BYOL models that were first initialized with ImageNet weights prior to BYOL pre-training outperformed ImageNet models with no additional pre-training, the BYOL models that were first initialized with random weights have more variable performance depending on the specifics of the semantic segmentation architecture.
-The BYOL encoder with random initialization only outperformed the ImageNet pre-trained encoder in terms of mean macro F1 score across all architectures except U-Net and Attention U-Net at \(N_\text{train} = 250\), but only DANet, PAN, and PSPnet at \(N_\text{train} = 500\), and only DANet and PSPNet at \(N_\text{train} = 750\).
+The BYOL encoder with random initialization outperformed the ImageNet pre-trained encoder in terms of mean macro F1 score across for the UPerNet and DeepLabv3+ models at \(N_\text{train} = 250\), but lagged behing all other architectures at \(N_\text{train} = 500\) and \(N_\text{train} = 750\).
 However, the BYOL model initialized with ImageNet weights prior to pre-training consistently outperformed the ImageNet pre-trained model across all architectures and training dataset sizes, echoing the results observed in the linear probing experiment (though to a lesser degree).
 
 \input{figures/finetune_metrics.tex}
@@ -23,12 +23,15 @@ A qualitative assessment of this model's inference results is shown in Figure~\r
 Despite this specific model's large individual performance, this model was an outlier in terms of performance across all k-folds, as the mean macro F1 score and overall accuracy across all k-folds for this model was \num{73.70}\% and \num{86.55}\%, respectively, falling short of the best-performing configuration in terms of mean macro F1 score.
 As such, the U-Net model with a BYOL backbone initialized with ImageNet weights and fine-tuned using \(N_\text{train} = 750\) samples was considered the best-performing model overall and was used to generate the final land cover map for the entire state of Mississippi.
 The k-fold models from this best-performing configuration were then ensembled and used to generate a final land cover map for the entire state of Mississippi using the procedure outlined in Section~\ref{sec:methodology:model_ensembling}.
-The confusion matrix for the final thematic accuracy assessment for the statewide land cover map is shown in Table~\ref{tab:confusion_matrix}.
+A visualization of the final comprehensive \SI{1}{\meter} resolution land cover map for Mississippi is shown in Figure~\ref{fig:inference_results}.
+The confusion matrix from final thematic accuracy assessment for the dataset is shown in Table~\ref{tab:confusion_matrix}.
 Overall, the final product's macro F1 score and overall accuracy were \num{75.58}\% and \num{87.14}\%, respectively, while the mean class-wise producer's accuracy and user's accuracy were \num{75.60}\% and \num{80.18}\%, respectively.
 This represents an increase of \num{1.54}\% in macro F1 score over the mean performance of the base k-fold models, which can be attributed to the model ensembling and test-time augmentation procedures outlined in Section~\ref{sec:methodology:model_ensembling}.
 Table~\ref{tab:final_f1_comparison} provides a class-wise comparison of the F1 scores between the performance of the models in the k-fold cross-validation and their performance when ensembled.
 Notably, the impervious surfaces and barren land classes saw dramatic improvements in F1 score after ensembling, with increases of \num{6.46}\% and \num{3.81}\%, respectively.
 Other classes saw more modest improvements, while the unclassified class saw a decrease in F1 score of \num{2.09}\%.
+
+\input{figures/inference_results.tex}
 
 \input{tables/confusion_matrix.tex}
 
