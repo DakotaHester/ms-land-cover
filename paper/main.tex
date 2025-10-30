@@ -1,33 +1,34 @@
-\documentclass[12pt]{article}
-\usepackage[margin=1in]{geometry}
-\usepackage{xcolor}
-\usepackage{booktabs}
+\documentclass[3p, review, times, authoryear]{elsarticle}
+% \usepackage[margin=1in]{geometry}
+% \usepackage{xcolor}
+% \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{hyperref}
-\usepackage{rotating}
+% \usepackage{rotating}
 \usepackage{adjustbox}
-\usepackage{makecell}
+% \usepackage{makecell}
 \usepackage{array} % Add this package
 % \usepackage{diagbox}
 \usepackage{amsmath}
 \usepackage{float}
-\usepackage{setspace}
-\usepackage{lineno}
-\usepackage{multirow}
-\usepackage{amssymb}
-\usepackage{newtxtext,newtxmath}
+% \usepackage{setspace}
+% \usepackage{lineno}
+% \usepackage{multirow}
+% \usepackage{amssymb}
+% \usepackage{newtxtext,newtxmath}
 \usepackage{siunitx}
-\usepackage[sort]{natbib}
-\usepackage{hyperref}
+% \usepackage[sort]{natbib}
+% \usepackage{hyperref}
 \usepackage{tabularray}
-\usepackage{authblk}
-\usepackage{appendix}
+% \usepackage{authblk}
+% \usepackage{appendix}
 \usepackage{caption}
 \usepackage{lineno}
-\usepackage[utf8]{inputenc}
-\usepackage[T1]{fontenc}
+% \usepackage[utf8]{inputenc}
+% \usepackage[T1]{fontenc}
 
 \sisetup{range-phrase=\,--\,}  
+
 
 % \RaggedRight
 
@@ -55,31 +56,66 @@
   \specialrule{.0025em}{0.001em}{0.001em} 
 }
 
-\title{Learning with less: label-efficient land cover classification at very high spatial resolution using self-supervised deep learning}
-% \author{Author Order?}
-\date{}
+% \title{Learning with less: label-efficient land cover classification at very high spatial resolution using self-supervised deep learning}
+% % \author{Author Order?}
+% \date{}
 
-\author[a,*]{Dakota Hester}
-\author[a,*]{Vitor S. Martins}
-\author[b]{Lucas B. Ferreira}
-\author[a]{Thainara M. A. Lima}
+% \author[a,*]{Dakota Hester}
+% \author[a,*]{Vitor S. Martins}
+% \author[b]{Lucas B. Ferreira}
+% \author[a]{Thainara M. A. Lima}
 
-\affil[a]{\small Department of Agricultural and Biological Engineering, Mississippi State University, 130 Creelman Street, Mississippi State, MS 39762, USA}
-\affil[b]{\small North Mississippi Research and Extension Center, Mississippi State University, 5421 MS-145, Verona, MS 38879, USA}
-\affil[*]{\small Corresponding authors: Dakota Hester (\texttt{dh2306@msstate.edu}), Vitor S. Martins (\texttt{vmartins@abe.msstate.edu})}
+% \affil[a]{\small Department of Agricultural and Biological Engineering, Mississippi State University, 130 Creelman Street, Mississippi State, MS 39762, USA}
+% \affil[b]{\small North Mississippi Research and Extension Center, Mississippi State University, 5421 MS-145, Verona, MS 38879, USA}
+% \affil[*]{\small Corresponding authors: Dakota Hester (\texttt{dh2306@msstate.edu}), Vitor S. Martins (\texttt{vmartins@abe.msstate.edu})}
 
 \begin{document}
 
-% \linenumbers
+\linenumbers
 
-\maketitle
+% \maketitle
 
-\input{sections/abstract.tex}
+% \input{sections/abstract.tex}
 
-\noindent
-\textbf{Keywords:} Land cover classification, very high spatial resolution, self-supervised learning, deep learning, label efficiency
+% \noindent
+% \textbf{Keywords:} Land cover classification, very high spatial resolution, self-supervised learning, deep learning, label efficiency
 
 % \tableofcontents
+
+\begin{frontmatter}
+  \title{Learning with less: label-efficient land cover classification at very high spatial resolution using self-supervised deep learning}
+  \author[a]{Dakota Hester\corref{cor1}}
+  \ead{dh2306@msstate.edu}
+  \author[a]{Vitor S. Martins\corref{cor1}}
+  \ead{vmartins@abe.msstate.edu}
+  \author[b]{Lucas B. Ferreira}
+  \author[a]{Thainara M. A. Lima}
+
+  \affiliation[a]{organization={Department of Agricultural and Biological Engineering, Mississippi State University},%Department and Organization
+    addressline={130 Creelman Street}, 
+    city={Mississippi State},
+    postcode={39762}, 
+    state={MS},
+    country={USA}
+  }
+  \affiliation[b]{organization={North Mississippi Research and Extension Center, Mississippi State University},
+    addressline={5421 MS-145},
+    city={Verona},
+    state={MS},
+    postcode={38879},
+    country={USA}
+  }
+
+  \cortext[cor1]{Corresponding author}
+  \date{\today}
+
+  \begin{keyword}
+    Land cover classification \sep very high spatial resolution \sep self-supervised learning \sep deep learning \sep label efficiency
+  \end{keyword} 
+
+  \input{sections/abstract.tex}
+
+\end{frontmatter}
 
 \input{sections/introduction_consolidated.tex}
 
@@ -104,7 +140,6 @@ An online dashboard to visualize and interact with the final land cover product 
 The ground truth patches used to train the model can be found at \url{https://doi.org/10.5281/zenodo.15670823}.
 
 % \input{sections/appendix.tex}
-
 \bibliographystyle{elsarticle-harv}
 \bibliography{bibliography}
 
