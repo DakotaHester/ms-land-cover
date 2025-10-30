@@ -474,6 +474,23 @@
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Caron et al. - 2021 - Emerging Properties in Self-Supervised Vision Transformers.pdf}
 }
 
+@article{chenCTSegCNNViT2025,
+  title = {{{CTSeg}}: {{CNN}} and {{ViT}} Collaborated Segmentation Framework for Efficient Land-Use/Land-Cover Mapping with High-Resolution Remote Sensing Images},
+  shorttitle = {{{CTSeg}}},
+  author = {Chen, Jifa and Chen, Gang and Zhou, Pin and He, Yufeng and Yue, Lianzhe and Ding, Mingjun and Lin, Hui},
+  year = 2025,
+  month = may,
+  journal = {International Journal of Applied Earth Observation and Geoinformation},
+  volume = {139},
+  pages = {104546},
+  issn = {1569-8432},
+  doi = {10.1016/j.jag.2025.104546},
+  urldate = {2025-10-21},
+  abstract = {Semantic segmentation models present significant work in land-use/land-cover (LULC) mapping. Even though vision transformers (ViT) with long-sequence interactions have recently emerged as popular solutions alongside convolutional neural networks (CNN), they remain less effective for high-resolution remote sensing data characterized by small volumes and rich heterogeneities. In this paper, we propose a novel CNN and ViT collaborated segmentation framework (CTSeg) to address these weaknesses. Following the encoder-decoder architecture, we first introduce an encoding backbone with multifarious attention mechanisms to respectively capture global and local contexts. It is designed with parallel dual branches where the position-relation aggregation (PRA) blocks and others with channel relations (CRA) form the CNN-based encoding module, whereas the ViT-based one comprises multi-stage window-shifted transformer (WST) blocks with cross-window interactions. We further explore the online knowledge distillation presented with pixel-wise and channel-wise feature distillation modules to facilitate bidirectional learning between the CNN and ViT backbones, supported by a well-designed loss decay strategy. In addition, we develop a multiscale feature decoding module to produce more high-quality segmentation predictions where the leveraged correlation-weighted fusions emphasize the heterogeneous feature representations. Extensive comparison and ablation studies on two benchmark datasets demonstrate its competitive performance in efficient LULC mapping.},
+  keywords = {Attention mechanism,High-resolution remote sensing,Knowledge distillation,Land-use/land-cover mapping,Semantic segmentation},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Chen et al. - 2025 - CTSeg CNN and ViT collaborated segmentation framework for efficient land-useland-cover mapping wit.pdf;/Users/dak/Zotero/storage/ETTCHEMA/S1569843225001931.html}
+}
+
 @misc{chenEncoderDecoderAtrousSeparable2018,
   title = {Encoder-{{Decoder}} with {{Atrous Separable Convolution}} for {{Semantic Image Segmentation}}},
   author = {Chen, Liang-Chieh and Zhu, Yukun and Papandreou, George and Schroff, Florian and Adam, Hartwig},
@@ -851,6 +868,21 @@
   keywords = {conditional random field,DeepLabv3+,Dempster-Shafer evidence theory,object-based image analysis,Semantic segmentation,VHR images},
   annotation = {77 citations (Crossref) [2024-10-08]},
   file = {/Users/dak/Zotero/storage/JGSBP7HJ/display.html}
+}
+
+@article{dumeurSelfSupervisedSpatioTemporalRepresentation2024,
+  title = {Self-{{Supervised Spatio-Temporal Representation Learning}} of {{Satellite Image Time Series}}},
+  author = {Dumeur, Iris and Valero, Silvia and Inglada, Jordi},
+  year = 2024,
+  journal = {IEEE Journal of Selected Topics in Applied Earth Observations and Remote Sensing},
+  volume = {17},
+  pages = {4350--4367},
+  issn = {2151-1535},
+  doi = {10.1109/JSTARS.2024.3358066},
+  urldate = {2025-10-21},
+  abstract = {In this article, a new self-supervised strategy for learning meaningful representations of complex optical satellite image time series (SITS) is presented. The methodology proposed, named Unet-BERT spAtio-temporal Representation eNcoder (U-BARN), exploits irregularly sampled SITS. The designed architecture allows learning rich and discriminative features from unlabeled data, enhancing the synergy between the spatio-spectral and the temporal dimensions. To train on unlabeled data, a time-series reconstruction pretext task inspired by the BERT strategy but adapted to SITS is proposed. A Sentinel-2 large-scale unlabeled dataset is used to pretrain U-BARN. During the pretraining, U-BARN processes annual time series composed of a maximum of 100 dates. To demonstrate its feature learning capability, representations of SITS encoded by U-BARN are then fed into a shallow classifier to generate semantic segmentation maps. Experimental results are conducted on a labeled crop dataset (PASTIS) as well as a dense land cover dataset (MultiSenGE). Two ways of exploiting U-BARN pretraining are considered: either U-BARN weights are frozen or fine-tuned. The obtained results demonstrate that representations of SITS given by the frozen U-BARN are more efficient for land cover and crop classification than those of a supervised-trained linear layer. Then, we observe that fine-tuning boosts U-BARN performances on MultiSenGE dataset. In addition, we observe on PASTIS, in scenarios with scarce reference data that the fine-tuning brings a significative performance gain compared to fully supervised approaches. We also investigate the influence of the percentage of elements masked during pretraining on the quality of the SITS representation. Eventually, semantic segmentation performances show that the fully supervised U-BARN architecture reaches better performances than the spatio-temporal baseline (U-TAE) on both downstream tasks: crop and dense land cover segmentation.},
+  keywords = {Feature extraction,Representation learning,satellite image time series (SITS),Satellite images,Self-supervised learning,self-supervised learning (SSL),spatio-temporal network,Spatiotemporal phenomena,Time series analysis,transformer,Transformers,Unet},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Dumeur et al. - 2024 - Self-Supervised Spatio-Temporal Representation Learning of Satellite Image Time Series.pdf}
 }
 
 @article{duroComparisonPixelbasedObjectbased2012,
@@ -1873,6 +1905,23 @@
   abstract = {Masked image modeling (MIM) is a highly popular and effective self-supervised learning method for image understanding. The existing MIM-based methods mostly focus on spatial feature modeling, neglecting spectral feature modeling. Meanwhile, the existing MIM-based methods use Transformer for feature extraction, and some local or high-frequency information may get lost. To this end, we propose a spatial--spectral masked autoencoder (SS-MAE) for hyperspectral image (HSI) and light detection and ranging (LiDAR)/synthetic aperture radar (SAR) data joint classification. Specifically, SS-MAE consists of a spatialwise branch and a spectralwise branch. The spatialwise branch masks random patches and reconstructs missing pixels, while the spectralwise branch masks random spectral channels and reconstructs missing channels. Our SS-MAE fully exploits the spatial and spectral representations of the input data. Furthermore, to complement local features in the training stage, we add two lightweight convolutional nerual networks (CNNs) for feature extraction. Both global and local features are taken into account for feature modeling. To demonstrate the effectiveness of the proposed SS-MAE, we conduct extensive experiments on three publicly available datasets. Extensive experiments on three multisource datasets verify the superiority of our SS-MAE compared with several state-of-the-art baselines. The source codes are available at https://github.com/summitgao/SS-MAE.},
   keywords = {Decoding,Deep learning,Feature extraction,hyperspectral image (HSI),Image classification,Image reconstruction,masked autoencoder (MAE),multisource data,Self-supervised learning,Training,Transformers},
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Lin et al. - 2023 - SS-MAE Spatial–Spectral Masked Autoencoder for Multisource Remote Sensing Image Classification.pdf}
+}
+
+@article{liPredictingGradientBetter2024,
+  title = {Predicting Gradient Is Better: {{Exploring}} Self-Supervised Learning for {{SAR ATR}} with a Joint-Embedding Predictive Architecture},
+  shorttitle = {Predicting Gradient Is Better},
+  author = {Li, Weijie and Yang, Wei and Liu, Tianpeng and Hou, Yuenan and Li, Yuxuan and Liu, Zhen and Liu, Yongxiang and Liu, Li},
+  year = 2024,
+  month = dec,
+  journal = {ISPRS Journal of Photogrammetry and Remote Sensing},
+  volume = {218},
+  pages = {326--338},
+  issn = {0924-2716},
+  doi = {10.1016/j.isprsjprs.2024.09.013},
+  urldate = {2025-10-21},
+  abstract = {The growing Synthetic Aperture Radar (SAR) data can build a foundation model using self-supervised learning (SSL) methods, which can achieve various SAR automatic target recognition (ATR) tasks with pretraining in large-scale unlabeled data and fine-tuning in small-labeled samples. SSL aims to construct supervision signals directly from the data, minimizing the need for expensive expert annotation and maximizing the use of the expanding data pool for a foundational model. This study investigates an effective SSL method for SAR ATR, which can pave the way for a foundation model in SAR ATR. The primary obstacles faced in SSL for SAR ATR are small targets in remote sensing and speckle noise in SAR images, corresponding to the SSL approach and signals. To overcome these challenges, we present a novel joint-embedding predictive architecture for SAR ATR (SAR-JEPA) thatleverages local masked patches to predict the multi-scale SAR gradient representations of an unseen context. The key aspect of SAR-JEPA is integrating SAR domain features to ensure high-quality self-supervised signals as target features. In addition, we employ local masks and multi-scale features to accommodate various small targets in remote sensing. By fine-tuning and evaluating our framework on three target recognition datasets (vehicle, ship, and aircraft) with four other datasets as pretraining, we demonstrate its outperformance over other SSL methods and its effectiveness as the SAR data increases. This study demonstrates the potential of SSL for the recognition of SAR targets across diverse targets, scenes, and sensors. Our codes and weights are available in https://github.com/waterdisappear/SAR-JEPA.},
+  keywords = {Automatic Target Recognition (ATR),Deep Learning,Masked Image Modeling (MIM),Self-Supervised Learning (SSL),Synthetic Aperture Radar (SAR)},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Li et al. - 2024 - Predicting gradient is better Exploring self-supervised learning for SAR ATR with a joint-embedding.pdf;/Users/dak/Zotero/storage/JJWYP5LL/S0924271624003514.html}
 }
 
 @misc{liPyramidAttentionNetwork2018,
@@ -3448,6 +3497,23 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   file = {/Users/dak/Zotero/storage/4EI4IV9D/display.html}
 }
 
+@misc{wangDeepHighResolutionRepresentation2020,
+  title = {Deep {{High-Resolution Representation Learning}} for {{Visual Recognition}}},
+  author = {Wang, Jingdong and Sun, Ke and Cheng, Tianheng and Jiang, Borui and Deng, Chaorui and Zhao, Yang and Liu, Dong and Mu, Yadong and Tan, Mingkui and Wang, Xinggang and Liu, Wenyu and Xiao, Bin},
+  year = 2020,
+  month = mar,
+  number = {arXiv:1908.07919},
+  eprint = {1908.07919},
+  primaryclass = {cs},
+  publisher = {arXiv},
+  doi = {10.48550/arXiv.1908.07919},
+  urldate = {2024-10-01},
+  abstract = {High-resolution representations are essential for position-sensitive vision problems, such as human pose estimation, semantic segmentation, and object detection. Existing state-of-the-art frameworks first encode the input image as a low-resolution representation through a subnetwork that is formed by connecting high-to-low resolution convolutions {\textbackslash}emph\{in series\} (e.g., ResNet, VGGNet), and then recover the high-resolution representation from the encoded low-resolution representation. Instead, our proposed network, named as High-Resolution Network (HRNet), maintains high-resolution representations through the whole process. There are two key characteristics: (i) Connect the high-to-low resolution convolution streams {\textbackslash}emph\{in parallel\}; (ii) Repeatedly exchange the information across resolutions. The benefit is that the resulting representation is semantically richer and spatially more precise. We show the superiority of the proposed HRNet in a wide range of applications, including human pose estimation, semantic segmentation, and object detection, suggesting that the HRNet is a stronger backbone for computer vision problems. All the codes are available at{\textasciitilde}\{{\textbackslash}url\{https://github.com/HRNet\}\}.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Computer Vision and Pattern Recognition},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Wang et al. - 2020 - Deep High-Resolution Representation Learning for Visual Recognition.pdf;/Users/dak/Zotero/storage/CNEVHQ2N/1908.html}
+}
+
 @article{wangEmpiricalStudyRemote2023,
   title = {An {{Empirical Study}} of {{Remote Sensing Pretraining}}},
   author = {Wang, Di and Zhang, Jing and Du, Bo and Xia, Gui-Song and Tao, Dacheng},
@@ -3692,6 +3758,20 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Xiao et al. - 2018 - Unified Perceptual Parsing for Scene Understanding.pdf;/Users/dak/Zotero/storage/RIN24257/1807.html}
 }
 
+@inproceedings{xieSegFormerSimpleEfficient2021,
+  title = {{{SegFormer}}: {{Simple}} and {{Efficient Design}} for {{Semantic Segmentation}} with {{Transformers}}},
+  shorttitle = {{{SegFormer}}},
+  booktitle = {Advances in {{Neural Information Processing Systems}}},
+  author = {Xie, Enze and Wang, Wenhai and Yu, Zhiding and Anandkumar, Anima and Alvarez, Jose M. and Luo, Ping},
+  year = 2021,
+  volume = {34},
+  pages = {12077--12090},
+  publisher = {Curran Associates, Inc.},
+  urldate = {2024-10-10},
+  abstract = {We present SegFormer, a simple, efficient yet powerful semantic segmentation framework which unifies Transformers with lightweight multilayer perceptron (MLP) decoders. SegFormer has two appealing features: 1) SegFormer comprises a novel hierarchically structured Transformer encoder which outputs multiscale features. It does not need positional encoding, thereby avoiding the interpolation of positional codes which leads to decreased performance when the testing resolution differs from training. 2) SegFormer avoids complex decoders. The proposed MLP decoder aggregates information from different layers, and thus combining both local attention and global attention to render powerful representations. We show that this simple and lightweight design is the key to efficient segmentation on Transformers.  We scale our approach up to obtain a series of models from SegFormer-B0 to Segformer-B5, which reaches much better performance and efficiency than previous counterparts.For example, SegFormer-B4 achieves 50.3\% mIoU on ADE20K with 64M parameters, being 5x smaller and 2.2\% better than the previous best method. Our best model, SegFormer-B5, achieves 84.0\% mIoU on Cityscapes validation set and shows excellent zero-shot robustness on Cityscapes-C.},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Xie et al. - 2021 - SegFormer Simple and Efficient Design for Semantic Segmentation with Transformers.pdf}
+}
+
 @inproceedings{xieSimMIMSimpleFramework2022,
   title = {{{SimMIM}}: {{A Simple Framework}} for {{Masked Image Modeling}}},
   shorttitle = {{{SimMIM}}},
@@ -3755,6 +3835,22 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   annotation = {11 citations (Crossref) [2025-08-25]}
 }
 
+@article{xuVisionTransformerExcellent2022,
+  title = {Vision {{Transformer}}: {{An Excellent Teacher}} for {{Guiding Small Networks}} in {{Remote Sensing Image Scene Classification}}},
+  shorttitle = {Vision {{Transformer}}},
+  author = {Xu, Kejie and Deng, Peifang and Huang, Hong},
+  year = 2022,
+  journal = {IEEE Transactions on Geoscience and Remote Sensing},
+  volume = {60},
+  pages = {1--15},
+  issn = {1558-0644},
+  doi = {10.1109/TGRS.2022.3152566},
+  urldate = {2025-10-21},
+  abstract = {Scene classification is an active research topic in the remote sensing community, and complex spatial layouts with various types of objects bring huge challenges to classification. Convolutional neural network (CNN)-based methods attempt to explore the global features by gradually expanding the receptive field, while long-range contextual information is ignored. Vision transformer (ViT) can extract contextual features, but the learning ability of local information is limited, and it has a large computational complexity simultaneously. In this article, an end-to-end method is exploited by employing ViT as an excellent teacher for guiding small networks (ET-GSNet) in the remote sensing image scene classification. In the ET-GSNet, ResNet18 is selected as the student model, which integrates the superiorities of the two models via knowledge distillation (KD), and the computational complexity does not increase. In the KD process, the ViT and ResNet18 are optimized together without independent pretraining, and the learning rate of teacher model gradually decreases until zero, while the weight coefficient of the KD loss module is doubled. Based on the above procedures, dark knowledge from the teacher model can be transferred to the student model more smoothly. Experimental results on the four public remote sensing datasets demonstrate that the proposed ET-GSNet method possesses the superior classification performance compared to some state-of-the-art (SOTA) methods. In addition, we evaluate the ET-GSNet on a fine-grained ship recognition dataset, and the results show that our method has good generalization for different tasks in terms of some metrics.},
+  keywords = {Computational modeling,Context modeling,Convolutional neural network (CNN),Feature extraction,high spatial resolution (HSR) images,knowledge distillation (KD),Layout,Remote sensing,scene classification,Semantics,Transformers,vision transformer (ViT)},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Xu et al. - 2022 - Vision Transformer An Excellent Teacher for Guiding Small Networks in Remote Sensing Image Scene Cl.pdf}
+}
+
 @article{yangNewGenerationUnited2018,
   title = {A New Generation of the {{United States National Land Cover Database}}: {{Requirements}}, Research Priorities, Design, and Implementation Strategies},
   shorttitle = {A New Generation of the {{United States National Land Cover Database}}},
@@ -3770,6 +3866,22 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   langid = {english},
   keywords = {Implementation strategies,Methodology,Multi-temporal land cover and change,United States National Land Cover Database 2016},
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Yang et al. - 2018 - A new generation of the United States National Land Cover Database Requirements, research prioritie 1.pdf;/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Yang et al. - 2018 - A new generation of the United States National Land Cover Database Requirements, research prioritie.pdf;/Users/dak/Zotero/storage/98YF549B/display.html}
+}
+
+@article{yaoRingMoSenseRemoteSensing2023,
+  title = {{{RingMo-Sense}}: {{Remote Sensing Foundation Model}} for {{Spatiotemporal Prediction}} via {{Spatiotemporal Evolution Disentangling}}},
+  shorttitle = {{{RingMo-Sense}}},
+  author = {Yao, Fanglong and Lu, Wanxuan and Yang, Heming and Xu, Liangyu and Liu, Chenglong and Hu, Leiyi and Yu, Hongfeng and Liu, Nayu and Deng, Chubo and Tang, Deke and Chen, Changshuo and Yu, Jiaqi and Sun, Xian and Fu, Kun},
+  year = 2023,
+  journal = {IEEE Transactions on Geoscience and Remote Sensing},
+  volume = {61},
+  pages = {1--21},
+  issn = {1558-0644},
+  doi = {10.1109/TGRS.2023.3316166},
+  urldate = {2025-10-21},
+  abstract = {Remote sensing (RS) spatiotemporal prediction aims to infer future trends from historical spatiotemporal data, e.g., videos and time-series images, which has a broad application prospect in many fields. The foundation model is a promising research direction for spatiotemporal information mining because of its robust feature extraction capability and has made rapid progress in natural scenes. Nevertheless, due to the spatially multiscale and temporally multiscale properties in RS data, these methods still encounter bottlenecks when applied to RS. Therefore, we propose a remote sensing foundation model for spatiotemporal prediction via spatiotemporal evolution disentangling, abbreviated as RingMo-Sense. Considering spatial affinity, temporal continuity, and spatiotemporal interaction, we construct spatial, temporal, and spatiotemporal triple-branch prediction networks. Specifically, we use parameter-sharing and progressive joint training strategies to achieve stable long-range prediction and parameter reduction simultaneously. In addition, we build an RS spatiotemporal dataset by collecting various RS videos and time-series images. The experimental results on six downstream spatiotemporal tasks demonstrate that the proposed model yields competitive performance.},
+  keywords = {Computational modeling,Data models,Predictive models,Remote sensing,Spatiotemporal evolution disentangling,Spatiotemporal phenomena,spatiotemporal predictive foundation model,Task analysis,Videos},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Yao et al. - 2023 - RingMo-Sense Remote Sensing Foundation Model for Spatiotemporal Prediction via Spatiotemporal Evolu.pdf}
 }
 
 @article{yeReviewAccuracyAssessment2018,
@@ -3872,6 +3984,24 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   isbn = {978-3-030-01260-1 978-3-030-01261-8},
   langid = {english},
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Yu et al. - 2018 - BiSeNet Bilateral Segmentation Network for Real-Time Semantic Segmentation.pdf}
+}
+
+@article{yuBiSeNetV2Bilateral2021,
+  title = {{{BiSeNet V2}}: {{Bilateral Network}} with {{Guided Aggregation}} for {{Real-Time Semantic Segmentation}}},
+  shorttitle = {{{BiSeNet V2}}},
+  author = {Yu, Changqian and Gao, Changxin and Wang, Jingbo and Yu, Gang and Shen, Chunhua and Sang, Nong},
+  year = 2021,
+  month = nov,
+  journal = {International Journal of Computer Vision},
+  volume = {129},
+  number = {11},
+  pages = {3051--3068},
+  issn = {0920-5691, 1573-1405},
+  doi = {10.1007/s11263-021-01515-2},
+  urldate = {2024-06-18},
+  langid = {english},
+  annotation = {674 citations (Crossref) [2024-06-26]},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Yu et al. - 2021 - BiSeNet V2 Bilateral Network with Guided Aggregation for Real-Time Semantic Segmentation.pdf}
 }
 
 @misc{zanagaESAWorldCover102022,
@@ -4048,6 +4178,23 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Zhao et al. - 2024 - A review of convolutional neural networks in computer vision.pdf}
 }
 
+@misc{zhengRethinkingSemanticSegmentation2021,
+  title = {Rethinking {{Semantic Segmentation}} from a {{Sequence-to-Sequence Perspective}} with {{Transformers}}},
+  author = {Zheng, Sixiao and Lu, Jiachen and Zhao, Hengshuang and Zhu, Xiatian and Luo, Zekun and Wang, Yabiao and Fu, Yanwei and Feng, Jianfeng and Xiang, Tao and Torr, Philip H. S. and Zhang, Li},
+  year = 2021,
+  month = jul,
+  number = {arXiv:2012.15840},
+  eprint = {2012.15840},
+  primaryclass = {cs},
+  publisher = {arXiv},
+  doi = {10.48550/arXiv.2012.15840},
+  urldate = {2025-10-21},
+  abstract = {Most recent semantic segmentation methods adopt a fully-convolutional network (FCN) with an encoder-decoder architecture. The encoder progressively reduces the spatial resolution and learns more abstract/semantic visual concepts with larger receptive fields. Since context modeling is critical for segmentation, the latest efforts have been focused on increasing the receptive field, through either dilated/atrous convolutions or inserting attention modules. However, the encoder-decoder based FCN architecture remains unchanged. In this paper, we aim to provide an alternative perspective by treating semantic segmentation as a sequence-to-sequence prediction task. Specifically, we deploy a pure transformer (ie, without convolution and resolution reduction) to encode an image as a sequence of patches. With the global context modeled in every layer of the transformer, this encoder can be combined with a simple decoder to provide a powerful segmentation model, termed SEgmentation TRansformer (SETR). Extensive experiments show that SETR achieves new state of the art on ADE20K (50.28\% mIoU), Pascal Context (55.83\% mIoU) and competitive results on Cityscapes. Particularly, we achieve the first position in the highly competitive ADE20K test server leaderboard on the day of submission.},
+  archiveprefix = {arXiv},
+  keywords = {Computer Science - Computer Vision and Pattern Recognition},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Zheng et al. - 2021 - Rethinking Semantic Segmentation from a Sequence-to-Sequence Perspective with Transformers.pdf;/Users/dak/Zotero/storage/U66I66GT/2012.html}
+}
+
 @article{zhenImpactTrainingValidation2013,
   title = {Impact of Training and Validation Sample Selection on Classification Accuracy and Accuracy Assessment When Using Reference Polygons in Object-Based Classification},
   author = {Zhen, Zhen and Quackenbush, Lindi J. and Stehman, Stephen V. and Zhang, Lianjun},
@@ -4103,6 +4250,23 @@ NTRS Research Center: Legacy CDMS (CDMS)},
   keywords = {Adaptation models,Covariance matrices,Data models,Domain adaptation,interpretation,machine learning,Machine learning,Semisupervised learning,transfer learning,Transfer learning},
   annotation = {3087 citations (Crossref) [2024-10-07]},
   file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Zhuang et al. - 2021 - A Comprehensive Survey on Transfer Learning.pdf;/Users/dak/Zotero/storage/A9J7UUEQ/9134370.html}
+}
+
+@article{zhuChangeViTUnleashingPlain2026,
+  title = {{{ChangeViT}}: {{Unleashing}} Plain Vision Transformers for Change Detection in Remote Sensing Images},
+  shorttitle = {{{ChangeViT}}},
+  author = {Zhu, Duowang and Huang, Xiaohu and Huang, Haiyan and Cheng, Qimin and Huang, Zheng and Shao, Zhenfeng},
+  year = 2026,
+  month = apr,
+  journal = {Pattern Recognition},
+  volume = {172},
+  pages = {112539},
+  issn = {0031-3203},
+  doi = {10.1016/j.patcog.2025.112539},
+  urldate = {2025-10-21},
+  abstract = {Change detection in remote sensing images is essential for monitoring environmental changes on Earth's surface. Although vision transformers (ViTs), particularly plain ViTs pre-trained on large-scale datasets and endowed with extensive knowledge and strong comprehension capabilities, have achieved remarkable success as backbones in numerous computer vision applications, they remain underutilized in change detection tasks. In this domain, convolutional neural networks (CNNs) continue to dominate due to their powerful feature extraction capabilities. In this paper, our study uncovers ViTs' unique advantage in discerning large-scale changes, a capability where CNNs fall short. Capitalizing on this insight, we introduce ChangeViT, a framework that adopts a plain ViT backbone to enhance the performance of large-scale changes. This framework is supplemented by a detail-capture module that generates detailed spatial features and a feature injector that efficiently integrates fine-grained spatial information into high-level semantic learning. The feature integration ensures that ChangeViT excels in both detecting large-scale changes and capturing fine-grained details, providing comprehensive change detection across diverse scales. Without bells and whistles, ChangeViT achieves state-of-the-art performance on three popular high-resolution datasets (i.e., LEVIR-CD, WHU-CD, and CLCD) and one low-resolution dataset (i.e., OSCD), which underscores the unleashed potential of plain ViTs for change detection. Furthermore, thorough quantitative and qualitative analyses validate the efficacy of the introduced modules, solidifying the effectiveness of our approach. The source code is available at https://github.com/zhuduowang/ChangeViT.},
+  keywords = {Change detection,Remote sensing images,Vision transformer},
+  file = {/Users/dak/Library/CloudStorage/OneDrive-MississippiStateUniversity/Zotero/Zhu et al. - 2026 - ChangeViT Unleashing plain vision transformers for change detection in remote sensing images.pdf;/Users/dak/Zotero/storage/VWTJLUH4/S0031320325012026.html}
 }
 
 @article{zhuContinuousChangeDetection2014,

@@ -1,16 +1,16 @@
 \section{Conclusion}
 
 % \note{The conclusion has been heavily edited by removing all sentences that referred to the semantic stratification method. The remaining sentences have been reassembled to form a new, concise conclusion that summarizes only the findings related to self-supervised learning.}
-In this work, we have demonstrated that accurate land cover classification at VHSR can be achieved using as few as \num{1,000} 256\(\times\)256 patches of labeled data using a BYOL self-supervised pre-training objective to learn meaningful image representations from large amounts of unlabeled VHSR imagery prior to fully supervised fine-tuning.
+In this work, we have demonstrated that accurate land cover classification at VHSR can be achieved using as few as \num{1,000} 256\(\times\)256-pixel patches of labeled data using a BYOL self-supervised pre-training objective to learn meaningful image representations from large amounts of unlabeled VHSR imagery prior to fully supervised fine-tuning.
 We find that initializing a model with ImageNet weights and then continuing pre-training with BYOL was consistently the best-performing approach, suggesting that there is still value in utilizing models pre-trained on general-purpose imagery for remote sensing applications, even if there is a demonstrable domain gap.
 Still, pre-training a model using BYOL from a random initialization was often competitive with ImageNet pre-training alone, demonstrating the power of in-domain self-supervision and the need for remote sensing-specific pre-training, even beyond the context of foundation models.
 We used this approach to produce a \SI{1}{\meter} resolution land cover map for the entire state of Mississippi, USA, which captures fine-scale land cover features that are indistinguishable in existing land cover products such as the NLCD.
 This achievement serves as a blueprint for both researchers applying geospatial deep learning models to data-scarce scenarios as well as practitioners seeking to produce high-quality land cover maps at VHSR over major geographic extents with limited human resources for collecting ground truth data.
 
-Given the rapid pace at which deep learning and semantic segmentation models have become the standard for classifying land cover at VHSR, it is critical to investigate their implications for real-world applications where labeled data is often scarce and expensive to obtain.
-Future work should continue to explore the implications of self-supervised learning for remote sensing applications under real-world constraints beyond academic benchmarks and compute-intensive techniques.
-Given the growing interest around self-supervised learning and foundation models in remote sensing, we believe our findings on the effectiveness of a self-distillation approach for pre-training a region-specific image encoder for land cover classification under data-scarce scenarios demonstrates the utility of these approaches beyond the context of building massive foundation models.
-Our work demonstrates that smaller-scale, domain-specific, and architecture-agnostic self-supervision is a viable strategy for improving model performance even for more traditional model architectures and workflows.
+% Given the rapid pace at which deep learning and semantic segmentation models have become the standard for classifying land cover at VHSR, it is critical to investigate their implications for real-world applications where labeled data is often scarce and expensive to obtain.
+% Future work should continue to explore the implications of self-supervised learning for remote sensing applications under real-world constraints beyond academic benchmarks and compute-intensive techniques.
+% Given the growing interest around self-supervised learning and foundation models in remote sensing, we believe our findings on the effectiveness of a self-distillation approach for pre-training a region-specific image encoder for land cover classification under data-scarce scenarios demonstrates the utility of these approaches beyond the context of building massive foundation models.
+% Our work demonstrates that smaller-scale, domain-specific, and architecture-agnostic self-supervision is a viable strategy for improving model performance even for more traditional model architectures and workflows.
 
 
 % \section{Conclusion}

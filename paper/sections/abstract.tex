@@ -27,7 +27,7 @@
 
 \begin{abstract}
     Deep learning semantic segmentation methods have shown promising performance for very high \SI{1}{\meter} resolution land cover classification, but the challenge of collecting large volumes of representative training data creates a significant barrier to widespread adoption of such models for meter-scale land cover mapping over large areas.
-    Further, most very high spatial resolution imagery datasets contain relatively few spectral bands, making such models particularly reliant on spatial features to distinguish between classes, increasing the computational complexity of the models and the amount of training data required to achieve satisfactory performance.
+    % Further, most very high spatial resolution imagery datasets contain relatively few spectral bands, making such models particularly reliant on spatial features to distinguish between classes, increasing the computational complexity of the models and the amount of training data required to achieve satisfactory performance.
     In this study, we present a novel label-efficient approach for statewide \SI{1}{\meter} land cover classification using only 1,000 annotated reference image patches.
     The methodology integrates recent research on self-supervised learning by applying the ``Bootstrap Your Own Latent'' pre-training strategy using large amount of unlabeled color-infrared aerial images (377,921 256×256 \SI{1}{\meter} pixel patches) to pre-train a ResNet-101 convolutional encoder.
     The learned encoder weights were subsequently transferred into multiple segmentation architectures (FCN, U-Net, Attention U-Net, DeepLabV3+, UPerNet, PAN), which were then fine-tuned using very small training dataset sizes using cross-validation (250, 500, 750 patches).
