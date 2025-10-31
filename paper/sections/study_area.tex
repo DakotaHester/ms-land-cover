@@ -30,16 +30,16 @@ The lack of use restrictions on NAIP imagery has made it a popular choice for hi
 Color-infrared (CIR) composites are generated using the near-infrared, red, and green bands to emphasize vegetation features in the imagery.
 All 2023 CIR composites were obtained as county-level composites from the USDA NRCS Geospatial Data Gateway~\citep{usdaGeospatialDataGateway2016} in MrSID format in the appropriate UTM zone for each county (UTM Zone 15N for Western Mississippi, UTM Zone 16N for Eastern Mississippi) at \SI{0.6}{\meter} resolution.
 Each county-level composite was converted to GeoTiff format, reprojected to the Mississippi Transverse Mercator coordinate reference system (EPSG:3813), and resampled to \SI{1}{\meter} resolution using bilinear interpolation.
-The total size of the NAIP imagery used in this work totaled \SI[number-unit-product={\text{ }}]{599.4}{\giga \byte}, for 82 total county-level GeoTiff files, an average of \SI[number-unit-product={\text{ }}]{7.31}{\giga \byte} per county, with individual county rasters ranging in size from \SI[number-unit-product={\text{ }}]{3.861}{\giga \byte} to \SI[number-unit-product={\text{ }}]{13.433}{\giga \byte},
+The total size of the NAIP imagery used in this work was \SI[number-unit-product={\text{ }}]{599.4}{\giga \byte}, comprising 82 county-level GeoTiff files, an average of \SI[number-unit-product={\text{ }}]{7.31}{\giga \byte} per county, with individual county rasters ranging in size from \SI[number-unit-product={\text{ }}]{3.861}{\giga \byte} to \SI[number-unit-product={\text{ }}]{13.433}{\giga \byte}.
 A visualization of the NAIP imagery used over the study area is provided in Figure~\ref{fig:study_area}.
-Note that three band images are necessary in order to be compatible with BYOL, which is designed for three-channel inputs, and for easy comparison with models using ImageNet pre-trained weights, which also expect three-channel inputs.
+We selected three-band images for compatibility with BYOL, which is designed for three-channel inputs, and for easy comparison with models using ImageNet pre-trained weights, which also expect three-channel inputs.
 
 \input{figures/study_area.tex}
 
 
 \subsection{NLCD land cover}\label{sec:data:nlcd}
 
-The stratification approach proposed (Section~\ref{sec:methodology:dataset_curation}) in this work relies on an existing land cover product to select strata from which training samples are drawn.
+The stratification approach proposed in this work (Section~\ref{sec:methodology:dataset_curation}) relies on an existing land cover product to select strata from which training samples are drawn.
 For this purpose, we used the USGS's National Land Cover Database (NLCD) to provide the necessary land cover information for stratification. 
 The NLCD has historically been among the most widely used land cover datasets in the United States, supporting numerous applications in human and ecosystem health studies, urban planning, natural hazard assessment, hydrology, and land management~\citep{sohlThirtyYearsUS2025}.
 The latest version of the NLCD (Annual NLCD) provides a yearly 20-class land cover product primarily derived from Landsat imagery at \SI{30}{\meter} resolution from 1985 to 2024~\citep{unitedstatesgeologicalsurveyAnnualNationalLand2025}.

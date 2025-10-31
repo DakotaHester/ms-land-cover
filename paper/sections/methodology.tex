@@ -1,13 +1,13 @@
 \section{Methodology}\label{sec:methodology}
 
 Our proposed methodology follows a multi-stage approach to model development that investigated the implications of self-supervised pre-training with the goal of producing an accurate VHSR land cover product over the state of Mississippi using a limited amount of annotated training data (Figure~\ref{fig:methodology_flowchart}).
-In Section~\ref{sec:methodology:dataset_curation},we describe a sampling strategy designed to capture the diversity of land cover across Mississippi.
+In Section~\ref{sec:methodology:dataset_curation}, we describe a sampling strategy designed to capture the diversity of land cover across Mississippi.
 Candidate patches were selected and grouped based on their land cover composition, and a subset was sampled for dense visual annotation. 
 % Using a grid of 256\(\times\)\SI{256}{\meter} patches, we extracted zonal histograms of land cover class distribution from the NLCD dataset for each candidate patch.
 % After applying PCA and K-means clustering to group the candidate samples into 250 strata based on land cover composition, we randomly sampled 1,000 candidate samples from these strata for dense visual annotation.
 A point-based assessment dataset of 25,000 samples was also created for model evaluation and final product accuracy assessment.
 % We first selected 1,000 256\(\times\)\SI{256}{\meter} patches of \SI{1}{\meter} NAIP imagery for visual annotation assisted using existing coarse resolution land cover data to guide the sampling process.
-Section~\ref{sec:methodology:self_supervised_pretraining} describes how BYOL was used to pre-train a ResNet-101 CNN in Section~\ref{sec:methodology:self_supervised_pretraining} using 377,921 patches of unannotated pre-training data from the area of interest (excluding the already sampled regions).
+Section~\ref{sec:methodology:self_supervised_pretraining} describes how BYOL was used to pre-train a ResNet-101 CNN using 377,921 patches of unannotated pre-training data from the area of interest (excluding the already sampled regions).
 Section~\ref{sec:methodology:semantic_segmentation} describes the fine-tuning and evaluation process, where the pre-trained ResNet-101 backbone was integrated into various semantic segmentation architectures and fine-tuned on limited annotated training data using stratified k-fold cross-validation.
 We evaluated the performance of multiple segmentation architectures (FCN, U-Net, Attention U-Net, DeepLabV3+, UPerNet, PAN) using varying amounts of training data (250, 500, 750 samples) to understand the implications of model architecture and training dataset size on final model performance.
 Finally, several fine-tuned models were compiled into a model ensemble to produce a land cover map at \SI{1}{\meter} resolution over the state of Mississippi for the year 2023, with the final data product undergoing a thematic accuracy assessment using the point-based assessment dataset, as described in Section~\ref{sec:methodology:model_ensembling}.
@@ -19,11 +19,10 @@ Finally, several fine-tuned models were compiled into a model ensemble to produc
 
 Stratifying the sampling of training data is a common practice in remote sensing to ensure that the training dataset is representative of the land cover distribution of the area of interest, particularly when the area contains rare or underrepresented classes~\citep{stehmanSamplingDesignsAccuracy2009, zhuOptimizingSelectionTraining2016, zhouTrainingDataSelection2020}.
 To ensure representative sampling for k-fold cross-validation, we employed a stratified sampling strategy to select 1,000 candidate training samples for annotation.
-We overlaid a grid of 256\(\times\)256 \SI{1}{\meter} pixels (i.e., 256\(\times\)\SI{256}{\meter} patches)  was overlaid over Mississippi, forming a population of 1,889,606 candidate patches used to support both the unlabeled dataset for pre-training and the labeled dataset for fine-tuning.
-To curate the fine-tuning dataset, zonal histograms of land cover class distribution were extracted from the 2023 NLCD dataset~\citep{yangNationalLandCover2023} for each candidate patch to characterize its land cover composition. 
+We overlaid a grid of 256\(\times\)256 \SI{1}{\meter} pixels (i.e., 256\(\times\)\SI{256}{\meter} patches), forming a population of 1,889,606 candidate patches used to support both the unlabeled dataset for pre-training and the labeled dataset for fine-tuning.
+To curate the fine-tuning dataset, zonal histograms of land cover class distribution were extracted from the 2023 NLCD dataset for each candidate patch to characterize its land cover composition as a type of feature vector.
 %over Mississippi, which formed the population of potential training samples, resulting in 1,889,606 candidate samples.
 % Zonal histograms of land cover class distribution from the 2023 NLCD dataset were extracted for each candidate patch; these histograms served as feature vectors describing the land cover composition of each patch.
-
 We then applied PCA to reduce the dimensionality of the feature vectors and K-means clustering to form 250 strata based on land cover composition.
 Finally, we randomly sampled 4 candidate training samples from each stratum, placing each into a separate fold of the k-fold training dataset, resulting in 4 folds totaling 1,000 samples.
 Figure~\ref{fig:nlcd_samples} shows the NLCD land cover across Mississippi, along with the spatial distribution of the selected samples and the class composition within each fold.
@@ -46,19 +45,21 @@ Examples of annotated samples are shown in Figure~\ref{fig:samples}.
 In addition to the 1,000 samples selected for annotation, a large dataset of unannotated samples was also collected from the state of Mississippi using simple random sampling from the remaining candidate patches to form a large dataset of unannotated samples for pre-training the ResNet-101 encoder.
 20\% (377,921) of the total number of candidate samples were selected for pre-training, while 5\% (94,480) were selected to serve as a pre-training validation dataset to monitor for overfitting during the pre-training process.
 Once all sample patches were selected, an additional point-based assessment dataset of 25,000 samples was created by randomly sampling points from the remaining candidate samples to serve as a testing dataset for the purposes of model evaluation and final accuracy assessment of the resulting land cover product.
-No points within \SI{200}{\meter} of a sampled patch were selected to prevent data leakage caused by spatial autocorrelation, and no points within \SI{1}{\kilo \meter} of a previously sampled point were selected to ensure that the assessment points were spatially independent of each other.
+No points within \SI[number-unit-product={\text{ }}]{200}{\meter} of a sampled patch were selected to prevent data leakage caused by spatial autocorrelation, and no points within \SI[number-unit-product={\text{ }}]{1}{\kilo \meter} of a previously sampled point were selected to ensure that the assessment points were spatially independent of each other.
 These points were visually annotated by a single annotator using 2023 NAIP imagery.
 For model evaluation purposes, 256\(\times\)\SI{256}{\meter} patches were extracted around each point such that the point was at the center of the patch, and a model's prediction for the central pixel corresponding to the point was compared to the point label to compute accuracy metrics.
 
 \subsection{Self-supervised pre-training using BYOL}\label{sec:methodology:self_supervised_pretraining}
 
 The pre-training phase of the methodology leverages the large dataset (377,921) of unannotated samples such that a ResNet-101 encoder can be trained to extract relevant features from the imagery that are well-suited for downstream land cover classification tasks.
-BYOL uses a ``self-distillation'' approach to learn representations from images using two separate but inter-dependent networks: an online network that consists of the primary encoder and a target network that consists of an exponential moving average (EMA) of the online network's parameters~\citep{grillBootstrapYourOwn2020}.
+BYOL uses a ``self-distillation'' approach to learn representations from images using two separate but interdependent networks: an online network containing the image encoder, a projection head, and a prediction head, and a target network that is structurally similar to the online network but lacks the prediction head, initialized using a copy of the online network's parameters at the start of training~\citep{grillBootstrapYourOwn2020}.
+% that consists of an exponential moving average (EMA) of the online network's parameters~\citep{grillBootstrapYourOwn2020}.
+% The online network consists of an image encoder, a multi-layer perceptron (MLP) projection head, and an MLP prediction head, while the target network consists of an image encoder and an MLP projection head: this asymmetry is critical to prevent the model from learning trivial solutions.
 Given an input image, two separate augmented views of the image are created using a set of transformations.
 As illustrated in Figure~\ref{fig:byol_workflow}, each view is then passed through the online and target networks to produce feature vectors.
 The online network, which processes view \(v_1\), is then trained to predict the feature vector produced by the target network from view \(v_2\).
 However, the target network is not trained directly; instead, it is updated using an EMA of the online network weights, giving the online network a stable yet constantly updated target to learn from.
-The online network consists of an image encoder, a multi-layer perceptron (MLP) projection head, and an MLP prediction head, while the target network consists of an image encoder and an MLP projection head: this asymmetry is critical to prevent the model from learning trivial solutions.
+Ultimately, the image encoder from the online network is retained after training to be transferred to downstream tasks.
 
 \input{figures/byol.tex}
 
@@ -78,7 +79,7 @@ We applied BYOL to a ResNet-101 encoder network using the dataset of 377,921 una
 We tested two configurations of the BYOL pre-training process: one starting with ImageNet pre-trained weights at the beginning of the pre-training process and one starting with randomly initialized weights.
 The pre-training process was run for 300 epochs, with the learning rate reduced from \(1 \times 10^{-3}\) to 0 over the course of training using a cosine annealing schedule, with a warmup period of 10 epochs to linearly increase the learning rate from 0 to \(1 \times 10^{-3}\).
 The AdamW optimizer was used with a batch size of 4096: to achieve this large batch size while working within the memory constraints of a single Nvidia A100 GPU with 80 GB of VRAM, we employed gradient accumulation using a microbatch size of 256.
-Automatic mixed precision (AMP) training was used to speed up the training stage and reduce memory usage.
+% Automatic mixed precision (AMP) training was used to speed up the training stage and reduce memory usage~\citep{automaticmi}.
 After each epoch, the model was evaluated on the pre-training validation dataset using the BYOL loss function (as during training) to monitor for overfitting.
 
 % \subsection{Embedding evaluation through linear probing}\ref{lab}
@@ -97,12 +98,12 @@ Focal loss was used as the loss function to address the class imbalance in the l
     \mathcal{L}_\text{Focal}(p_t) = -(1 - p_t)^\gamma \log(p_t)
 \end{equation}
 
-A warmup period of 10 epochs was used to linearly increase the learning rate from \(1 \times 10^{-5}\) to \(1 \times 10^{-4}\) at epoch 10, after which the learning rate was decayed by a factor of 0.1 after the validation loss fails to decrease for 15 epochs.
+A warmup period of 10 epochs was used to linearly increase the learning rate from \(1 \times 10^{-5}\) to \(1 \times 10^{-4}\) at epoch 10, after which the learning rate was decayed by a factor of 0.1 when the validation loss failed to decrease for 10 epochs.
 After 50 epochs of no improvement in the validation loss, training was halted and the model with the lowest validation loss was selected as the final model for that run.
 Automatic mixed precision (AMP) training was used to speed up the training stage and reduce memory usage.
-Due to the limited size of the training datasets, we employed a strong set of image augmentations on-the-fly to ensure that the models did not overfit to the training data, including random horizontal and vertical flips (50\% probability each), random 90° rotations (0°, 90°, 180°, 270°; 100\%), color jitter (brightness = 0.4, contrast = 0.4, saturation = 0.2, hue = 0.2; 80\%), random grayscale conversion (20\%), and Gaussian blur (kernel size = 25, \(\sigma \in [0.1, 2.0]\); 100\%).
+Due to the limited size of the training datasets, we employed a strong set of image augmentations on-the-fly to ensure that the models did not overfit to the training data, including random horizontal and vertical flips (50\% probability each), random 90\(^\circ\) rotations (0\(^\circ\), 90\(^\circ\), 180\(^\circ\), 270\(^\circ\); 100\%), color jitter (brightness = 0.4, contrast = 0.4, saturation = 0.2, hue = 0.2; 80\%), random grayscale conversion (20\%), and Gaussian blur (kernel size = 25, \(\sigma \in [0.1, 2.0]\); 100\%).
 Since each cross-validation run used its validation split to tune the optimizer and trigger early stopping, we did not use validation-split metrics for final performance reporting.
-Rather, the performance of the linear probing models was evaluated using the point-based assessment dataset, with the results being compared between the two BYOL pre-training configurations (i.e., different weight initialization strategies) as well as a baseline model that used the ResNet-101 encoder with ImageNet pre-trained weights without any BYOL pre-training.
+Rather, the performance of the linear probing models was evaluated using the point-based assessment dataset (25,000 samples), with the results being compared between the two BYOL pre-training configurations (i.e., different weight initialization strategies) as well as a baseline model that used the ResNet-101 encoder with ImageNet pre-trained weights without any BYOL pre-training.
 Considering the natural imbalance of the land cover classes, we chose the macro F1 score as the primary evaluation metric, as shown in Equation~\ref{eq:macro_f1}, where \(C\) is the number of classes, \(\text{TP}_c\) is the number of true positives for class \(c\), \(\text{FP}_c\) is the number of false positives for class \(c\), and \(\text{FN}_c\) is the number of false negatives for class \(c\).
 % All models and experiments in this section were implemented using the \texttt{PyTorch} and \texttt{Torchvision} libraries in Python 3~\citep{paszkePyTorchImperativeStyle2019, torchvision2016}.
 
@@ -116,7 +117,7 @@ Considering the natural imbalance of the land cover classes, we chose the macro 
 
 Once the ResNet-101 encoders were pre-trained using BYOL, they were used as a backbone for a semantic segmentation architecture that was fine-tuned using the annotated training dataset from Section~\ref{sec:methodology:dataset_curation}.
 We evaluated 6 different semantic segmentation architectures to determine which framework was best suited for the land cover classification task at hand.
-We exclude any architectures that rely on transformer-based encoders (e.g., SegFormer~\citep{xieSegFormerSimpleEfficient2021}, SETR~\citep{zhengRethinkingSemanticSegmentation2021}) or specialized convolutional backbones (e.g., HRNet~\citep{wangDeepHighResolutionRepresentation2020}, BiSeNetV2~\citep{yuBiSeNetV2Bilateral2021}) to maintain a controlled comparison between architectures that all use the same ResNet-101 encoder network.
+We excluded any architectures that rely on transformer-based encoders (e.g., SegFormer~\citep{xieSegFormerSimpleEfficient2021}, SETR~\citep{zhengRethinkingSemanticSegmentation2021}) or specialized convolutional backbones (e.g., HRNet~\citep{wangDeepHighResolutionRepresentation2020}, BiSeNetV2~\citep{yuBiSeNetV2Bilateral2021}) to maintain a controlled comparison between architectures that all use the same ResNet-101 encoder network.
 Table~\ref{tab:semantic_segmentation_models} shows the semantic segmentation architectures that were evaluated in this study, and a brief description of each architecture is provided below.
 % An example of how the ResNet-101 encoder is used in these architectures is shown in Figure~\ref{fig:unet}, where the standard convolutional encoder is replaced with the pre-trained ResNet.
 
@@ -125,7 +126,7 @@ Table~\ref{tab:semantic_segmentation_models} shows the semantic segmentation arc
 \paragraph{FCN}
 The Fully Convolutional Network (FCN) was one of the earliest deep learning architectures designed specifically for semantic segmentation tasks~\citep{longFullyConvolutionalNetworks2015}.
 As its name suggests, FCN is composed entirely of convolutional layers, eschewing the use of fully connected layers that are common in image classification architectures.
-Under this design, instead of a model outputting a single class label for an entire image, the model outputs a spatial map of class probabilities that correspond to the input image's spatial dimensions.
+Under this design, instead of outputting a single class label for an entire image, the model outputs a spatial map of class probabilities that correspond to the input image's spatial dimensions.
 FCN uses a standard convolutional encoder to extract hierarchical features from the input image, followed by a series of upsampling layers to produce the final segmentation map.
 Though simple, FCN was a groundbreaking architecture that demonstrated the potential of deep learning for semantic segmentation tasks, and its encoder-decoder framework has been widely adopted in subsequent architectures.
 FCN saw early success in remote sensing applications, particularly for land cover classification tasks at high spatial resolutions~\citep{sherrahFullyConvolutionalNetworks2016, volpiDenseSemanticLabeling2017, chenSymmetricalDenseShortcutDeep2018}.
@@ -138,7 +139,7 @@ Under such a framework, the encoder network extracts hierarchical features from 
 Notably, U-Net's decoder network is approximately symmetric to the encoder network, meaning that the feature maps are upsampled in stages that mirror the downsampling stages of the encoder.
 As such, skip connections can be used to pass feature maps from the encoder to the decoder at corresponding stages: the encoder's feature maps are concatenated with the decoder's feature maps at each stage to provide the decoder with relevant, resolution-specific information that otherwise would be lost during the downsampling process.
 U-Net's simple yet powerful architecture has made it a popular choice for a wide variety of remote sensing applications~\citep{robinsonLargeScaleHighresolution2019,yiSemanticSegmentationUrban2019, liDeepUNetDeepFully2018, schieferMappingForestTree2020}
-Our U-Net implementation differs from the original U-Net architecture in two key ways: first, we opt to use simple bilinear interpolation for upsampling in the decoder rather than transposed convolutions to reduce the presence of checkerboard artifacts in the output segmentation maps (see \citep{odenaDeconvolutionCheckerboardArtifacts2016} for more details); second, as we use a ResNet-101 encoder that downsamples the input image by a factor of 4 in the first stage (as opposed to the factor of 2 downsampling in the original U-Net), we modify the decoder to account for this difference by adding an additional upsampling stage to ensure that the output segmentation map matches the input resolution.
+Our U-Net implementation differed from the original U-Net architecture in two key ways: first, we opted to use simple bilinear interpolation for upsampling in the decoder rather than transposed convolutions to reduce the presence of checkerboard artifacts in the output segmentation maps (see \citep{odenaDeconvolutionCheckerboardArtifacts2016} for more details); second, as we used a ResNet-101 encoder that downsamples the input image by a factor of 4 in the first stage (as opposed to the factor of 2 downsampling in the original U-Net), we modified the decoder to account for this difference by adding an additional upsampling stage to ensure that the output segmentation map matches the input resolution.
 % An example of how the ResNet-101 encoder is used in this architecture is shown in Figure~\ref{fig:unet}, where the standard convolutional encoder is replaced with the pre-trained ResNet-101.
 
 % \input{figures/unet.tex}
@@ -148,7 +149,7 @@ Our U-Net implementation differs from the original U-Net architecture in two key
 As the name suggests, Attention U-Net is a variant of the U-Net architecture that incorporates attention mechanisms that emphasize spatial regions of interest in the feature maps.
 This is accomplished through the use of attention gates along the skip connections between the encoder and decoder, which learn to weight the features passed from the encoder to the decoder based on their relevance to the current task.
 By focusing on the most relevant spatial regions, \citet{oktayAttentionUNetLearning2018} demonstrated that Attention U-Net achieved improved performance on medical image segmentation tasks compared to the original U-Net architecture, particularly with regard to the localization of object boundaries.
-Like U-Net, our Attention U-Net implementation uses bilinear interpolation for upsampling in the decoder rather than transposed convolutions, and the decoder includes an additional upsampling stage to account for the ResNet-101 encoder's downsampling factor of 4 in the first stage.
+Like U-Net, our Attention U-Net implementation used bilinear interpolation for upsampling in the decoder rather than transposed convolutions, and the decoder included an additional upsampling stage to account for the ResNet-101 encoder's downsampling factor of 4 in the first stage.
 
 % \paragraph{PSPNet}
 
@@ -167,21 +168,21 @@ Like U-Net, our Attention U-Net implementation uses bilinear interpolation for u
 
 DeepLabV3+ is an evolution of the DeepLab family of semantic segmentation architectures that incorporates atrous (dilated) convolutions and spatial pyramid pooling to capture multi-scale context in the feature maps~\citep{chenEncoderDecoderAtrousSeparable2018}.
 At the core of DeepLabV3+ is an Atrous Spatial Pyramid Pooling (ASPP) module that aggregates multi-scale context from the final feature maps produced by the encoder.
-This ASPP module uses parallel atrous convolutions to encoder feature maps at multiple scales as opposed to using pooling operations: the use of atrous (i.e., dilated) convolutions allows the network to capture features at multiple scales in a learned manner.
+This ASPP module uses parallel atrous convolutions to encode feature maps at multiple scales as opposed to using pooling operations: the use of atrous (i.e., dilated) convolutions allows the network to capture features at multiple scales in a learned manner.
 A comparatively simple decoder network is utilized that upsamples the output of the ASPP module using bilinear interpolation, concatenates it with low-level feature maps from the encoder, and upsamples the result to produce the final segmentation map.
-Like U-Net, DeepLabv3+ has seen wide adoption for remote sensing applications~\citep{duIncorporatingDeepLabv3Objectbased2021, liuComparisonMultisourceSatellite2021,krestenitisOilSpillIdentification2019}
-DeepLabV3+ was originally designed to use a modified ResNet-101 encoder, and as such minimal effort is necessary to replace the original encoder with our pre-trained ResNet-101 encoder.
+Like U-Net, DeepLabV3+ has seen wide adoption for remote sensing applications~\citep{duIncorporatingDeepLabv3Objectbased2021, liuComparisonMultisourceSatellite2021,krestenitisOilSpillIdentification2019}
+DeepLabV3+ was originally designed to use a modified ResNet-101 encoder, and as such minimal effort was necessary to replace the original encoder with our pre-trained ResNet-101 encoder.
 
 \paragraph{UPerNet}
 Unlike most semantic segmentation architectures that only attempt to classify objects at a single scale, UPerNet (Unified Perceptual Parsing Network) is designed to classify objects as part of a hierarchical structure that operates at multiple levels of granularity.
 UPerNet classifies an image at one global level (i.e., scene classification) and at four local levels (object, part, material, and texture classification maps)~\citep{xiaoUnifiedPerceptualParsing2018}.
-The core component of UPerNet is Feature Pyramid Network (FPN), a U-Net like encoder-decoder architecture that serves as the primary feature extractor for UPerNet.
+The core component of UPerNet is Feature Pyramid Network (FPN), a U-Net-like encoder-decoder architecture that serves as the primary feature extractor for UPerNet.
 The encoder network's downsampling stages are similar to those of ResNet-101, making substituting the original FPN encoder with a ResNet-101 encoder straightforward.
 A pyramid pooling module is placed after the encoder network in the FPN to aggregate global context from the feature maps prior to passing them to the decoder.
-Our implementation disregards the multi-level classification aspect of UPerNet, and only uses the object-level classification head to produce a single land cover classification map.
+Our implementation disregarded the multi-level classification aspect of UPerNet, and only used the object-level classification head to produce a single land cover classification map.
 This object-level classification head receives feature maps from all levels of the FPN decoder, classifies each pixel, and upsamples the output to match the input resolution.
 Classifying land cover using feature maps from all levels of the decoder allows the classification head to leverage features at multiple scales to inform its predictions, unlike more traditional encoder-decoder architectures that only consider the output from the final, highest-resolution feature map of the decoder.
-Alongside the use of the ResNet-101 encoder, our UPerNet implementation also incorporates the output of the PPM module into the final classification head in addition to the feature maps from the FPN decoder as a means of better incorporating global context into the final predictions.
+% Alongside the use of the ResNet-101 encoder, our UPerNet implementation also incorporates the output of the PPM module into the final classification head in addition to the feature maps from the FPN decoder as a means of better incorporating global context into the final predictions.
 
 
 % \note{Paper OS = 16, our implementation uses OS = 16}
@@ -201,8 +202,8 @@ Incorporating multi-scale context into semantic segmentation models is a common 
 PAN (Pyramid Attention Network) attempts to address this limitation through the use of a Feature Pyramid Attention (FPA) network module that utilizes convolutions with multiple kernel sizes to perform a spatial attention operation on the feature maps produced by the encoder~\citep{liPyramidAttentionNetwork2018}.
 Like the ASPP module in DeepLabV3+, PAN uses this FPA module with the goal of refining large-scale context in the final feature maps produced by the encoder.
 However, PAN's FPA module aims to retain localization information in the feature maps through the use of convolutional attention rather than pooling or atrous convolutions.
-Like Attention U-Net, Global attention Upsample (GAU) modules are used in the decoder to serve as a form of gating mechanism that attends to the most relevant channels in the feature maps before adding them to the upsampled feature maps from the previous stage of the decoder (as opposed to attending spatially and concatenating the feature maps in Attention U-Net).
-ResNet-101 is used as the encoder in the original PAN architecture, and as such no modifications are necessary to incorporate our pre-trained ResNet-101 encoder.
+Similar to Attention U-Net, Global Attention Upsample (GAU) modules are used in the decoder to serve as a form of gating mechanism that attends to the most relevant channels in the feature maps before adding them to the upsampled feature maps from the previous stage of the decoder (as opposed to attending spatially and concatenating the feature maps in Attention U-Net).
+ResNet-101 is used as the encoder in the original PAN architecture, and as such no modifications were necessary to incorporate our pre-trained ResNet-101 encoder.
 
 % \note{Paper: OS = 16, our implementation uses OS = 16}
 
@@ -213,11 +214,9 @@ ResNet-101 is used as the encoder in the original PAN architecture, and as such 
 % \note{Paper: OS = 8, our implementation uses OS = 16, implement with OS-8 yeilds to approx. 3.5 increase in FLOPS}
 
 
-
-
 Each model was fine-tuned using the same configuration as the models in Section~\ref{sec:methodology:self_supervised_pretraining} (i.e., AdamW optimizer, learning rate of \(1 \times 10^{-4}\), batch size of 32, focal loss function, AMP, etc.).
 During fine-tuning, the weights of the ResNet-101 encoder were unfrozen and updated along with the weights of the semantic segmentation architecture.
-Evaluation was again performed using cross-validation across 250, 500, and 750 training samples (Figure~\ref{fig:fold_splits}), and the performance of each model was assessed using each model's macro F1 score on the point-based assessment dataset (25,000) to select the best-performing combination of pre-training procedure, semantic segmentation architecture, and training dataset size using the mean macro F1 score across the k-folds.
+Evaluation was again performed using cross-validation across 250, 500, and 750 training samples (Figure~\ref{fig:fold_splits}), and the performance of each model was assessed using each model's macro F1 score on the point-based assessment dataset (25,000 samples) to select the best-performing combination of pre-training procedure, semantic segmentation architecture, and training dataset size using the mean macro F1 score across the k-folds.
 
 
 
@@ -239,12 +238,13 @@ For example, if the best-performing configuration is found to be a U-Net archite
 Model ensembling was chosen as it is a popular approach to improving the robustness and accuracy of machine learning models by combining the predictions of multiple distinct models to produce a final prediction.
 Each model in the ensemble produced a land cover probability vector for each pixel in the input image, and these class probability vectors were averaged across all models in the ensemble to produce a final class probability vector for each pixel, with the final predicted class being the class with the highest probability from the averaged class probabilities~\citep{marmanisSemanticSegmentationAerial2016}.
 A ``sliding window'' approach was used to process the imagery in \SI{256}{\meter} patches with a stride of \SI{64}{\meter} to ensure that each pixel would be seen multiple times to further maximize the effects of the model ensemble.
-Additionally, test-time augmentations were employed to further improve the robustness of the predictions: at any given location, each model in the ensemble received an input that was randomly augmented using random horizontal and vertical flips along with random 90-degree rotations~\citep{moshkovTesttimeAugmentationDeep2020}.
+Additionally, test-time augmentations were employed to further improve the robustness of the predictions: at any given location, each model in the ensemble received an input that was randomly augmented using random horizontal and vertical flips along with random 90\(^\circ\) rotation~\citep{moshkovTesttimeAugmentationDeep2020}.
 For example, if there are 4 models in the ensemble, each model would receive a different random augmentation of the input patch, resulting in 4 different predictions for that patch.
 The final output patches of the ensemble were weighted using element-wise multiplication with a 256\(\times\)256 Gaussian kernel to de-emphasize the probabilities of pixels near the edge of the classification maps in order to mitigate presence of edge artifacts in the final merged output.
-These inference steps are used to classify the entire state of Mississippi using 2023 NAIP imagery at \SI{1}{\meter} resolution, amounting to over 123 billion pixels.
+These inference steps were used to classify the entire state of Mississippi using 2023 NAIP imagery at \SI{1}{\meter} resolution, amounting to over 123 billion pixels.
 % In total, these steps work to classify over 123 million pixels across the state of Mississippi at \SI{1}{\meter} resolution, producing a final land cover map for the year 2023.
-Evaluation of the final land cover product was performed using the point-based assessment dataset (see Section~\ref{sec:methodology:dataset_curation}), with overall accuracy, per-class user accuracy, and per-class producer accuracy metrics being computed to assess the quality of the final product, as shown in Equations~\ref{eq:overall_accuracy}, \ref{eq:producer_accuracy}, and \ref{eq:user_accuracy}, where TP is the number of true positives, FP is the number of false positives, and FN is the number of false negatives.
+A thematic accuracy assessment of the final land cover product was performed using the point-based assessment dataset (see Section~\ref{sec:methodology:dataset_curation}).
+Overall accuracy, per-class user accuracy, and per-class producer accuracy metrics were computed to assess the quality of the final product, as shown in Equations~\ref{eq:overall_accuracy}, \ref{eq:producer_accuracy}, and \ref{eq:user_accuracy}, where TP is the number of true positives, FP is the number of false positives, and FN is the number of false negatives.
 
 \begin{equation}\label{eq:overall_accuracy}
     \text{Overall Accuracy} = \frac{\text{TP}}{\text{TP} + \text{FP} + \text{FN}}
@@ -253,6 +253,7 @@ Evaluation of the final land cover product was performed using the point-based a
 \begin{equation}\label{eq:producer_accuracy}
     \text{Producer's Accuracy} = \frac{\text{TP}}{\text{TP} + \text{FN}} 
 \end{equation}
+
 \begin{equation}\label{eq:user_accuracy}
     \text{User's Accuracy} = \frac{\text{TP}}{\text{TP} + \text{FP}}
 \end{equation}
