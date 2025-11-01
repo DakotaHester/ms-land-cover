@@ -75,3 +75,6 @@ data/old_splits
 data/assessment
 /paper/paper_old.zip
 *.xbb
+*.bkp
+*.dtmp
+*~*.docx
