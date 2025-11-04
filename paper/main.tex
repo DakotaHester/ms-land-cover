@@ -7,7 +7,7 @@
 % \usepackage{rotating}
 \usepackage{adjustbox}
 % \usepackage{makecell}
-\usepackage{array} % Add this package
+% \usepackage{array} % Add this package
 % \usepackage{diagbox}
 \usepackage{amsmath}
 \usepackage{float}
@@ -44,17 +44,17 @@
 % \renewcommand{\SI}[2]{\SI[number-unit-product={\text{-}}]{#1}{#2}}
 \sisetup{number-unit-product = {\text{-}}}
 
-% \note command for adding notes to the document
-\newcommand*{\note}[1]{\textbf{\textcolor{red}{#1}}}
+% % \note command for adding notes to the document
+% \newcommand*{\note}[1]{\textbf{\textcolor{red}{#1}}}
 
-% \specialcell command for multi-line cells in tables
-\newcommand{\specialcell}[1]{% Multi-Line
-  \shortstack[l]{#1}
-}
+% % \specialcell command for multi-line cells in tables
+% \newcommand{\specialcell}[1]{% Multi-Line
+%   \shortstack[l]{#1}
+% }
 
-\newcommand{\smallrule}{
-  \specialrule{.0025em}{0.001em}{0.001em} 
-}
+% \newcommand{\smallrule}{
+%   \specialrule{.0025em}{0.001em}{0.001em} 
+% }
 
 % \title{Learning with less: label-efficient land cover classification at very high spatial resolution using self-supervised deep learning}
 % % \author{Author Order?}
@@ -109,11 +109,13 @@
   \cortext[cor1]{Corresponding author}
   \date{\today}
 
+  \input{sections/abstract.tex}
+
   \begin{keyword}
     Land cover classification \sep very high spatial resolution \sep self-supervised learning \sep deep learning \sep label efficiency
-  \end{keyword} 
+  \end{keyword}
 
-  \input{sections/abstract.tex}
+  
 
 \end{frontmatter}
 

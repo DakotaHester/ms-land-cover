@@ -59,15 +59,18 @@ def clean_tex_content(content: str) -> str:
     """
     cleaned_lines = []
     for line in content.splitlines():
-        # Remove comments from the line
+        stripped = line.lstrip()
+        if stripped.startswith('%'):
+            continue  # Skip full-line comments entirely
         cleaned_line = RE_COMMENT.sub('', line).rstrip()
-        cleaned_lines.append(cleaned_line)
-
-    # Join lines and squeeze blank lines
+        if cleaned_line.strip() != '':
+            cleaned_lines.append(cleaned_line)
+        else:
+            # Only add a blank line if the previous line wasn't blank
+            if cleaned_lines and cleaned_lines[-1] != '':
+                cleaned_lines.append('')
     cleaned_content = '\n'.join(cleaned_lines)
-    # Replace 3+ newlines with 2 to get single blank line spacing
     cleaned_content = RE_SQUEEZE_NEWLINES.sub('\n\n', cleaned_content)
-    
     return cleaned_content.strip()
 
 
@@ -122,6 +125,17 @@ def find_dependencies(content: str, project_root: str) -> set:
             dependencies.add(class_file)
 
     return dependencies
+
+def strip_comments_for_dependency_parsing(content: str) -> str:
+    lines = []
+    for line in content.splitlines():
+        stripped = line.lstrip()
+        if stripped.startswith('%'):
+            continue
+        # Remove inline comments
+        line_no_comment = RE_COMMENT.sub('', line)
+        lines.append(line_no_comment)
+    return '\n'.join(lines)
 
 
 def process_file(relative_path: str, project_root: str, output_dir: str, processed_files: set):
@@ -186,7 +200,7 @@ def process_file(relative_path: str, project_root: str, output_dir: str, process
             if file_ext == '.tex':
                 # IMPORTANT: We parse the *original* content, not the cleaned one,
                 # as comments might contain valid temporary \input commands.
-                dependencies = find_dependencies(content, project_root)
+                dependencies = find_dependencies(strip_comments_for_dependency_parsing(content), project_root)
         
         # For all other files, just copy them
         elif file_ext not in ['.aux', '.log', '.out', '.bbl', '.blg', '.toc', '.lof', '.lot', '.synctex.gz']:
