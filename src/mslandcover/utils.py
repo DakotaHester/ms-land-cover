@@ -211,3 +211,4 @@ def load_pth(path: str, **kwargs):
         if 'weights_only' in kwargs:
             del kwargs['weights_only']
         return torch.load(path, **kwargs)
+    

@@ -965,3 +965,61 @@ class MoCoV2DataAugmentation:
 
     def __call__(self, x):
         return self.transform(x)
+
+
+
+class DINODataAugmentation:
+    """
+    Multi-Crop Data Augmentation for DINO.
+    Generates 2 global views and `n_local_crops` local views.
+    
+    References:
+    - Emerging Properties in Self-Supervised Vision Transformers (Caron et al., 2021)
+    """
+    def __init__(self, global_crops_scale=(0.4, 1.0), local_crops_scale=(0.05, 0.4), 
+                 local_crops_number=8, global_size=224, local_size=96):
+        self.local_crops_number = local_crops_number
+        
+        # Base augmentations (Flip, ColorJitter, Grayscale)
+        # Note: DINO typically uses similar color distortions to BYOL/SimCLR
+        flip_and_color_jitter = transforms.Compose([
+            transforms.RandomHorizontalFlip(p=0.5),
+            transforms.RandomApply([
+                transforms.ColorJitter(brightness=0.4, contrast=0.4, saturation=0.2, hue=0.1)
+            ], p=0.8),
+            transforms.RandomGrayscale(p=0.2),
+        ])
+        
+        # Global transformation (Larger crops, passed to Student and Teacher)
+        self.global_transfo1 = transforms.Compose([
+            transforms.RandomResizedCrop(global_size, scale=global_crops_scale, interpolation=transforms.InterpolationMode.BICUBIC),
+            flip_and_color_jitter,
+            transforms.GaussianBlur(kernel_size=int(0.1 * global_size) | 1, sigma=(0.1, 2.0)), # Always apply blur to first global
+            # transforms.ToTensor(), # Handled in dataset usually
+            # normalize, # Handled in dataset usually
+        ])
+        
+        self.global_transfo2 = transforms.Compose([
+            transforms.RandomResizedCrop(global_size, scale=global_crops_scale, interpolation=transforms.InterpolationMode.BICUBIC),
+            flip_and_color_jitter,
+            transforms.RandomApply([transforms.GaussianBlur(kernel_size=int(0.1 * global_size) | 1, sigma=(0.1, 2.0))], p=0.1),
+            transforms.RandomSolarize(threshold=0.5, p=0.2), # Solarization on second global
+        ])
+
+        # Local transformation (Smaller crops, passed to Student ONLY)
+        self.local_transfo = transforms.Compose([
+            transforms.RandomResizedCrop(local_size, scale=local_crops_scale, interpolation=transforms.InterpolationMode.BICUBIC),
+            flip_and_color_jitter,
+            transforms.RandomApply([transforms.GaussianBlur(kernel_size=int(0.1 * local_size) | 1, sigma=(0.1, 2.0))], p=0.5),
+        ])
+
+    def __call__(self, img):
+        """
+        Returns a list of views: [global_1, global_2, local_1, ..., local_n]
+        """
+        crops = []
+        crops.append(self.global_transfo1(img))
+        crops.append(self.global_transfo2(img))
+        for _ in range(self.local_crops_number):
+            crops.append(self.local_transfo(img))
+        return crops

@@ -261,7 +261,8 @@ class LARS(Optimizer):
         dampening=0,
         weight_decay=0, 
         nesterov=False, 
-        epsilon=0
+        epsilon=0,
+        exclude_bias_bn=True
     ):
         if lr is not required and lr < 0.0:
             raise ValueError("Invalid learning rate: {}".format(lr))
@@ -271,23 +272,24 @@ class LARS(Optimizer):
             raise ValueError("Invalid weight_decay value: {}".format(weight_decay))
 
         defaults = dict(lr=lr, momentum=momentum, eta=eta, dampening=dampening,
-                        weight_decay=weight_decay, nesterov=nesterov, epsilon=epsilon)
+                        weight_decay=weight_decay, nesterov=nesterov, epsilon=epsilon,
+                        exclude_bias_bn=exclude_bias_bn)
         if nesterov and (momentum <= 0 or dampening != 0):
             raise ValueError("Nesterov momentum requires a momentum and zero dampening")
         super(LARS, self).__init__(params, defaults)
 
-    def __setstate__(self, state):
-        super(LARS, self).__setstate__(state)
-        for group in self.param_groups:
-            group.setdefault('nesterov', False)
+    def _should_exclude_lars(self, param_name, param):
+        """Exclude bias and batch norm parameters from LARS scaling"""
+        # Common patterns for bias and batch norm parameters
+        if 'bias' in param_name.lower():
+            return True
+        if 'bn' in param_name.lower() or 'norm' in param_name.lower():
+            return True
+        if len(param.shape) <= 1:  # 1D parameters (bias, BN scale/shift)
+            return True
+        return False
 
     def step(self, closure=None):
-        """Performs a single optimization step.
-
-        Arguments:
-            closure (callable, optional): A closure that reevaluates the model
-                and returns the loss.
-        """
         loss = None
         if closure is not None:
             loss = closure()
@@ -299,33 +301,50 @@ class LARS(Optimizer):
             dampening = group['dampening']
             nesterov = group['nesterov']
             epsilon = group['epsilon']
+            exclude_bias_bn = group['exclude_bias_bn']
 
             for p in group['params']:
                 if p.grad is None:
                     continue
-                w_norm = torch.norm(p.data)
-                g_norm = torch.norm(p.grad.data)
-                if w_norm * g_norm > 0:
-                    local_lr = eta * w_norm / (g_norm +
-                        weight_decay * w_norm + epsilon)
-                else:
-                    local_lr = 1
-                d_p = p.grad.data
+                    
+                # Get original gradient
+                d_p = p.grad.data.clone()
+                
+                # Apply weight decay
                 if weight_decay != 0:
-                    d_p.add_(p.data, alpha=weight_decay)
+                    d_p = d_p.add(p.data, alpha=weight_decay)
+                
+                # Calculate LARS local learning rate
+                param_name = getattr(p, 'param_name', '')
+                if exclude_bias_bn and self._should_exclude_lars(param_name, p):
+                    # Skip LARS scaling for bias and BN parameters
+                    local_lr = 1.0
+                else:
+                    w_norm = torch.norm(p.data)
+                    g_norm = torch.norm(d_p)
+                    if w_norm > 0 and g_norm > 0:
+                        local_lr = eta * w_norm / (g_norm + epsilon)
+                    else:
+                        local_lr = 1.0
+                
+                # Apply momentum
                 if momentum != 0:
                     param_state = self.state[p]
                     if 'momentum_buffer' not in param_state:
-                        buf = param_state['momentum_buffer'] = torch.clone(d_p).detach()
+                        buf = param_state['momentum_buffer'] = torch.zeros_like(d_p)
                     else:
                         buf = param_state['momentum_buffer']
-                    buf.mul_(momentum).add_(1 - dampening, d_p)
+                    
+                    # Correct momentum update
+                    buf.mul_(momentum).add_(d_p, alpha=1 - dampening)
+                    
                     if nesterov:
-                        d_p = d_p.add(momentum, buf)
+                        d_p = d_p.add(buf, alpha=momentum)
                     else:
                         d_p = buf
 
-                p.data.add_(d_p, alpha=(-local_lr * group['lr']))
+                # Apply update with LARS local learning rate
+                p.data.add_(d_p, alpha=-local_lr * group['lr'])
 
         return loss
 

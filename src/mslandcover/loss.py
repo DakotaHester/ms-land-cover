@@ -1,3 +1,4 @@
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -536,3 +537,60 @@ def moco_loss_fn(output, target, reduction='mean'):
         target: labels (all zeros) (N)
     """
     return F.cross_entropy(output, target, reduction=reduction)
+
+class DINOLoss(nn.Module):
+    """
+    DINO Loss: Cross Entropy with Teacher Centering & Sharpening.
+    Encapsulates Teacher Temperature Schedule (Warmup 0.04 -> 0.07).
+    """
+    def __init__(self, student_temp=0.1, 
+                 warmup_teacher_temp=0.04, teacher_temp=0.07, 
+                 warmup_teacher_temp_epochs=30, total_epochs=100):
+        super().__init__()
+        self.student_temp = student_temp
+        self.total_epochs = total_epochs
+        self.current_epoch = 0
+        
+        # Pre-compute temperature schedule by EPOCH
+        # [cite: 326] "linear warm-up for tau_t from 0.04 to 0.07 during the first 30 epochs"
+        self.temp_schedule = np.concatenate((
+            np.linspace(warmup_teacher_temp, teacher_temp, warmup_teacher_temp_epochs),
+            np.ones(total_epochs - warmup_teacher_temp_epochs + 1) * teacher_temp
+        ))
+
+    def step(self, epoch):
+        """Update current epoch for temperature scheduling."""
+        self.current_epoch = epoch
+
+    def forward(self, student_output, teacher_output, model_center):
+        """
+        student_output: List of tensors (all views)
+        teacher_output: List of tensors (global views only)
+        """
+        # Student sharpening (constant temp 0.1)
+        student_out = torch.cat([x / self.student_temp for x in student_output])
+        student_out = student_out.chunk(len(student_output))
+
+        # Teacher sharpening (dynamic temp schedule)
+        # Get temp for current epoch
+        temp = self.temp_schedule[self.current_epoch]
+        
+        # Teacher Centering + Sharpening
+        teacher_out = F.softmax((torch.cat(teacher_output) - model_center) / temp, dim=-1)
+        teacher_out = teacher_out.detach().chunk(len(teacher_output))
+
+        total_loss = 0
+        n_loss_terms = 0
+        
+        for i_t, t in enumerate(teacher_out):
+            for i_s, s in enumerate(student_out):
+                if i_t == i_s:
+                    continue
+                
+                # Cross Entropy: -sum(P_teacher * log(P_student))
+                loss = torch.sum(-t * F.log_softmax(s, dim=-1), dim=-1)
+                total_loss += loss.mean()
+                n_loss_terms += 1
+                
+        total_loss /= n_loss_terms
+        return total_loss

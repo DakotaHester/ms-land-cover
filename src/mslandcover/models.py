@@ -1,13 +1,10 @@
 import functools
 import math
 from typing import Dict, List, Optional, Union, Tuple
-
 import numpy as np
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
 from torchvision.models import ConvNeXt_Tiny_Weights, convnext_tiny
 from torchvision.models import ResNet152_Weights, resnet152, ResNet101_Weights, resnet101
 from timm.models import convnext
@@ -1797,7 +1794,7 @@ class MoCoWrapper(nn.Module):
         self.register_buffer("queue_ptr", torch.zeros(1, dtype=torch.long))
 
     @torch.no_grad()
-    def _momentum_update_key_encoder(self):
+    def update_key_encoder(self):
         """
         Momentum update of the key encoder parameters AND buffers.
         Required when using eval() on Key Encoder to avoid distribution mismatch.
@@ -1857,7 +1854,55 @@ class MoCoWrapper(nn.Module):
         ptr = (ptr + batch_size) % self.K
         self.queue_ptr[0] = ptr
 
-    # ... (Keep _batch_shuffle_ddp and _batch_unshuffle_ddp from previous turn) ...
+    @torch.no_grad()
+    def _batch_shuffle_ddp(self, x):
+        """
+        Batch shuffle, for making use of BatchNorm.
+        *** Only works correctly in DistributedDataParallel (DDP) ***
+        """
+        if not torch.distributed.is_initialized():
+            return x, None
+
+        batch_size_this = x.shape[0]
+        x_gather = concat_all_gather(x)
+        batch_size_all = x_gather.shape[0]
+
+        num_gpus = batch_size_all // batch_size_this
+
+        # random shuffle index
+        idx_shuffle = torch.randperm(batch_size_all).cuda()
+
+        # broadcast to all gpus
+        torch.distributed.broadcast(idx_shuffle, src=0)
+
+        # index for restoring
+        idx_unshuffle = torch.argsort(idx_shuffle)
+
+        # shuffled index for this gpu
+        gpu_idx = torch.distributed.get_rank()
+        idx_this = idx_shuffle.view(num_gpus, -1)[gpu_idx]
+
+        return x_gather[idx_this], idx_unshuffle
+
+    @torch.no_grad()
+    def _batch_unshuffle_ddp(self, x, idx_unshuffle):
+        """
+        Undo batch shuffle.
+        """
+        if not torch.distributed.is_initialized() or idx_unshuffle is None:
+            return x
+
+        batch_size_this = x.shape[0]
+        x_gather = concat_all_gather(x)
+        batch_size_all = x_gather.shape[0]
+
+        num_gpus = batch_size_all // batch_size_this
+
+        # restored index for this gpu
+        gpu_idx = torch.distributed.get_rank()
+        idx_this = idx_unshuffle.view(num_gpus, -1)[gpu_idx]
+
+        return x_gather[idx_this]
 
     def forward(self, im_q, im_k):
         # 1. Compute Query Features
@@ -1866,7 +1911,7 @@ class MoCoWrapper(nn.Module):
 
         # 2. Compute Key Features
         with torch.no_grad():
-            self._momentum_update_key_encoder()
+            # self._momentum_update_key_encoder()
 
             # SINGLE GPU FIX: Force eval mode to use running stats and prevent leakage
             if self.single_gpu:
@@ -1892,7 +1937,8 @@ class MoCoWrapper(nn.Module):
 
         labels = torch.zeros(logits.shape[0], dtype=torch.long).to(q.device)
 
-        self._dequeue_and_enqueue(k)
+        if self.training: # only update the queue during training
+            self._dequeue_and_enqueue(k)
 
         return logits, labels
 
@@ -2383,3 +2429,126 @@ def concat_all_gather(tensor):
 
     output = torch.cat(tensors_gather, dim=0)
     return output
+
+
+
+class DINOProjectionHead(nn.Module):
+    """
+    DINO Projection Head.
+    Structure: MLP -> L2 Norm -> Weight Normalized Linear -> Softmax (in loss)
+    """
+    def __init__(self, in_dim, out_dim=65536, use_bn=False, norm_last_layer=True, n_layers=3, hidden_dim=2048, bottleneck_dim=256):
+        super().__init__()
+        n_layers = max(n_layers, 1)
+        if n_layers == 1:
+            self.mlp = nn.Linear(in_dim, bottleneck_dim)
+        else:
+            layers = [nn.Linear(in_dim, hidden_dim)]
+            if use_bn:
+                layers.append(nn.BatchNorm1d(hidden_dim))
+            layers.append(nn.GELU())
+            for _ in range(n_layers - 2):
+                layers.append(nn.Linear(hidden_dim, hidden_dim))
+                if use_bn:
+                    layers.append(nn.BatchNorm1d(hidden_dim))
+                layers.append(nn.GELU())
+            layers.append(nn.Linear(hidden_dim, bottleneck_dim))
+            self.mlp = nn.Sequential(*layers)
+        self.apply(self._init_weights)
+        self.last_layer = nn.utils.weight_norm(nn.Linear(bottleneck_dim, out_dim, bias=False))
+        self.last_layer.weight_g.data.fill_(1) # incompatible with parame
+        if norm_last_layer:
+            self.last_layer.weight_g.requires_grad = False
+
+    def _init_weights(self, m):
+        if isinstance(m, nn.Linear):
+            nn.init.trunc_normal_(m.weight, std=0.02)
+            if m.bias is not None:
+                nn.init.constant_(m.bias, 0)
+
+    def forward(self, x):
+        x = self.mlp(x)
+        x = nn.functional.normalize(x, dim=-1, p=2)
+        x = self.last_layer(x)
+        return x
+
+class DINOWrapper(nn.Module):
+    """
+    DINO wrapper.
+    Encapsulates Student, Teacher, Center, and Momentum Schedule (0.996 -> 1.0).
+    """
+    def __init__(self, encoder, in_dim=2048, out_dim=65536, center_momentum=0.9, 
+                 teacher_momentum=0.996, total_steps=None):
+        super().__init__()
+        
+        self.center_momentum = center_momentum
+        self.teacher_momentum_base = teacher_momentum
+        self.total_steps = total_steps
+        self.current_step = 0
+        
+        # Student
+        self.student = nn.Sequential(
+            encoder,
+            DINOProjectionHead(in_dim, out_dim=out_dim)
+        )
+        # Teacher
+        self.teacher = nn.Sequential(
+            copy.deepcopy(encoder),
+            DINOProjectionHead(in_dim, out_dim=out_dim)
+        )
+        for param in self.teacher.parameters():
+            param.requires_grad = False
+            
+        # Center Buffer
+        self.register_buffer("center", torch.zeros(1, out_dim))
+
+    @torch.no_grad()
+    def _get_current_momentum(self):
+        """
+        Calculate teacher momentum: Cosine schedule 0.996 -> 1.0.
+        Ref: [cite: 281]
+        """
+        if self.total_steps is None or self.total_steps == 0:
+            return self.teacher_momentum_base
+            
+        # m = 1 - (1 - m_base) * (cos(pi * k / K) + 1) / 2
+        # Note: We invert the cosine decay because we want m to INCREASE to 1.0
+        k = min(self.current_step, self.total_steps)
+        cosine_term = (math.cos(math.pi * k / self.total_steps) + 1) / 2
+        m = 1 - (1 - self.teacher_momentum_base) * cosine_term
+        return m
+
+    @torch.no_grad()
+    def update_teacher(self):
+        """EMA update of teacher parameters."""
+        m = self._get_current_momentum()
+        for param_s, param_t in zip(self.student.parameters(), self.teacher.parameters()):
+            param_t.data.mul_(m).add_((1 - m) * param_s.data)
+        self.current_step += 1
+
+    @torch.no_grad()
+    def update_center(self, teacher_output):
+        """EMA update of center."""
+        batch_center = torch.sum(teacher_output, dim=0, keepdim=True)
+        if torch.distributed.is_initialized():
+            torch.distributed.all_reduce(batch_center)
+            batch_center = batch_center / torch.distributed.get_world_size()
+        batch_center = batch_center / len(teacher_output)
+        
+        self.center = self.center * self.center_momentum + batch_center * (1 - self.center_momentum)
+
+    def forward(self, views):
+        # 1. Group inputs (Assumes [global, global, local...])
+        global_views = views[:2]
+        local_views = views[2:]
+        
+        # 2. Student Forward (All Crops)
+        student_global = [self.student(v) for v in global_views]
+        student_local = [self.student(v) for v in local_views]
+        student_out = student_global + student_local
+        
+        # 3. Teacher Forward (Global Only)
+        with torch.no_grad():
+            teacher_out = [self.teacher(v) for v in global_views]
+            
+        return student_out, teacher_out

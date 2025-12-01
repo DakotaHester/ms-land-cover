@@ -1,20 +1,23 @@
 #!/bin/bash
 
 # ======= Adjustable Constants =======
-NUM_EPOCHS=100
+# NUM_EPOCHS=300
 INIT_LR=0.001 # 1e-3
+OPTIMIZER='adamw' # 'adamw' or 'lars'
+# INIT_LR=3.2 # 0.2 x (batch_size / 256) for LARS
 EARLY_STOPPING_PATIENCE=-1
 WARMUP_EPOCHS=10 # 0 epochs of warmup
 # REDUCE_LR_PATIENCE=0 # tolerate 4 bad epochs, reduce lr after 5 epochs of no improvement
-TEMPERATURE=0.1 
+TEMPERATURE=0.1 # Not used for BYOL
 NUM_WORKERS=48
 SEED=1701
-MINI_BATCH_SIZE=128
+MINI_BATCH_SIZE=256
 FULL_BATCH_SIZE=4096
 # ====================================
 
 # PRETRAIN_SCHEMES=("hires_simclr" "simclr")
-PRETRAIN_SCHEMES=("byol")
+PRETRAIN_SCHEMES=("dino" "moco")
+
 # IMAGE_SIZES=(256 192 128)
 # BATCH_SIZES=(128 256 512)
 BANDS=(3)
@@ -38,6 +41,13 @@ for rand_init in "${RAND_INIT_OPTIONS[@]}"; do
 
     for scheme in "${PRETRAIN_SCHEMES[@]}"; do
 
+      # if scheme == dino, epochs = 100, else 300
+      if [[ "$scheme" == "dino" ]]; then
+        NUM_EPOCHS=100
+      else
+        NUM_EPOCHS=300
+      fi
+
       for band in "${BANDS[@]}"; do
         # if [ "$scheme" == "byol" ] && [[ "$band" -eq 4 ]]; then
           # echo "Skipping: $scheme with 3 bands (not supported)"
@@ -48,17 +58,18 @@ for rand_init in "${RAND_INIT_OPTIONS[@]}"; do
         # fi
         
 
-        #   bands=$band
-        if [[ "$scheme" == "hires_byol" ]]; then
-          # bands=4
-          size=256
-        elif [[ "$scheme" == "byol" ]]; then
-          # bands=3
-          size=256
-        fi
+        # #   bands=$band
+        # if [[ "$scheme" == "hires_byol" ]]; then
+        #   # bands=4
+        #   size=256
+        # elif [[ "$scheme" == "byol" ]]; then
+        #   # bands=3
+        #   size=256
+        # fi
+        size=256
 
-        LOG_DIR="./logs/pretrain/resnet101_20250624/${scheme}_bands${band}_size${size}_randinit${rand_init}"
-        WEIGHTS_DIR="./weights/resnet101_20250624/${scheme}_bands${band}_size${size}_randinit${rand_init}"
+        LOG_DIR="./logs/pretrain/resnet101_20250720/${scheme}_bands${band}_size${size}_randinit${rand_init}"
+        WEIGHTS_DIR="./weights/resnet101_20250720/${scheme}_bands${band}_size${size}_randinit${rand_init}"
 
         if [[ -f "$LOG_DIR/resnet101/$scheme/finished.txt" ]]; then
           echo "Skipping: $scheme bands=$band size=$size rand_init=$rand_init (already finished)"
@@ -97,6 +108,7 @@ for rand_init in "${RAND_INIT_OPTIONS[@]}"; do
             --weights_dir "$WEIGHTS_DIR" \
             --num_epochs "$NUM_EPOCHS" \
             --init_lr "$INIT_LR" \
+            --optimizer "$OPTIMIZER" \
             --warmup_epochs "$WARMUP_EPOCHS" \
             --num_workers "$NUM_WORKERS" \
             --seed "$SEED" \

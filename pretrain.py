@@ -17,10 +17,10 @@ from tqdm import tqdm
 import json
 
 from mslandcover.utils import ProfilerHistory, Logger, get_torch_device, load_pth
-from mslandcover.data.datasets import PreTrainDataset
+from mslandcover.data.datasets import DINOPreTrainDataset, PreTrainDataset
 from mslandcover.data import transforms
-from mslandcover.models import SimCLRProjectionHead, BYOLWrapper, MoCoWrapper
-from mslandcover.loss import moco_loss_fn, nt_xent_loss, byol_loss_fn
+from mslandcover.models import DINOWrapper, SimCLRProjectionHead, BYOLWrapper, MoCoWrapper
+from mslandcover.loss import DINOLoss, moco_loss_fn, nt_xent_loss, byol_loss_fn
 from mslandcover.metrics import psnr, ssim
 from mslandcover.optim import LARS
 
@@ -32,8 +32,8 @@ def parse_arguments():
     parser.add_argument(
         '--pretrain_scheme',
         type=str,
-        default='mozo',
-        choices=['dae', 'simclr', 'hires_simclr', 'byol', 'hires_byol', 'moco'],
+        default='dino',
+        choices=['dae', 'simclr', 'hires_simclr', 'byol', 'hires_byol', 'moco', 'dino'],
         help='The pretraining scheme to use. Options: simclr, hires_simclr, dae, byol, hires_byol.',
     )
     
@@ -61,7 +61,7 @@ def parse_arguments():
     parser.add_argument(
         '--num_epochs',
         type=int,
-        default=100,
+        default=300,
         help='The number of epochs to train for.',
     )
     
@@ -89,7 +89,7 @@ def parse_arguments():
     parser.add_argument(
         '--init_lr',
         type=float,
-        default=1e-5,
+        default=1e-3,
         help='The initial learning rate to use for training.',
     )
     
@@ -110,14 +110,14 @@ def parse_arguments():
     parser.add_argument(
         '--full_batch_size', 
         type=int, 
-        default=16, # 4096 in original SimCLR implementation
+        default=4096, # 4096 in original SimCLR implementation
         help='The batch size to use for pretraining.',
     )
     
     parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=16,
+        default=256,
         help='The mini-batch size to use for gradient accumulation. Only relevant if using pretraining scheme "dae".',
     )
     
@@ -131,14 +131,14 @@ def parse_arguments():
     parser.add_argument(
         '--log_dir', 
         type=str, 
-        default='./logs/pretrain/',
+        default='./logs/pretrain_dino/',
         help='The directory to save logs and checkpoints.',
     )
     
     parser.add_argument(
         '--weights_dir', 
         type=str, 
-        default='./weights/',
+        default='./weights_dino/',
         help='The directory from which model weights will be loaded and saved.' + \
             'The directory should have the following structure: ' + \
                 'output_dir/model_name/imagenet.pth'
@@ -230,6 +230,10 @@ def parse_arguments():
     parser.add_argument('--moco_m', type=float, default=0.999, help='MoCo momentum of updating key encoder.')
     parser.add_argument('--moco_t', type=float, default=0.2, help='Softmax temperature.')
     
+    parser.add_argument('--dino_global_crops_scale', type=float, nargs='+', default=(0.4, 1.0))
+    parser.add_argument('--dino_local_crops_scale', type=float, nargs='+', default=(0.05, 0.4))
+    parser.add_argument('--dino_local_crops_number', type=int, default=6)
+    
     return parser.parse_args()
 
 
@@ -266,6 +270,7 @@ def main():
     is_reconstruction = 'dae' in args.pretrain_scheme 
     is_byol = 'byol' in args.pretrain_scheme
     is_moco = args.pretrain_scheme == 'moco'
+    is_dino = args.pretrain_scheme == 'dino'
 
     if is_contrastive and args.mini_batch_size != args.full_batch_size:
         raise ValueError('Contrastive learning requires the mini-batch size to be equal to the full batch size.')
@@ -292,12 +297,17 @@ def main():
         else:
             transform = [transforms.BYOLDataAugmentation(size=args.image_size, s=2.0), transforms.BYOLDataAugmentation(size=args.image_size, s=2.0, alt_transform=True)]
     elif is_moco:
-        transform = [transforms.MoCoDataAugmentation(size=args.image_size, s=1.0), transforms.MoCoDataAugmentation(size=args.image_size, s=1.0)]
-    else:
-        transform = transforms.StandardDataAugmentations(size=args.image_size, use_color_transforms=False)
+        transform = [transforms.MoCoV2DataAugmentation(size=args.image_size, s=1.0), transforms.MoCoV2DataAugmentation(size=args.image_size, s=1.0)]
+    elif is_dino:
+        transform = transforms.DINODataAugmentation(
+            global_crops_scale=args.dino_global_crops_scale,
+            local_crops_scale=args.dino_local_crops_scale,
+            local_crops_number=args.dino_local_crops_number,
+            global_size=args.image_size,
+        )
 
     noisy_input = args.pretrain_scheme in ['dae', 'hires_simclr', 'hires_byol']
-    n_views = 2 if (is_contrastive or is_byol or is_moco) else 1
+
     
     if args.n_bands == 4:
         mean_path = os.path.join('weights', 'pretrain_mean_4.pt')
@@ -309,40 +319,62 @@ def main():
     mean = load_pth(mean_path) if os.path.exists(mean_path) else None
     std = load_pth(std_path) if os.path.exists(std_path) else None
     
-    # train_paths = glob('./data/splits/split_[1-3]/input/*.tif')
-    # val_paths = glob('./data/splits/split_4/input/*.tif')
+    train_data_paths = glob(os.path.join(args.pretrain_data_dir, '*.tif'))
+    val_data_paths = glob(os.path.join(args.pretrain_val_data_dir, '*.tif'))
     
     # print(len(train_paths))
-    train_dataset = PreTrainDataset(
-        # hdf5_path=args.pretrain_hdf5_path,
-        # hdf5_group=args.pretrain_hdf5_group,
-        data_paths=glob(os.path.join(args.pretrain_data_dir, '*.tif')),
-        # data_paths=train_paths,
-        transform=transform,
-        n_views=n_views,
-        mean=mean,
-        std=std,
-        noisy_input=noisy_input,
-        noise_std=1.0,
-        # noise_pct=0.5,
-        preload=args.preload_data,
-        n_bands=args.n_bands,
-    )
-    val_dataset = PreTrainDataset(
-        # hdf5_path=args.pretrain_hdf5_path,
-        # hdf5_group=args.pretrain_val_hdf5_group,
-        data_paths=glob(os.path.join(args.pretrain_val_data_dir, '*.tif')),
-        # data_paths=val_paths,
-        n_views=n_views,
-        mean=train_dataset.mean,
-        std=train_dataset.std,
-        transform=transform,
-        noisy_input=noisy_input,
-        noise_std=1.0,
-        # noise_pct=0.5,n
-        preload=args.preload_data,
-        n_bands=args.n_bands,
-    )
+    if not is_dino:
+        n_views = 2 if (is_contrastive or is_byol or is_moco) else 1
+        train_dataset = PreTrainDataset(
+            # hdf5_path=args.pretrain_hdf5_path,
+            # hdf5_group=args.pretrain_hdf5_group,
+            data_paths=train_data_paths,
+            # data_paths=train_paths,
+            transform=transform,
+            n_views=n_views,
+            mean=mean,
+            std=std,
+            noisy_input=noisy_input,
+            noise_std=1.0,
+            # noise_pct=0.5,
+            preload=args.preload_data,
+            n_bands=args.n_bands,
+        )
+        val_dataset = PreTrainDataset(
+            # hdf5_path=args.pretrain_hdf5_path,
+            # hdf5_group=args.pretrain_val_hdf5_group,
+            data_paths=val_data_paths,
+            # data_paths=val_paths,
+            n_views=n_views,
+            mean=train_dataset.mean,
+            std=train_dataset.std,
+            transform=transform,
+            noisy_input=noisy_input,
+            noise_std=1.0,
+            # noise_pct=0.5,n
+            preload=args.preload_data,
+            n_bands=args.n_bands,
+        )
+    else:
+        n_views = args.dino_local_crops_number + 2
+        train_dataset = DINOPreTrainDataset(
+            data_paths=train_data_paths,
+            transform=transform,
+            n_views=n_views,
+            mean=mean,
+            std=std,
+            n_bands=args.n_bands,
+            preload=args.preload_data,
+        )
+        val_dataset = DINOPreTrainDataset(
+            data_paths=val_data_paths,
+            n_views=n_views,
+            mean=train_dataset.mean,
+            std=train_dataset.std,
+            transform=transform,
+            n_bands=args.n_bands,
+            preload=args.preload_data,
+        )
     
     if args.debug:
         train_dataset.ids_list = train_dataset.ids_list[:(512)*4]
@@ -371,8 +403,9 @@ def main():
         shuffle=True, 
         drop_last=True,
         pin_memory=True,
-        num_workers=args.num_workers,
+        num_workers=args.num_workers // 2,
         prefetch_factor=4,
+        persistent_workers=True,
     )
     val_loader = DataLoader(
         val_dataset, 
@@ -380,8 +413,9 @@ def main():
         shuffle=False,
         drop_last=False,
         pin_memory=True,
-        num_workers=args.num_workers,
+        num_workers=args.num_workers // 2,
         prefetch_factor=4,
+        persistent_workers=True,
     )
     
     if args.visualize_augmentations_dir is not None:
@@ -421,6 +455,8 @@ def main():
                 m=args.moco_m,
                 T=args.moco_t,
             )
+        elif is_dino:
+            model = DINOWrapper(encoder, total_steps=args.num_epochs * len(train_loader) // grad_accum_steps)
     
     elif args.model == 'resnet101':
         encoder = resnet101(weights=ResNet101_Weights.IMAGENET1K_V2 if not args.rand_init else None)
@@ -443,6 +479,8 @@ def main():
                 m=args.moco_m,
                 T=args.moco_t,
             )
+        elif is_dino:
+            model = DINOWrapper(encoder, total_steps=args.num_epochs * len(train_loader) // grad_accum_steps)
     
     elif args.model == 'deeplabv3p':
         raise NotImplementedError('DeepLabV3+ not implemented yet.')
@@ -470,8 +508,17 @@ def main():
             for param in model.backbone.initial[0].parameters():
                 param.requires_grad = True
     
+    if is_byol:
+        calflops_model = model.online_encoder
+    elif is_moco:
+        calflops_model = model.encoder_q
+    elif is_dino:
+        calflops_model = model.student
+    else:
+        calflops_model = model
+    
     flops, macs, _ = calculate_flops(
-        model=model if not is_byol else model.online_encoder,
+        model=calflops_model,
         input_shape=(1, args.n_bands, args.image_size, args.image_size),
         output_as_string=False,
         print_results=False,
@@ -501,6 +548,9 @@ def main():
         )
     else:
         raise ValueError(f'Invalid optimizer: {args.optimizer}')
+    
+    if is_dino:
+        dino_loss = DINOLoss(total_epochs=args.num_epochs)
             
     
     # Initialize mixed precision scaler
@@ -583,7 +633,10 @@ def main():
                 torch.set_grad_enabled(epoch != 0) # disable backpropagation for the first epoch to get a baseline loss
                 optimizer.zero_grad() # just in case
                 model.train()
-                loader = train_loader 
+                loader = train_loader
+                
+                if is_dino:
+                    teacher_outputs_list = []
             
             else:
                 torch.set_grad_enabled(False)
@@ -679,11 +732,11 @@ def main():
                         pbar.set_postfix(tqdm_postfix)
                     
                     elif is_moco:
-                        q, k = batch
-                        q, k = q[0].to(device), k[0].to(device)
+                        im_q, im_k = batch
+                        im_q, im_k = im_q[0].to(device), im_k[0].to(device)
                         
                         with autocast(str(device)):
-                            logits, labels = model(q, k)
+                            logits, labels = model(im_q, im_k)
                             loss = moco_loss_fn(logits, labels)
                             loss = loss / grad_accum_steps
                         
@@ -699,7 +752,41 @@ def main():
                                 scaler.step(optimizer)
                                 scaler.update()
                                 optimizer.zero_grad()
+                                model.update_key_encoder()
                             
+                            pbar.update(1)
+                            
+                        pbar.set_postfix(tqdm_postfix)
+                    
+                    elif is_dino:
+                        if step == 0:
+                            dino_loss.step(epoch) # update temperature schedule at the beginning of each epoch
+                        
+                        views = [view.to(device) for view in batch]
+                        with autocast(str(device)):
+                            student_outputs, teacher_outputs = model(views)
+                            loss = dino_loss(student_outputs, teacher_outputs, model.center)
+                            loss = loss / grad_accum_steps
+                            
+                        loss_values.append(loss.item() * grad_accum_steps)
+                        epoch_loss = np.sum(loss_values) / ((step * args.mini_batch_size) + len(batch))
+                        tqdm_postfix['Loss'] = f'{epoch_loss:.2e}'
+                        
+                        if phase == 'train' and epoch != 0:
+                            scaler.scale(loss).backward()
+                            teacher_outputs_list.extend([t.detach() for t in teacher_outputs])
+                        
+                        if (step + 1) % grad_accum_steps == 0:
+                            if phase == 'train' and epoch != 0:
+                                scaler.step(optimizer)
+                                scaler.update()
+                                optimizer.zero_grad()
+                                
+                                model.update_teacher()
+                                teacher_output_flat = torch.cat(teacher_outputs_list, dim=0)
+                                model.update_center(teacher_output_flat)
+                                teacher_outputs_list = []
+                        
                             pbar.update(1)
                             
                         pbar.set_postfix(tqdm_postfix)
@@ -795,7 +882,16 @@ def main():
         history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(num_epochs_total)))
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
         
-        torch.save(model.state_dict(), os.path.join(out_dir, f'{args.pretrain_scheme}_last.pth'))
+        if is_byol:
+            model_state_dict = model.online_encoder[0].state_dict() # In BYOL we use the online encoder for fine-tuning
+        elif is_moco:
+            model_state_dict = model.encoder_q[0].state_dict() # In MoCo we use the query encoder for fine-tuning
+        elif is_dino:
+            model_state_dict = model.teacher[0].state_dict() # In DINO we use the teacher encoder for fine-tuning
+        else:
+            model_state_dict = model.state_dict()
+        
+        torch.save(model_state_dict, os.path.join(out_dir, f'{args.pretrain_scheme}_last.pth'))
                 
         if epoch - best_epoch > args.early_stopping_patience and args.early_stopping_patience > 0:
             logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')

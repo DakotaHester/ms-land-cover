@@ -244,6 +244,49 @@ class PreTrainDataset(Dataset):
 
 
 
+class DINOPreTrainDataset(PreTrainDataset):
+    """
+    Dataset specifically for DINO training. 
+    Overrides __getitem__ to return a list of views (crops) instead of a tuple.
+    """
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Ensure we don't accidentally use the standard return format logic
+        # DINO requires the transform to return a list of images
+        
+    def __getitem__(self, idx: int):
+        # 1. Load Image (Reusing parent class logic for IO)
+        if self.preload:
+            img = self.data[idx]
+        elif self.hdf5_path is not None:
+            key = self.ids_list[idx]
+            img = torch.from_numpy(h5py.File(self.hdf5_path, 'r')[self.hdf5_group][key][()])
+        else:
+            path = self.data_paths[idx]
+            img = utils.read_image(path, as_float=True, as_tensor=True, device=self.device)
+            if self.n_bands == 3:
+                img = torch.stack([img[3, :, :], img[0, :, :], img[1, :, :]], dim=0)
+
+        # 2. Apply Multi-Crop Transform
+        # self.transform is expected to be an instance of DINODataAugmentation
+        # which returns a list [global1, global2, local1, local2, ...]
+        if self.transform is None:
+             raise ValueError("DINO requires a valid DINODataAugmentation transform.")
+             
+        crops = self.transform(img)
+        
+        # 3. Normalize
+        normalized_crops = []
+        for crop in crops:
+            normalized_crops.append(T.normalize(crop, mean=self.mean, std=self.std))
+            
+        # Returns a list of tensors. 
+        # PyTorch DataLoader default_collate will stack these into:
+        # [Batch_Global1, Batch_Global2, Batch_Local1, ...]
+        return normalized_crops
+
+
+
 class FineTuneDataset(Dataset):
     
     def __init__(self, 
