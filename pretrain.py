@@ -22,6 +22,7 @@ from mslandcover.data import transforms
 from mslandcover.models import SimCLRProjectionHead, BYOLWrapper
 from mslandcover.loss import nt_xent_loss, byol_loss_fn
 from mslandcover.metrics import psnr, ssim
+from mslandcover.optim import LARS
 
 from argparse import ArgumentParser
 
@@ -183,6 +184,14 @@ def parse_arguments():
         type=int,
         default=4,
         help='The number of bands in the input data. If 3, then color infrared composites are used (NIR, Red, Green)',
+    )
+    
+    parser.add_argument(
+        '--optimizer',
+        type=str,
+        default='adamw',
+        choices=['adamw', 'lars'],
+        help='The optimizer to use for training. Options: adamw, lars.',
     )
     
     parser.add_argument(
@@ -455,7 +464,19 @@ def main():
         }, f, indent=4)
         
 
-    optimizer = torch.optim.AdamW(params=model.parameters(), lr=args.init_lr)
+    if args.optimizer == 'adamw':
+        optimizer = torch.optim.AdamW(params=model.parameters(), lr=args.init_lr)
+    elif args.optimizer == 'lars':
+        optimizer = LARS(
+            params=model.parameters(),
+            lr=args.init_lr,
+            weight_decay=1.5e-6,
+            momentum=0.9,
+            eta=1e-3,
+        )
+    else:
+        raise ValueError(f'Invalid optimizer: {args.optimizer}')
+            
     
     # Initialize mixed precision scaler
     scaler = GradScaler()
@@ -467,7 +488,7 @@ def main():
     #     eps=0,
     # )
     
-    if args.warmup_epochs is not None:
+    if args.warmup_epochs is not None or args.warmup_epochs > 0:
         
         warmup_scheduler = LambdaLR(
             optimizer,
