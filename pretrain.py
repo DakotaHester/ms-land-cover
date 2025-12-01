@@ -19,8 +19,8 @@ import json
 from mslandcover.utils import ProfilerHistory, Logger, get_torch_device, load_pth
 from mslandcover.data.datasets import PreTrainDataset
 from mslandcover.data import transforms
-from mslandcover.models import SimCLRProjectionHead, BYOLWrapper
-from mslandcover.loss import nt_xent_loss, byol_loss_fn
+from mslandcover.models import SimCLRProjectionHead, BYOLWrapper, MoCoWrapper
+from mslandcover.loss import moco_loss_fn, nt_xent_loss, byol_loss_fn
 from mslandcover.metrics import psnr, ssim
 
 from argparse import ArgumentParser
@@ -31,8 +31,8 @@ def parse_arguments():
     parser.add_argument(
         '--pretrain_scheme',
         type=str,
-        default='byol',
-        choices=['dae', 'simclr', 'hires_simclr', 'byol', 'hires_byol'],
+        default='mozo',
+        choices=['dae', 'simclr', 'hires_simclr', 'byol', 'hires_byol', 'moco'],
         help='The pretraining scheme to use. Options: simclr, hires_simclr, dae, byol, hires_byol.',
     )
     
@@ -181,7 +181,7 @@ def parse_arguments():
     parser.add_argument(
         '--n_bands',
         type=int,
-        default=4,
+        default=3,
         help='The number of bands in the input data. If 3, then color infrared composites are used (NIR, Red, Green)',
     )
     
@@ -214,6 +214,12 @@ def parse_arguments():
         action='store_true',
         help='Preload the entire dataset into memory. NOTE: This will use a lot of memory.',
     )
+    
+    # MoCo specific arguments
+    parser.add_argument('--moco_dim', type=int, default=128, help='Feature dimension for MoCo.')
+    parser.add_argument('--moco_k', type=int, default=65536, help='Queue size; number of negative keys.')
+    parser.add_argument('--moco_m', type=float, default=0.999, help='MoCo momentum of updating key encoder.')
+    parser.add_argument('--moco_t', type=float, default=0.2, help='Softmax temperature.')
     
     return parser.parse_args()
 
@@ -250,6 +256,7 @@ def main():
     is_contrastive = 'simclr' in args.pretrain_scheme
     is_reconstruction = 'dae' in args.pretrain_scheme 
     is_byol = 'byol' in args.pretrain_scheme
+    is_moco = args.pretrain_scheme == 'moco'
 
     if is_contrastive and args.mini_batch_size != args.full_batch_size:
         raise ValueError('Contrastive learning requires the mini-batch size to be equal to the full batch size.')
@@ -275,11 +282,13 @@ def main():
             transform = [transforms.HiResDataAugmentation(size=args.image_size, s=2.0), transforms.HiResDataAugmentation(size=args.image_size, s=2.0, alt_transform=True)]
         else:
             transform = [transforms.BYOLDataAugmentation(size=args.image_size, s=2.0), transforms.BYOLDataAugmentation(size=args.image_size, s=2.0, alt_transform=True)]
+    elif is_moco:
+        transform = [transforms.MoCoDataAugmentation(size=args.image_size, s=1.0), transforms.MoCoDataAugmentation(size=args.image_size, s=1.0)]
     else:
         transform = transforms.StandardDataAugmentations(size=args.image_size, use_color_transforms=False)
 
     noisy_input = args.pretrain_scheme in ['dae', 'hires_simclr', 'hires_byol']
-    n_views = 2 if (is_contrastive or is_byol) else 1
+    n_views = 2 if (is_contrastive or is_byol or is_moco) else 1
     
     if args.n_bands == 4:
         mean_path = os.path.join('weights', 'pretrain_mean_4.pt')
@@ -395,6 +404,14 @@ def main():
             ]))
         elif is_byol:
             model = BYOLWrapper(encoder, tau_base=args.tau_base, total_steps=args.num_epochs * len(train_loader) // grad_accum_steps)
+        elif is_moco:
+            model = MoCoWrapper(
+                encoder=encoder,
+                dim=args.moco_dim,
+                K=args.moco_k,
+                m=args.moco_m,
+                T=args.moco_t,
+            )
     
     elif args.model == 'resnet101':
         encoder = resnet101(weights=ResNet101_Weights.IMAGENET1K_V2 if not args.rand_init else None)
@@ -409,6 +426,14 @@ def main():
             ]))
         elif is_byol:
             model = BYOLWrapper(encoder, tau_base=args.tau_base, total_steps=args.num_epochs * len(train_loader) // grad_accum_steps)
+        elif is_moco:
+            model = MoCoWrapper(
+                encoder=encoder,
+                dim=args.moco_dim,
+                K=args.moco_k,
+                m=args.moco_m,
+                T=args.moco_t,
+            )
     
     elif args.model == 'deeplabv3p':
         raise NotImplementedError('DeepLabV3+ not implemented yet.')
@@ -632,6 +657,33 @@ def main():
 
                         pbar.set_postfix(tqdm_postfix)
                     
+                    elif is_moco:
+                        q, k = batch
+                        q, k = q[0].to(device), k[0].to(device)
+                        
+                        with autocast(str(device)):
+                            logits, labels = model(q, k)
+                            loss = moco_loss_fn(logits, labels)
+                            loss = loss / grad_accum_steps
+                        
+                        loss_values.append(loss.item() * grad_accum_steps)
+                        epoch_loss = np.sum(loss_values) / ((step * args.mini_batch_size) + len(batch))
+                        tqdm_postfix['Loss'] = f'{epoch_loss:.2e}'
+                        
+                        if phase == 'train' and epoch != 0:
+                            scaler.scale(loss).backward()
+                        
+                        if (step + 1) % grad_accum_steps == 0:
+                            if phase == 'train' and epoch != 0:
+                                scaler.step(optimizer)
+                                scaler.update()
+                                optimizer.zero_grad()
+                            
+                            pbar.update(1)
+                            
+                        pbar.set_postfix(tqdm_postfix)
+                    
+                    # standard DAE training with gradient accumulation using mixed precision
                     else:
                         # load batch
                         X, y = batch
