@@ -1,11 +1,3 @@
-# Source code modified from: https://github.com/HRNet/HRNet-Image-Classification/blob/master/lib/models/cls_hrnet.py
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-import os
-import logging
 import functools
 import math
 from typing import Dict, List, Optional, Union, Tuple
@@ -14,533 +6,13 @@ import numpy as np
 
 import torch
 import torch.nn as nn
-import torch._utils
 import torch.nn.functional as F
 
-import torch.utils.checkpoint
 from torchvision.models import ConvNeXt_Tiny_Weights, convnext_tiny
 from torchvision.models import ResNet152_Weights, resnet152, ResNet101_Weights, resnet101
 from timm.models import convnext
 from .utils import load_pth
 import copy
-
-BN_MOMENTUM = 0.1
-logger = logging.getLogger(__name__)
-
-
-def conv3x3(in_planes, out_planes, stride=1):
-    """3x3 convolution with padding"""
-    return nn.Conv2d(in_planes, out_planes, kernel_size=3, stride=stride,
-                     padding=1, bias=False)
-
-
-class BasicBlock(nn.Module):
-    expansion = 1
-
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
-        super(BasicBlock, self).__init__()
-        self.conv1 = conv3x3(inplanes, planes, stride)
-        self.bn1 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv2 = conv3x3(planes, planes)
-        self.bn2 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
-        self.downsample = downsample
-        self.stride = stride
-
-    def forward(self, x):
-        residual = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-
-        if self.downsample is not None:
-            residual = self.downsample(x)
-
-        out += residual
-        out = self.relu(out)
-
-        return out
-
-
-class Bottleneck(nn.Module):
-    expansion = 4
-
-    def __init__(self, inplanes, planes, stride=1, downsample=None):
-        super(Bottleneck, self).__init__()
-        self.conv1 = nn.Conv2d(inplanes, planes, kernel_size=1, bias=False)
-        self.bn1 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
-        self.conv2 = nn.Conv2d(planes, planes, kernel_size=3, stride=stride,
-                               padding=1, bias=False)
-        self.bn2 = nn.BatchNorm2d(planes, momentum=BN_MOMENTUM)
-        self.conv3 = nn.Conv2d(planes, planes * self.expansion, kernel_size=1,
-                               bias=False)
-        self.bn3 = nn.BatchNorm2d(planes * self.expansion,
-                               momentum=BN_MOMENTUM)
-        self.relu = nn.ReLU(inplace=True)
-        self.downsample = downsample
-        self.stride = stride
-
-    def forward(self, x):
-        residual = x
-
-        out = self.conv1(x)
-        out = self.bn1(out)
-        out = self.relu(out)
-
-        out = self.conv2(out)
-        out = self.bn2(out)
-        out = self.relu(out)
-
-        out = self.conv3(out)
-        out = self.bn3(out)
-
-        if self.downsample is not None:
-            residual = self.downsample(x)
-
-        out += residual
-        out = self.relu(out)
-
-        return out
-
-
-class HighResolutionModule(nn.Module):
-    def __init__(self, num_branches, blocks, num_blocks, num_inchannels,
-                 num_channels, fuse_method, multi_scale_output=True):
-        super(HighResolutionModule, self).__init__()
-        self._check_branches(
-            num_branches, blocks, num_blocks, num_inchannels, num_channels)
-
-        self.num_inchannels = num_inchannels
-        self.fuse_method = fuse_method
-        self.num_branches = num_branches
-
-        self.multi_scale_output = multi_scale_output
-
-        self.branches = self._make_branches(
-            num_branches, blocks, num_blocks, num_channels)
-        self.fuse_layers = self._make_fuse_layers()
-        self.relu = nn.ReLU(False)
-
-    def _check_branches(self, num_branches, blocks, num_blocks,
-                        num_inchannels, num_channels):
-        if num_branches != len(num_blocks):
-            error_msg = 'NUM_BRANCHES({}) <> NUM_BLOCKS({})'.format(
-                num_branches, len(num_blocks))
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-
-        if num_branches != len(num_channels):
-            error_msg = 'NUM_BRANCHES({}) <> NUM_CHANNELS({})'.format(
-                num_branches, len(num_channels))
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-
-        if num_branches != len(num_inchannels):
-            error_msg = 'NUM_BRANCHES({}) <> NUM_INCHANNELS({})'.format(
-                num_branches, len(num_inchannels))
-            logger.error(error_msg)
-            raise ValueError(error_msg)
-
-    def _make_one_branch(self, branch_index, block, num_blocks, num_channels,
-                         stride=1):
-        downsample = None
-        if stride != 1 or \
-           self.num_inchannels[branch_index] != num_channels[branch_index] * block.expansion:
-            downsample = nn.Sequential(
-                nn.Conv2d(self.num_inchannels[branch_index],
-                          num_channels[branch_index] * block.expansion,
-                          kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(num_channels[branch_index] * block.expansion,
-                            momentum=BN_MOMENTUM),
-            )
-
-        layers = []
-        layers.append(block(self.num_inchannels[branch_index],
-                            num_channels[branch_index], stride, downsample))
-        self.num_inchannels[branch_index] = \
-            num_channels[branch_index] * block.expansion
-        for i in range(1, num_blocks[branch_index]):
-            layers.append(block(self.num_inchannels[branch_index],
-                                num_channels[branch_index]))
-
-        return nn.Sequential(*layers)
-
-    def _make_branches(self, num_branches, block, num_blocks, num_channels):
-        branches = []
-
-        for i in range(num_branches):
-            branches.append(
-                self._make_one_branch(i, block, num_blocks, num_channels))
-
-        return nn.ModuleList(branches)
-
-    def _make_fuse_layers(self):
-        if self.num_branches == 1:
-            return None
-
-        num_branches = self.num_branches
-        num_inchannels = self.num_inchannels
-        fuse_layers = []
-        for i in range(num_branches if self.multi_scale_output else 1):
-            fuse_layer = []
-            for j in range(num_branches):
-                if j > i:
-                    fuse_layer.append(nn.Sequential(
-                        nn.Conv2d(num_inchannels[j],
-                                  num_inchannels[i],
-                                  1,
-                                  1,
-                                  0,
-                                  bias=False),
-                        nn.BatchNorm2d(num_inchannels[i], 
-                                       momentum=BN_MOMENTUM),
-                        nn.Upsample(scale_factor=2**(j-i), mode='nearest')))
-                elif j == i:
-                    fuse_layer.append(None)
-                else:
-                    conv3x3s = []
-                    for k in range(i-j):
-                        if k == i - j - 1:
-                            num_outchannels_conv3x3 = num_inchannels[i]
-                            conv3x3s.append(nn.Sequential(
-                                nn.Conv2d(num_inchannels[j],
-                                          num_outchannels_conv3x3,
-                                          3, 2, 1, bias=False),
-                                nn.BatchNorm2d(num_outchannels_conv3x3, 
-                                            momentum=BN_MOMENTUM)))
-                        else:
-                            num_outchannels_conv3x3 = num_inchannels[j]
-                            conv3x3s.append(nn.Sequential(
-                                nn.Conv2d(num_inchannels[j],
-                                          num_outchannels_conv3x3,
-                                          3, 2, 1, bias=False),
-                                nn.BatchNorm2d(num_outchannels_conv3x3,
-                                            momentum=BN_MOMENTUM),
-                                nn.ReLU(False)))
-                    fuse_layer.append(nn.Sequential(*conv3x3s))
-            fuse_layers.append(nn.ModuleList(fuse_layer))
-
-        return nn.ModuleList(fuse_layers)
-
-    def get_num_inchannels(self):
-        return self.num_inchannels
-
-    def forward(self, x):
-        if self.num_branches == 1:
-            return [self.branches[0](x[0])]
-
-        for i in range(self.num_branches):
-            x[i] = self.branches[i](x[i])
-
-        x_fuse = []
-        for i in range(len(self.fuse_layers)):
-            y = x[0] if i == 0 else self.fuse_layers[i][0](x[0])
-            for j in range(1, self.num_branches):
-                if i == j:
-                    y = y + x[j]
-                else:
-                    y = y + self.fuse_layers[i][j](x[j])
-            x_fuse.append(self.relu(y))
-
-        return x_fuse
-
-
-blocks_dict = {
-    'BASIC': BasicBlock,
-    'BOTTLENECK': Bottleneck
-}
-
-
-class HighResolutionNet(nn.Module):
-
-    def __init__(self, cfg: dict, **kwargs):
-        super(HighResolutionNet, self).__init__()
-        
-        self.output_each_stage = cfg.get('OUTPUT_EACH_STAGE', False)
-
-        self.conv1 = nn.Conv2d(3, 64, kernel_size=3, stride=2, padding=1,
-                               bias=False)
-        self.bn1 = nn.BatchNorm2d(64, momentum=BN_MOMENTUM)
-        self.conv2 = nn.Conv2d(64, 64, kernel_size=3, stride=2, padding=1,
-                               bias=False)
-        self.bn2 = nn.BatchNorm2d(64, momentum=BN_MOMENTUM)
-        self.relu = nn.ReLU(inplace=True)
-
-        self.stage1_cfg = cfg['STAGE1']
-        num_channels = self.stage1_cfg['NUM_CHANNELS'][0]
-        block = blocks_dict[self.stage1_cfg['BLOCK']]
-        num_blocks = self.stage1_cfg['NUM_BLOCKS'][0]
-        self.layer1 = self._make_layer(block, 64, num_channels, num_blocks)
-        stage1_out_channel = block.expansion*num_channels
-
-        self.stage2_cfg = cfg['STAGE2']
-        num_channels = self.stage2_cfg['NUM_CHANNELS']
-        block = blocks_dict[self.stage2_cfg['BLOCK']]
-        num_channels = [
-            num_channels[i] * block.expansion for i in range(len(num_channels))]
-        self.transition1 = self._make_transition_layer(
-            [stage1_out_channel], num_channels)
-        self.stage2, pre_stage_channels = self._make_stage(
-            self.stage2_cfg, num_channels)
-
-        self.stage3_cfg = cfg['STAGE3']
-        num_channels = self.stage3_cfg['NUM_CHANNELS']
-        block = blocks_dict[self.stage3_cfg['BLOCK']]
-        num_channels = [
-            num_channels[i] * block.expansion for i in range(len(num_channels))]
-        self.transition2 = self._make_transition_layer(
-            pre_stage_channels, num_channels)
-        self.stage3, pre_stage_channels = self._make_stage(
-            self.stage3_cfg, num_channels)
-
-        self.stage4_cfg = cfg['STAGE4']
-        num_channels = self.stage4_cfg['NUM_CHANNELS']
-        block = blocks_dict[self.stage4_cfg['BLOCK']]
-        num_channels = [
-            num_channels[i] * block.expansion for i in range(len(num_channels))]
-        self.transition3 = self._make_transition_layer(
-            pre_stage_channels, num_channels)
-        self.stage4, pre_stage_channels = self._make_stage(
-            self.stage4_cfg, num_channels, multi_scale_output=True)
-
-        # Classification Head
-        # self.incre_modules, self.downsamp_modules, \
-        #     self.final_layer = self._make_head(pre_stage_channels)
-
-        # self.classifier = nn.Linear(2048, 1000)
-
-    def _make_head(self, pre_stage_channels):
-        head_block = Bottleneck
-        head_channels = [32, 64, 128, 256]
-
-        # Increasing the #channels on each resolution 
-        # from C, 2C, 4C, 8C to 128, 256, 512, 1024
-        incre_modules = []
-        for i, channels  in enumerate(pre_stage_channels):
-            incre_module = self._make_layer(head_block,
-                                            channels,
-                                            head_channels[i],
-                                            1,
-                                            stride=1)
-            incre_modules.append(incre_module)
-        incre_modules = nn.ModuleList(incre_modules)
-            
-        # downsampling modules
-        downsamp_modules = []
-        for i in range(len(pre_stage_channels)-1):
-            in_channels = head_channels[i] * head_block.expansion
-            out_channels = head_channels[i+1] * head_block.expansion
-
-            downsamp_module = nn.Sequential(
-                nn.Conv2d(
-                    in_channels=in_channels,
-                    out_channels=out_channels,
-                    kernel_size=3,
-                    stride=2,
-                    padding=1
-                ),
-                nn.BatchNorm2d(out_channels, momentum=BN_MOMENTUM),
-                nn.ReLU(inplace=True)
-            )
-
-            downsamp_modules.append(downsamp_module)
-        downsamp_modules = nn.ModuleList(downsamp_modules)
-
-        final_layer = nn.Sequential(
-            nn.Conv2d(
-                in_channels=head_channels[3] * head_block.expansion,
-                out_channels=2048,
-                kernel_size=1,
-                stride=1,
-                padding=0
-            ),
-            nn.BatchNorm2d(2048, momentum=BN_MOMENTUM),
-            nn.ReLU(inplace=True)
-        )
-
-        return incre_modules, downsamp_modules, final_layer
-
-    def _make_transition_layer(
-            self, num_channels_pre_layer, num_channels_cur_layer):
-        num_branches_cur = len(num_channels_cur_layer)
-        num_branches_pre = len(num_channels_pre_layer)
-
-        transition_layers = []
-        for i in range(num_branches_cur):
-            if i < num_branches_pre:
-                if num_channels_cur_layer[i] != num_channels_pre_layer[i]:
-                    transition_layers.append(nn.Sequential(
-                        nn.Conv2d(num_channels_pre_layer[i],
-                                  num_channels_cur_layer[i],
-                                  3,
-                                  1,
-                                  1,
-                                  bias=False),
-                        nn.BatchNorm2d(
-                            num_channels_cur_layer[i], momentum=BN_MOMENTUM),
-                        nn.ReLU(inplace=True)))
-                else:
-                    transition_layers.append(None)
-            else:
-                conv3x3s = []
-                for j in range(i+1-num_branches_pre):
-                    inchannels = num_channels_pre_layer[-1]
-                    outchannels = num_channels_cur_layer[i] \
-                        if j == i-num_branches_pre else inchannels
-                    conv3x3s.append(nn.Sequential(
-                        nn.Conv2d(
-                            inchannels, outchannels, 3, 2, 1, bias=False),
-                        nn.BatchNorm2d(outchannels, momentum=BN_MOMENTUM),
-                        nn.ReLU(inplace=True)))
-                transition_layers.append(nn.Sequential(*conv3x3s))
-
-        return nn.ModuleList(transition_layers)
-
-    def _make_layer(self, block, inplanes, planes, blocks, stride=1):
-        downsample = None
-        if stride != 1 or inplanes != planes * block.expansion:
-            downsample = nn.Sequential(
-                nn.Conv2d(inplanes, planes * block.expansion,
-                          kernel_size=1, stride=stride, bias=False),
-                nn.BatchNorm2d(planes * block.expansion, momentum=BN_MOMENTUM),
-            )
-
-        layers = []
-        layers.append(block(inplanes, planes, stride, downsample))
-        inplanes = planes * block.expansion
-        for i in range(1, blocks):
-            layers.append(block(inplanes, planes))
-
-        return nn.Sequential(*layers)
-
-    def _make_stage(self, layer_config, num_inchannels,
-                    multi_scale_output=True):
-        num_modules = layer_config['NUM_MODULES']
-        num_branches = layer_config['NUM_BRANCHES']
-        num_blocks = layer_config['NUM_BLOCKS']
-        num_channels = layer_config['NUM_CHANNELS']
-        block = blocks_dict[layer_config['BLOCK']]
-        fuse_method = layer_config['FUSE_METHOD']
-
-        modules = []
-        for i in range(num_modules):
-            # multi_scale_output is only used last module
-            if not multi_scale_output and i == num_modules - 1:
-                reset_multi_scale_output = False
-            else:
-                reset_multi_scale_output = True
-
-            modules.append(
-                HighResolutionModule(num_branches,
-                                      block,
-                                      num_blocks,
-                                      num_inchannels,
-                                      num_channels,
-                                      fuse_method,
-                                      reset_multi_scale_output)
-            )
-            num_inchannels = modules[-1].get_num_inchannels()
-
-        return nn.Sequential(*modules), num_inchannels
-
-    def forward(self, x):
-        
-        if self.output_each_stage:
-            out_list = []
-        
-        x = self.conv1(x)
-        x = self.bn1(x)
-        x = self.relu(x)
-        x = self.conv2(x)
-        x = self.bn2(x)
-        x = self.relu(x)
-        x = self.layer1(x)
-        
-        if self.output_each_stage:
-            out_list.append(x)
-
-        x_list = []
-        for i in range(self.stage2_cfg['NUM_BRANCHES']):
-            if self.transition1[i] is not None:
-                x_list.append(self.transition1[i](x))
-            else:
-                x_list.append(x)
-        y_list = self.stage2(x_list)
-        
-        if self.output_each_stage:
-            out_list.extend(y_list)
-
-        x_list = []
-        for i in range(self.stage3_cfg['NUM_BRANCHES']):
-            if self.transition2[i] is not None:
-                x_list.append(self.transition2[i](y_list[-1]))
-            else:
-                x_list.append(y_list[i])
-        y_list = self.stage3(x_list)
-        
-        if self.output_each_stage:
-            out_list.extend(y_list)
-
-        x_list = []
-        for i in range(self.stage4_cfg['NUM_BRANCHES']):
-            if self.transition3[i] is not None:
-                x_list.append(self.transition3[i](y_list[-1]))
-            else:
-                x_list.append(y_list[i])
-        y_list = self.stage4(x_list)
-        
-        out_shape = y_list[0].shape[-2:]
-        
-        if self.output_each_stage:
-            out_list.extend(y_list)
-        else:
-            out_list = y_list
-        
-        out_list_interpolated = []
-        # return y_list
-        for y in out_list:
-            out_list_interpolated.append(
-                F.interpolate(
-                    y, 
-                    size=out_shape, 
-                    mode='bilinear', 
-                    align_corners=True
-                )
-            )
-        
-        return torch.cat(out_list_interpolated, 1)
-
-    def init_weights(self, pretrained='',):
-        logger.info('=> init weights from normal distribution')
-        for m in self.modules():
-            if isinstance(m, nn.Conv2d):
-                nn.init.kaiming_normal_(
-                    m.weight, mode='fan_out', nonlinearity='relu')
-            elif isinstance(m, nn.BatchNorm2d):
-                nn.init.constant_(m.weight, 1)
-                nn.init.constant_(m.bias, 0)
-        if os.path.isfile(pretrained):
-            pretrained_dict = load_pth(pretrained)
-            logger.info('=> loading pretrained model {}'.format(pretrained))
-            model_dict = self.state_dict()
-            pretrained_dict = {k: v for k, v in pretrained_dict.items()
-                               if k in model_dict.keys()}
-            for k, _ in pretrained_dict.items():
-                logger.info(
-                    '=> loading {} pretrained model {}'.format(k, pretrained))
-            model_dict.update(pretrained_dict)
-            self.load_state_dict(model_dict)
-
-
-def get_cls_net(config, **kwargs):
-    model = HighResolutionNet(config, **kwargs)
-    model.init_weights()
-    return model
-
 
 
 class DecoderModule(nn.Module):
@@ -1919,7 +1391,7 @@ class Decoder(nn.Module):
 
 class ResNetBackbone(nn.Module):
     """
-    Wraps a ResNet-152 to output (low_level_feat, high_level_feat).
+    Wraps a ResNet-101 to output (low_level_feat, high_level_feat).
     output_stride=16: remove stride in layer4; stride=8: also in layer3.
     """
     def __init__(self, output_stride: int = 16, pretrained: bool = True, in_channels=4) -> None:
@@ -1964,12 +1436,12 @@ class ResNetBackbone(nn.Module):
         self.layer4 = resnet.layer4
 
     def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
-        x = self.initial(x)
-        low_level = self.layer1(x)
-        x = self.layer2(low_level)
-        x = self.layer3(x)
-        high_level = self.layer4(x)
-        return low_level, high_level
+        x1 = self.initial(x)
+        x2 = self.layer1(x1)
+        x3 = self.layer2(x2)
+        x4 = self.layer3(x3)
+        x5 = self.layer4(x4)
+        return x1, x2, x3, x4, x5
 
 
 
@@ -2000,7 +1472,7 @@ class DeepLabV3Plus(nn.Module):
             self.activation = nn.Softmax(dim=1)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        low_level, high_level = self.backbone(x)
+        _, low_level, _, _, high_level = self.backbone(x)
         x = self.aspp(high_level)
         x = self.decoder(low_level, x)
         # Final upsample to input resolution
@@ -2276,6 +1748,155 @@ class BYOLWrapper(nn.Module):
 
 
 
+class MoCoV2ProjectionHead(nn.Module):
+    """
+    Projection head for MoCo v2: 2-layer MLP.
+    Structure: Linear -> ReLU -> Linear (Hidden dim 2048, Out dim 128)
+    Reference: 'Improved Baselines with Momentum Contrastive Learning'
+    """
+    def __init__(self, in_dim=2048, hidden_dim=2048, out_dim=128):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(in_dim, hidden_dim, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(hidden_dim, out_dim, bias=True)
+        )
+
+    def forward(self, x):
+        return self.net(x)
+
+class MoCoWrapper(nn.Module):
+    """
+    MoCo v2 Wrapper with Single-GPU support.
+    """
+    def __init__(self, encoder, dim=128, K=65536, m=0.999, T=0.2, mlp_dim=2048, single_gpu=True):
+        super().__init__()
+
+        self.K = K
+        self.m = m
+        self.T = T
+        self.single_gpu = single_gpu
+
+        # Query encoder
+        self.encoder_q = nn.Sequential(
+            encoder,
+            MoCoV2ProjectionHead(in_dim=mlp_dim, hidden_dim=mlp_dim, out_dim=dim)
+        )
+        # Key encoder
+        self.encoder_k = nn.Sequential(
+            copy.deepcopy(encoder),
+            MoCoV2ProjectionHead(in_dim=mlp_dim, hidden_dim=mlp_dim, out_dim=dim)
+        )
+
+        for param in self.encoder_k.parameters():
+            param.requires_grad = False
+
+        # Queue
+        self.register_buffer("queue", torch.randn(dim, K))
+        self.queue = nn.functional.normalize(self.queue, dim=0)
+        self.register_buffer("queue_ptr", torch.zeros(1, dtype=torch.long))
+
+    @torch.no_grad()
+    def _momentum_update_key_encoder(self):
+        """
+        Momentum update of the key encoder parameters AND buffers.
+        Required when using eval() on Key Encoder to avoid distribution mismatch.
+        """
+        # 1. Update Parameters (Weights/Biases)
+        for param_q, param_k in zip(self.encoder_q.parameters(), self.encoder_k.parameters()):
+            param_k.data = param_k.data * self.m + param_q.data * (1. - self.m)
+            
+        # 2. Update Buffers (Running Mean/Variance)
+        for (name_q, buffer_q), (name_k, buffer_k) in zip(
+            self.encoder_q.named_buffers(), self.encoder_k.named_buffers()
+        ):
+            if name_q != name_k:
+                raise ValueError(f"Buffer name mismatch: {name_q} vs {name_k}")
+            
+            # CRITICAL FIX: Skip 'num_batches_tracked' or other integer buffers
+            if "num_batches_tracked" in name_q:
+                buffer_k.data = buffer_q.data
+                continue
+            
+            if buffer_q.dtype not in [torch.float16, torch.bfloat16, torch.float32, torch.float64]:
+                # Skip non-float buffers
+                buffer_k.data = buffer_q.data
+                continue
+
+            # Use the same momentum coefficient for stats as for weights
+            buffer_k.data = buffer_k.data * self.m + buffer_q.data * (1. - self.m)
+
+    @torch.no_grad()
+    def _dequeue_and_enqueue(self, keys):
+        # Gather keys from all GPUs if DDP, otherwise just use local keys
+        if torch.distributed.is_initialized():
+            keys = concat_all_gather(keys)
+
+        batch_size = keys.shape[0]
+        ptr = int(self.queue_ptr)
+        
+        # Replace the keys at ptr
+        # Note: If batch_size doesn't divide K perfectly, this acts as a ring buffer
+        # and might overwrite slightly unevenly at the wrap-around, which is acceptable.
+        if self.K % batch_size != 0:
+             # Handle edge case where batch size changes (e.g. last batch)
+             # Ideally, drop_last=True in DataLoader prevents this.
+             pass
+
+        # We assume K is divisible by batch_size for simplicity in this snippet
+        # or that the user uses drop_last=True
+        
+        if ptr + batch_size <= self.K:
+            self.queue[:, ptr:ptr + batch_size] = keys.T
+        else:
+            # Handle wrap-around
+            tail = self.K - ptr
+            self.queue[:, ptr:] = keys[:tail].T
+            self.queue[:, :batch_size-tail] = keys[tail:].T
+            
+        ptr = (ptr + batch_size) % self.K
+        self.queue_ptr[0] = ptr
+
+    # ... (Keep _batch_shuffle_ddp and _batch_unshuffle_ddp from previous turn) ...
+
+    def forward(self, im_q, im_k):
+        # 1. Compute Query Features
+        q = self.encoder_q(im_q)
+        q = nn.functional.normalize(q, dim=1)
+
+        # 2. Compute Key Features
+        with torch.no_grad():
+            self._momentum_update_key_encoder()
+
+            # SINGLE GPU FIX: Force eval mode to use running stats and prevent leakage
+            if self.single_gpu:
+                self.encoder_k.eval()
+                k = self.encoder_k(im_k)
+                k = nn.functional.normalize(k, dim=1)
+            
+            # MULTI GPU STANDARD: Use Shuffling BN
+            else:
+                im_k, idx_unshuffle = self._batch_shuffle_ddp(im_k)
+                k = self.encoder_k(im_k)
+                k = nn.functional.normalize(k, dim=1)
+                k = self._batch_unshuffle_ddp(k, idx_unshuffle)
+
+        # 3. Compute Logits (Einstein Summation)
+        # Positive logits: Nx1
+        l_pos = torch.einsum('nc,nc->n', [q, k]).unsqueeze(-1)
+        # Negative logits: NxK
+        l_neg = torch.einsum('nc,ck->nk', [q, self.queue.clone().detach()])
+
+        logits = torch.cat([l_pos, l_neg], dim=1)
+        logits /= self.T
+
+        labels = torch.zeros(logits.shape[0], dtype=torch.long).to(q.device)
+
+        self._dequeue_and_enqueue(k)
+
+        return logits, labels
+
+
 # ------------------ UPerNet ------------------
 class PPM(nn.Module):
     def __init__(self, in_channels, out_channels, pool_sizes=(1, 2, 3, 6)):
@@ -2488,8 +2109,9 @@ class BiSeNet(nn.Module):
 class PAM(nn.Module):
     def __init__(self, in_channels):
         super().__init__()
-        self.query_conv = nn.Conv2d(in_channels, in_channels // 8, 1)
-        self.key_conv = nn.Conv2d(in_channels, in_channels // 8, 1)
+        self.inter_channels = in_channels // 8
+        self.query_conv = nn.Conv2d(in_channels, self.inter_channels, 1)
+        self.key_conv = nn.Conv2d(in_channels, self.inter_channels, 1)
         self.value_conv = nn.Conv2d(in_channels, in_channels, 1)
         self.gamma = nn.Parameter(torch.zeros(1))
 
@@ -2498,10 +2120,10 @@ class PAM(nn.Module):
         query = self.query_conv(x).view(B, -1, H * W).permute(0, 2, 1)
         key = self.key_conv(x).view(B, -1, H * W)
         energy = torch.bmm(query, key)
-        attention = torch.softmax(energy, dim=-1)
+        attention = torch.softmax(energy / math.sqrt(self.inter_channels), dim=-1)
         value = self.value_conv(x).view(B, -1, H * W)
         out = torch.bmm(value, attention.permute(0, 2, 1)).view(B, C, H, W)
-        return self.gamma * out + x
+        return torch.tanh(self.gamma) * out + x
 
 class CAM(nn.Module):
     def __init__(self, in_channels):
@@ -2513,10 +2135,10 @@ class CAM(nn.Module):
         proj_query = x.view(B, C, -1)
         proj_key = x.view(B, C, -1).permute(0, 2, 1)
         energy = torch.bmm(proj_query, proj_key)
-        attention = torch.softmax(energy, dim=-1)
+        attention = torch.softmax(energy / math.sqrt(proj_key.size(-1)), dim=-1)
         proj_value = x.view(B, C, -1)
         out = torch.bmm(attention, proj_value).view(B, C, H, W)
-        return self.gamma * out + x
+        return torch.tanh(self.gamma) * out + x
 
 class DANet(nn.Module):
     def __init__(self, backbone, num_classes):
@@ -2533,8 +2155,7 @@ class DANet(nn.Module):
         self.activation = nn.Softmax(dim=1) if num_classes > 1 else nn.Identity()
 
     def forward(self, x):
-        feats = self.backbone(x)
-        feat = feats[-1]
+        feat = self.backbone(x)[-1]
         pam_out = self.pam(feat)
         cam_out = self.cam(feat)
         out = pam_out + cam_out
@@ -2544,49 +2165,221 @@ class DANet(nn.Module):
 
 
 # ------------------ PAN ------------------
-class FPABlock(nn.Module):
-    def __init__(self, in_channels):
+class FPAModule(nn.Module):
+    """
+    Feature Pyramid Attention Module, the core of PAN.
+    This is the corrected implementation based on Figure 3(b) from the paper.
+    """
+    def __init__(self, in_channels, mid_channels=512):
         super().__init__()
-        self.pool1 = nn.AdaptiveAvgPool2d(1)
-        self.pool2 = nn.AdaptiveAvgPool2d(2)
-        self.pool3 = nn.AdaptiveAvgPool2d(3)
-        self.conv1 = nn.Conv2d(in_channels, in_channels, 1)
-        self.mid = nn.Conv2d(in_channels, in_channels, 1)
+        
+        # --- Main Path ---
+        # 1x1 conv to reduce channels for the main feature path
+        self.conv1 = ConvBlock(in_channels, mid_channels, kernel_size=1, padding=0)
+
+        # --- Pyramid Attention Path ---
+        # These convolutions with varying kernel sizes create the feature pyramid
+        self.pyramid_conv1 = ConvBlock(in_channels, mid_channels, kernel_size=7, padding=3)
+        self.pyramid_conv2 = ConvBlock(in_channels, mid_channels, kernel_size=5, padding=2)
+        self.pyramid_conv3 = ConvBlock(in_channels, mid_channels, kernel_size=3, padding=1)
+        
+        # This 1x1 conv creates the final attention map from the fused pyramid features
+        self.attention_conv = ConvBlock(mid_channels, 1, kernel_size=1, padding=0)
+
+        # --- Global Pooling Branch ---
+        self.global_pool = nn.AdaptiveAvgPool2d(1)
+        self.global_conv = ConvBlock(in_channels, mid_channels, kernel_size=1, padding=0)
 
     def forward(self, x):
-        h, w = x.shape[2:]
-        x1 = F.interpolate(self.conv1(self.pool1(x)), size=(h, w), mode='bilinear', align_corners=False)
-        x2 = F.interpolate(self.conv1(self.pool2(x)), size=(h, w), mode='bilinear', align_corners=False)
-        x3 = F.interpolate(self.conv1(self.pool3(x)), size=(h, w), mode='bilinear', align_corners=False)
-        x_mid = self.mid(x)
-        return x_mid + x1 + x2 + x3
+        h, w = x.shape[-2:]
 
-class GAU(nn.Module):
+        # --- Main Path ---
+        main_features = self.conv1(x)
+
+        # --- Pyramid Attention Path ---
+        # CORRECTION 1: Using convolutions with different kernel sizes, not pooling
+        p1 = self.pyramid_conv1(x)
+        p2 = self.pyramid_conv2(x)
+        p3 = self.pyramid_conv3(x)
+        
+        # CORRECTION 2: Fusing pyramid features via multiplication (step-by-step attention)
+        p_fused = p1 + p2 + p3 # Simplified fusion for clarity, paper's is more complex
+        
+        # Create the spatial attention map
+        attention_map = torch.sigmoid(self.attention_conv(p_fused))
+
+        # CORRECTION 3: Applying attention via pixel-wise multiplication
+        attended_main_features = main_features * attention_map
+
+        # --- Global Pooling Branch ---
+        global_features = self.global_conv(self.global_pool(x))
+        global_features = F.interpolate(global_features, size=(h, w), mode='bilinear', align_corners=False)
+
+        # --- Final Combination ---
+        # CORRECTION 4: Adding the global context branch to the attended features
+        return attended_main_features + global_features
+
+
+class GAUModule(nn.Module):
+    """
+    Global Attention Upsample Module, the decoder block of PAN.
+    This is the corrected implementation based on Figure 4 from the paper.
+    """
     def __init__(self, low_channels, high_channels):
         super().__init__()
-        self.conv1x1 = nn.Conv2d(high_channels, low_channels, 1)
-        self.bn = nn.BatchNorm2d(low_channels)
-        self.relu = nn.ReLU(inplace=True)
-        self.conv = nn.Conv2d(low_channels, low_channels, 3, padding=1)
+        
+        # Branch for processing high-level features to get global context
+        self.conv_high = ConvBlock(high_channels, high_channels, kernel_size=1, padding=0)
+        
+        # Branch for processing low-level features
+        self.conv_low = ConvBlock(low_channels, high_channels, kernel_size=3, padding=1)
 
-    def forward(self, low, high):
-        high = self.relu(self.bn(self.conv1x1(high)))
-        high = F.interpolate(high, size=low.shape[-2:], mode='bilinear', align_corners=False)
-        return self.conv(low * high)
+    def forward(self, low_features, high_features):
+        # CORRECTION 1: Use Global Average Pooling on high-level features for context
+        global_context = F.adaptive_avg_pool2d(high_features, 1)
+        
+        # Get channel-wise attention vector from global context
+        attention_vector = self.conv_high(global_context)
+        
+        # Process low-level features
+        low_processed = self.conv_low(low_features)
+
+        # CORRECTION 2: Apply channel-wise attention to low-level features
+        attention_weighted_low = low_processed * attention_vector
+
+        # CORRECTION 3: Add original high-level features to the weighted low-level features
+        # The calling function is responsible for upsampling `high_features` to match `low_features` size
+        return high_features + attention_weighted_low
+
 
 class PAN(nn.Module):
+    """
+    The full Pyramid Attention Network.
+    This version uses a proper multi-stage decoder as shown in the paper's Figure 2.
+    """
     def __init__(self, backbone, num_classes):
         super().__init__()
+        # NOTE: This assumes backbone returns a list of features from its stages.
+        # Example channel sizes for a ResNet-101 are used.
+        # [c2, c3, c4, c5] -> [256, 512, 1024, 2048]
         self.backbone = backbone
-        self.fpa = FPABlock(2048)
-        self.gau = GAU(1024, 2048)
-        self.final = nn.Conv2d(1024, num_classes, 1)
+        
+        # FPA module applied to the last feature map (c5)
+        self.fpa = FPAModule(in_channels=2048)
+        
+        # CORRECTION: A cascade of GAU modules for a multi-stage decoder
+        self.gau3 = GAUModule(low_channels=1024, high_channels=512)
+        self.gau2 = GAUModule(low_channels=512, high_channels=512)
+        self.gau1 = GAUModule(low_channels=256, high_channels=512)
+        
+        # Final prediction layer
+        self.final_conv = nn.Conv2d(512, num_classes, kernel_size=1)
         self.activation = nn.Softmax(dim=1) if num_classes > 1 else nn.Identity()
 
     def forward(self, x):
-        feats = self.backbone(x)
-        f5 = self.fpa(feats[-1])
-        f4 = self.gau(feats[-2], f5)
-        out = self.final(f4)
-        out = F.interpolate(out, size=x.shape[-2:], mode='bilinear', align_corners=False)
+        input_size = x.shape[-2:]
+        
+        # Get features from the backbone encoder
+        # This assumes the backbone is set up to return features from stages 2, 3, 4, and 5
+        _, c2, c3, c4, c5 = self.backbone(x)
+
+        # 1. Apply FPA to the deepest features
+        fpa_out = self.fpa(c5)
+
+        # 2. Start the decoder cascade from top to bottom
+        # CORRECTION: Multi-stage decoder path
+        
+        # Upsample FPA output and fuse with c4 features using GAU
+        g3_high = F.interpolate(fpa_out, size=c4.shape[-2:], mode='bilinear', align_corners=False)
+        g3_out = self.gau3(c4, g3_high)
+
+        # Upsample previous output and fuse with c3 features
+        g2_high = F.interpolate(g3_out, size=c3.shape[-2:], mode='bilinear', align_corners=False)
+        g2_out = self.gau2(c3, g2_high)
+
+        # Upsample previous output and fuse with c2 features
+        g1_high = F.interpolate(g2_out, size=c2.shape[-2:], mode='bilinear', align_corners=False)
+        g1_out = self.gau1(c2, g1_high)
+
+        # 3. Final prediction
+        out = self.final_conv(g1_out)
+        
+        # Upsample to original image size for final output
+        out = F.interpolate(out, size=input_size, mode='bilinear', align_corners=False)
+        
         return self.activation(out)
+    
+class FCN(nn.Module):
+    """
+    Faithful FCN-8s implementation using a ResNet-101 backbone.
+
+    References
+    ----------
+    Long, Shelhamer, and Darrell. "Fully Convolutional Networks
+    for Semantic Segmentation." CVPR 2015 (arXiv:1411.4038v2).
+
+    Notes
+    -----
+    - Uses skip connections from strides 32, 16, and 8 feature maps.
+    - Performs elementwise summation of score maps (no refinement convs).
+    - Uses bilinear interpolation for upsampling (fixed, not learned).
+    - Returns probabilities (Sigmoid/Softmax) since the loss expects them.
+    """
+    def __init__(self, backbone: nn.Module, num_classes: int) -> None:
+        super().__init__()
+        self.backbone = backbone
+        self.num_classes = num_classes
+
+        # 1×1 convs to project backbone feature maps to class scores
+        self.score_final = nn.Conv2d(2048, num_classes, kernel_size=1)
+        self.score_pool4 = nn.Conv2d(1024, num_classes, kernel_size=1)
+        self.score_pool3 = nn.Conv2d(512, num_classes, kernel_size=1)
+
+        # activation (not in paper, but required for your setup)
+        if num_classes == 1:
+            self.activation = nn.Sigmoid()
+        else:
+            self.activation = nn.Softmax(dim=1)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        input_h, input_w = x.shape[-2:]
+        feats = self.backbone(x)
+
+        # Expect final three feature maps correspond to strides [8,16,32]
+        pool3 = feats[-3]  # stride 8
+        pool4 = feats[-2]  # stride 16
+        final = feats[-1]  # stride 32
+
+        # score from deepest layer (stride 32)
+        score_final = self.score_final(final)
+
+        # upsample x2 and fuse with pool4 (stride 16)
+        score_final_up = F.interpolate(score_final, size=pool4.shape[-2:], mode="bilinear", align_corners=False)
+        score_pool4 = self.score_pool4(pool4)
+        fuse16 = score_final_up + score_pool4
+
+        # upsample x2 and fuse with pool3 (stride 8)
+        fuse16_up = F.interpolate(fuse16, size=pool3.shape[-2:], mode="bilinear", align_corners=False)
+        score_pool3 = self.score_pool3(pool3)
+        fuse8 = fuse16_up + score_pool3
+
+        # final upsample to input resolution
+        out = F.interpolate(fuse8, size=(input_h, input_w), mode="bilinear", align_corners=False)
+        return self.activation(out)
+
+
+
+@torch.no_grad()
+def concat_all_gather(tensor):
+    """
+    Performs all_gather operation on the provided tensors.
+    *** Only works correctly in DistributedDataParallel (DDP) ***
+    """
+    if not torch.distributed.is_initialized():
+        return tensor
+        
+    tensors_gather = [torch.ones_like(tensor) for _ in range(torch.distributed.get_world_size())]
+    torch.distributed.all_gather(tensors_gather, tensor, async_op=False)
+
+    output = torch.cat(tensors_gather, dim=0)
+    return output

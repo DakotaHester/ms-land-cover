@@ -934,3 +934,34 @@ class BYOLDataAugmentation:
     
     def __call__(self, x):
         return self.transform(x)
+
+
+class MoCoV2DataAugmentation:
+    """
+    Data augmentation for MoCo v2.
+    Includes Gaussian Blur and stronger Color Jitter.
+    """
+    def __init__(self, size=256, s=1.0):
+        self.size = size
+        self.s = s
+        
+        self.kernel_size = max(int(0.1 * size), 3)
+        
+        
+        # MoCo v2 uses the same augmentation as SimCLR
+        self.transform = transforms.Compose([
+            transforms.RandomResizedCrop(size=size, scale=(0.2, 1.0)),
+            transforms.RandomApply([
+                transforms.ColorJitter(0.4*s, 0.4*s, 0.4*s, 0.1*s)
+            ], p=0.8),
+            transforms.RandomGrayscale(p=0.2),
+            transforms.RandomApply([
+                transforms.GaussianBlur(kernel_size=self.kernel_size, sigma=(0.1*s, 2.0*s))
+            ], p=0.5),
+            transforms.RandomHorizontalFlip(),
+        ])
+            # transforms.ToTensor(), # dataset usually handles this
+            # transforms.Normalize(...) # dataset usually handles this
+
+    def __call__(self, x):
+        return self.transform(x)

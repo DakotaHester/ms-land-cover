@@ -1,4 +1,5 @@
 import os
+from typing import Union
 import numpy as np
 import xarray as xr
 import rioxarray as rxr
@@ -45,9 +46,9 @@ def parse_arguments():
     # Model and weights
     parser.add_argument(
         '--weights_path',
-        type=str,
-        default='./weights/finetune_20250707/unet/byol/randinit_false/frozenencoder_false/500/fold_2/best_model.pth',
-        help='Path to the trained model weights file'
+        # type=Union[str, list],
+        default=glob('./weights/finetune_20250720/unet/byol/randinit_false/frozenencoder_false/750/*/best_model.pth'),
+        help='Path(s) to the trained model weights file'
     )
     
     parser.add_argument(
@@ -90,22 +91,22 @@ def parse_arguments():
     parser.add_argument(
         '--stride',
         type=int,
-        default=64,
+        default=128,
         help='Stride between tiles (pixels). Should be <= tile_size. Smaller stride provides more overlap but takes longer. Default: 128'
     )
     
     parser.add_argument(
         '--batch_size',
         type=int,
-        default=128,
-        help='Batch size for model inference. Larger batches are faster but use more GPU memory. Default: 256'
+        default=64,
+        help='Batch size for model inference. Larger batches are faster but use more GPU memory. Default: 32'
     )
     
     parser.add_argument(
         '--gaussian_sigma',
         type=float,
         default=192,
-        help='Sigma for Gaussian blending of overlapping tiles. Higher values create smoother transitions. Default: 128'
+        help='Sigma for Gaussian blending of overlapping tiles. Lower values create smoother transitions. Default: 192'
     )
     
     # Input data preprocessing

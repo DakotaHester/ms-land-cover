@@ -1,0 +1,23 @@
+\begin{table}[H]
+    \centering
+    \caption{Semantic segmentation architectures evaluated in this study, with their total parameters using a ResNet-101 backbone.}\label{tab:semantic_segmentation_models}
+    \begin{tblr}{
+        colspec = {Q[l, m] Q[l, m] Q[l, m]},
+        row{1} = {font=\bfseries},
+        % cell{1}{2} = {font=\itshape},
+        % cell{2}{2} = {font=\itshape},
+        % cell{3}{2} = {font=\itshape},
+        % booktabs
+    }
+        \toprule
+        Model & Number of Parameters & Reference \\
+        \midrule
+        FCN & 42,528,856 & \citep{longFullyConvolutionalNetworks2015} \\
+        U-Net & 92,302,024 & \citep{ronnebergerUNetConvolutionalNetworks2015} \\
+        Attention U-Net & 83,610,272 & \citep{oktayAttentionUNetLearning2018} \\
+        DeepLabV3+ & 58,199,128 & \citep{chenEncoderDecoderAtrousSeparable2018} \\
+        UPerNet & 73,251,400 & \citep{xiaoUnifiedPerceptualParsing2018} \\
+        PAN & 140,688,970 & \citep{liPyramidAttentionNetwork2018} \\
+        \bottomrule
+    \end{tblr}
+\end{table}

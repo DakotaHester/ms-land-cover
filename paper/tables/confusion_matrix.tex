@@ -1,22 +1,78 @@
+% \begin{table}[H]
+%     \centering
+%     \label{tab:confusion_matrix}
+%     \caption{Confusion matrix for the Mississippi land cover classification results.}
+%     \vspace{0.25cm}
+%     \renewcommand{\arraystretch}{1.75} % Adjust the row height
+%     \resizebox{\textwidth}{!}{
+%         \begin{tabular}{@{}|l|rrrrrrrr|r|@{}}
+%             \toprule
+%         %     \diagbox{\makecell{True\\Label}}{\makecell{Predicted\\Label}}           & \makecell[lb]{Open\\Water}    & \makecell[lb]{Impervious\\Structures}          & \makecell[lb]{Impervious\\Surfaces}         & \makecell[lb]{Barren\\Land}     & \makecell[lb]{Tree Canopy/\\Woody Vegetation} & \makecell[lb]{Low Vegetation/\\Herbaceous} & \makecell[lb]{Cultivated\\Crops} & \makecell[lb]{Unclassified}    & \makecell[lb]{Producer's\\Accuracy}          \\ \midrule
+%         %     {Open Water}                                     & \textbf{7154} & 344                            & 41                          & 45              & 16                           & 141                       & 0                & 1066            & 81.23\%             \\
+%         %     \makecell[l]{Impervious\\Structures}             & 13            & \textbf{20776}                 & 2041                        & 1335            & 115                          & 4891                      & 0                & 1708            & 67.28\%             \\
+%         %     \makecell[l]{Impervious\\Surfaces}               & 19            & 2590                           & \textbf{124159}             & 9058            & 1722                         & 14407                     & 13               & 3225            & 80.00\%             \\
+%         %     {Barren Land}                                    & 298           & 1964                           & 21482                       & \textbf{130287} & 2798                         & 100670                    & 24151            & 4008            & 45.61\%             \\
+%         %     \makecell[l]{Tree Canopy/\\Woody Vegetation}     & 924           & 244                            & 1403                        & 1064            & \textbf{2336744}             & 94750                     & 26166            & 101005          & 91.20\%             \\
+%         %     \makecell[l]{Low Vegetation/\\Herbaceous}        & 469           & 2596                           & 24339                       & 57498           & 58379                        & \textbf{851272}           & 136447           & 29850           & 73.33\%             \\
+%         %     {Cultivated Crops}                               & 0             & 0                              & 171                         & 3079            & 6685                         & 48908                     & \textbf{148924}  & 603             & 54.73\%             \\
+%         %     {Unclassified}                                   & 208           & 940                            & 3546                        & 384             & 14128                        & 8236                      & 106              & \textbf{147915} & 62.64\%             \\ \midrule
+%         %     {User's Accuracy}                                      & 78.75\%       & 70.54\%                        & 70.07\%                     & 64.26\%         & 96.53\%                      & 75.78\%                   & 44.34\%          & 51.11\%         & \makecell[r]{Overall Accuracy\\82.11\%}      \\ \bottomrule
+%         % \end{tabular}
+%                     \diagbox{\makecell{True\\Label}}{\makecell{Predicted\\Label}}           & \makecell[lb]{Open\\Water}    & \makecell[lb]{Impervious\\Structures}          & \makecell[lb]{Impervious\\Surfaces}         & \makecell[lb]{Barren\\Land}     & \makecell[lb]{Tree Canopy/\\Woody Vegetation} & \makecell[lb]{Low Vegetation/\\Herbaceous} & \makecell[lb]{Cultivated\\Crops} & \makecell[lb]{Unclassified}    & \makecell[lb]{Producer's\\Accuracy}          \\ \midrule
+%             {Open Water}                                     & \textbf{511} & 1                            & 0                          & 10              & 11                           & 18                       & 0                & 21            & 89.34\%             \\
+%             \makecell[l]{Impervious\\Structures}             & 0            & \textbf{80}                 & 15                        & 3            & 3                          & 5                      & 0                & 0            & 75.47\%             \\
+%             \makecell[l]{Impervious\\Surfaces}               & 1            & 5                           & \textbf{183}             & 17            & 1                         & 22                     & 0               & 1            & 79.57\%             \\
+%             {Barren Land}                                    & 6           & 4                           & 68                       & \textbf{944} & 22                         & 451                    & 144            & 5            & 57.42\%             \\
+%             \makecell[l]{Tree Canopy/\\Woody Vegetation}     & 1           & 2                            & 2                        & 6            & \textbf{14712}             & 366                     & 6            & 22          & 97.32\%             \\
+%             \makecell[l]{Low Vegetation/\\Herbaceous}        & 7           & 2                           & 20                       & 138           & 376                        & \textbf{3699}           & 492           & 17           & 77.86\%             \\
+%             {Cultivated Crops}                               & 0             & 0                              & 0                         & 17            & 2                         & 38                     & \textbf{1243}  & 1             & 95.54\%             \\
+%             {Unclassified}                                   & 2           & 11                            & 6                        & 7             & 753                        & 86                      & 1              & \textbf{413} & 32.29\%             \\ \midrule
+%             {User's Accuracy}                                      & 96.78\%       & 76.19\%                        & 62.24\%                     & 82.66\%         & 92.64\%                      & 78.95\%                   & 65.91\%          & 86.04\%         & \makecell[r]{Overall Accuracy\\87.14\%}      \\ \bottomrule
+%         \end{tabular}
+%     }
+% \end{table}
+
 \begin{table}[H]
     \centering
-    \label{tab:confusion_matrix}
-    \caption{Confusion matrix for the Mississippi land cover classification results.}
-    \vspace{0.25cm}
-    \renewcommand{\arraystretch}{1.75} % Adjust the row height
+    \caption{Confusion matrix for the Mississippi land cover classification results.}\label{tab:confusion_matrix}
+    % \vspace{0.25cm}
+    % \renewcommand{\arraystretch}{1.75} % Adjust the row height
     \resizebox{\textwidth}{!}{
-        \begin{tabular}{@{}|l|rrrrrrrr|r|@{}}
-            \toprule
-            \diagbox{\makecell{True\\Label}}{\makecell{Predicted\\Label}}           & \makecell[lb]{Open\\Water}    & \makecell[lb]{Impervious\\Structures}          & \makecell[lb]{Impervious\\Surfaces}         & \makecell[lb]{Barren\\Land}     & \makecell[lb]{Tree Canopy/\\Woody Vegetation} & \makecell[lb]{Low Vegetation/\\Herbaceous} & \makecell[lb]{Cultivated\\Crops} & \makecell[lb]{Unclassified}    & \makecell[lb]{Producer's\\Accuracy}          \\ \midrule
-            {Open Water}                                     & \textbf{7154} & 344                            & 41                          & 45              & 16                           & 141                       & 0                & 1066            & 81.23\%             \\
-            \makecell[l]{Impervious\\Structures}             & 13            & \textbf{20776}                 & 2041                        & 1335            & 115                          & 4891                      & 0                & 1708            & 67.28\%             \\
-            \makecell[l]{Impervious\\Surfaces}               & 19            & 2590                           & \textbf{124159}             & 9058            & 1722                         & 14407                     & 13               & 3225            & 80.00\%             \\
-            {Barren Land}                                    & 298           & 1964                           & 21482                       & \textbf{130287} & 2798                         & 100670                    & 24151            & 4008            & 45.61\%             \\
-            \makecell[l]{Tree Canopy/\\Woody Vegetation}     & 924           & 244                            & 1403                        & 1064            & \textbf{2336744}             & 94750                     & 26166            & 101005          & 91.20\%             \\
-            \makecell[l]{Low Vegetation/\\Herbaceous}        & 469           & 2596                           & 24339                       & 57498           & 58379                        & \textbf{851272}           & 136447           & 29850           & 73.33\%             \\
-            {Cultivated Crops}                               & 0             & 0                              & 171                         & 3079            & 6685                         & 48908                     & \textbf{148924}  & 603             & 54.73\%             \\
-            {Unclassified}                                   & 208           & 940                            & 3546                        & 384             & 14128                        & 8236                      & 106              & \textbf{147915} & 62.64\%             \\ \midrule
-            {User's Accuracy}                                      & 78.75\%       & 70.54\%                        & 70.07\%                     & 64.26\%         & 96.53\%                      & 75.78\%                   & 44.34\%          & 51.11\%         & \makecell[r]{Overall Accuracy\\82.11\%}      \\ \bottomrule
-        \end{tabular}
+        \begin{tblr}{
+            colspec = {| Q[l,m] | *{8}{Q[r,m]} | Q[r,m] |},
+                        cell{2}{2} = {font=\bfseries},
+            cell{3}{3} = {font=\bfseries},
+            cell{4}{4} = {font=\bfseries},
+            cell{5}{5} = {font=\bfseries},
+            cell{6}{6} = {font=\bfseries},
+            cell{7}{7} = {font=\bfseries},
+            cell{8}{8} = {font=\bfseries},
+            cell{9}{9} = {font=\bfseries},
+            % Add booktabs-style lines
+            hline{1, 2, 10, Z},
+            % hline{1,Z} = {1.25pt},
+            % hline{2,10} = {0.5pt},
+            % vline{2,10} = {0.5pt},
+        }
+    \diagbox{True\\Label}{Predicted\\Label} & 
+    {Open\\Water} & 
+    {Impervious\\Structures} & 
+    {Impervious\\Surfaces} & 
+    {Barren\\Land} & 
+    {Tree Canopy/\\Woody Vegetation} & 
+    {Low Vegetation/\\Herbaceous} & 
+    {Cultivated\\Crops} & 
+    {Unclassified} & 
+    {Producer's\\Accuracy} \\
+    {Open Water}                                     & 511 & 1                            & 0                          & 10              & 11                           & 18                       & 0                & 21            & 89.34\%             \\
+    {Impervious\\Structures}             & 0            & 80                 & 15                        & 3            & 3                          & 5                      & 0                & 0            & 75.47\%             \\
+    {Impervious\\Surfaces}               & 1            & 5                           & 183             & 17            & 1                         & 22                     & 0               & 1            & 79.57\%             \\
+    {Barren Land}                                    & 6           & 4                           & 68                       & 944 & 22                         & 451                    & 144            & 5            & 57.42\%             \\
+    {Tree Canopy/\\Woody Vegetation}     & 1           & 2                            & 2                        & 6            & 14712             & 366                     & 6            & 22          & 97.32\%             \\
+    {Low Vegetation/\\Herbaceous}        & 7           & 2                           & 20                       & 138           & 376                        & 3699           & 492           & 17           & 77.86\%             \\
+    {Cultivated Crops}                               & 0             & 0                              & 0                         & 17            & 2                         & 38                     & 1243  & 1             & 95.54\%             \\
+    {Unclassified}                                   & 2           & 11                            & 6                        & 7             & 753                        & 86                      & 1              & 413 & 32.29\%             \\
+    {User's Accuracy}                                      & 96.78\%       & 76.19\%                        & 62.24\%                     & 82.66\%         & 92.64\%                      & 78.95\%                   & 65.91\%          & 86.04\%         & {Overall Accuracy\\87.14\%}      \\
+    \end{tblr}
     }
 \end{table}

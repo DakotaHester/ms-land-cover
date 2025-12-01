@@ -25,6 +25,9 @@ data/splits/test/masks
 data/splits/pretrain/masks
 weights
 old_notebooks
+data/cpb_tests/*
+data/assessment_old/*
+data/cpb_tests/NLCD/*
 
 *.pth
 logs
@@ -61,6 +64,17 @@ data/NAIP_MS
 *.aux
 *.nav
 *.snm
+*.log
+*.synctex.gz
+*.out
+*.fls
+*.fdb_latexmk
+*.toc
 data/shapefiles*.egg-info
 data/old_splits
 data/assessment
+/paper/paper_old.zip
+*.xbb
+*.bkp
+*.dtmp
+*~*.docx

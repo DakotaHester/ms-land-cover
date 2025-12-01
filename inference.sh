@@ -9,17 +9,18 @@ GRES="gpu:a100_1g.10gb:1"
 MAIL_USER="dh2306@msstate.edu"
 PYTHON_ENV=".env/bin/activate"
 SCRIPT_NAME="inference.py"
-BASE_LOG_DIR="./logs/inference_20250711"
-SLURM_SCRIPT_DIR="./slurm_scripts/inference_20250711"
+BASE_LOG_DIR="./logs/inference_20250720"
+SLURM_SCRIPT_DIR="./slurm_scripts/inference_20250720"
 INPUT_BASE_DIR="/scratch/ptolemy/users/dh2306/mslc/imagery"
-OUTPUT_BASE_DIR="/scratch/ptolemy/users/dh2306/mslc/out"
+OUTPUT_BASE_DIR="/scratch/ptolemy/users/dh2306/mslc/out_20250720"
 MAX_JOBS=10
 
-WEIGHTS_PATH="./weights/finetune_20250707/unet/byol/randinit_false/frozenencoder_false/500/fold_2/best_model.pth"
+# WEIGHTS_PATH="./weights/finetune_20250707/unet/byol/randinit_false/frozenencoder_false/500/fold_2/best_model.pth"
+# new weights defined in model
 
 states=("ms")
 # years=("2016" "2023")
-years=("2023")
+years=("2023" "2016")
 
 for state in "${states[@]}"; do
     for year in "${years[@]}"; do
@@ -82,11 +83,11 @@ export CUDA_VISIBLE_DEVICES=0
 python "${SCRIPT_NAME}" \
     --input_dir "${INPUT_DIR}" \
     --output_dir "${OUTPUT_DIR}" \
-    --weights_path "${WEIGHTS_PATH}" \
     --num_processes 1 \
-    --index $i ${MATCH_HISTOGRAMS}
+    --index $i ${MATCH_HISTOGRAMS} 
 
 EOL
+    # --weights_path "${WEIGHTS_PATH}" \
 
             sbatch "${SLURM_SCRIPT}"
             echo "Submitted job $JOB_NAME for tile ${i} in ${state} ${year}. Log: ${LOG_FILE}"

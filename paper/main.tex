@@ -1,52 +1,127 @@
-\documentclass[12pt]{article}
-\usepackage[margin=1in, papersize={8.5in,11in}]{geometry}
-\usepackage{xcolor}
-\usepackage{booktabs}
+\documentclass[3p, review, times, authoryear]{elsarticle}
+% \usepackage[margin=1in]{geometry}
+% \usepackage{xcolor}
+% \usepackage{booktabs}
 \usepackage{graphicx}
 \usepackage{hyperref}
-\usepackage{rotating}
+% \usepackage{rotating}
 \usepackage{adjustbox}
-\usepackage{makecell}
-\usepackage{array} % Add this package
-\usepackage{diagbox}
+% \usepackage{makecell}
+% \usepackage{array} % Add this package
+% \usepackage{diagbox}
 \usepackage{amsmath}
 \usepackage{float}
-\usepackage{setspace}
+% \usepackage{setspace}
+% \usepackage{lineno}
+% \usepackage{multirow}
+% \usepackage{amssymb}
+% \usepackage{newtxtext,newtxmath}
+\usepackage{siunitx}
+% \usepackage[sort]{natbib}
+% \usepackage{hyperref}
+\usepackage{tabularray}
+% \usepackage{authblk}
+% \usepackage{appendix}
+\usepackage{caption}
 \usepackage{lineno}
-\usepackage{multirow}
-\usepackage{amssymb}
-\usepackage[document]{ragged2e}
+% \usepackage[utf8]{inputenc}
+% \usepackage[T1]{fontenc}
+
+\sisetup{range-phrase=\,--\,}  
+
 
 % \RaggedRight
 
+% \singlespacing
 % \doublespacing
+% \captionsetup{font=doublespacing}
+% \onehalfspacing
 % \linenumbers
+\UseTblrLibrary{booktabs}
+\UseTblrLibrary{diagbox}
 
-% \note command for adding notes to the document
-\newcommand*{\note}[1]{\textbf{\textcolor{red}{#1}}}
+% use dash between number and unit
+% \renewcommand{\SI}[2]{\SI[number-unit-product={\text{-}}]{#1}{#2}}
+\sisetup{number-unit-product = {\text{-}}}
 
-% \specialcell command for multi-line cells in tables
-\newcommand{\specialcell}[1]{% Multi-Line
-  \shortstack[l]{#1}
-}
+% % \note command for adding notes to the document
+% \newcommand*{\note}[1]{\textbf{\textcolor{red}{#1}}}
 
-\newcommand{\smallrule}{
-  \specialrule{.0025em}{0.001em}{0.001em} 
-}
+% % \specialcell command for multi-line cells in tables
+% \newcommand{\specialcell}[1]{% Multi-Line
+%   \shortstack[l]{#1}
+% }
 
-\title{Label-efficient learning for High-Resolution Land Cover Classification using Large-Scale Self-Supervised Pre-Training and Transfer Learning}
-\author{Dakota Hester}
-\date{\today}
+% \newcommand{\smallrule}{
+%   \specialrule{.0025em}{0.001em}{0.001em} 
+% }
+
+% \title{Learning with less: label-efficient land cover classification at very high spatial resolution using self-supervised deep learning}
+% % \author{Author Order?}
+% \date{}
+
+% \author[a,*]{Dakota Hester}
+% \author[a,*]{Vitor S. Martins}
+% \author[b]{Lucas B. Ferreira}
+% \author[a]{Thainara M. A. Lima}
+
+% \affil[a]{\small Department of Agricultural and Biological Engineering, Mississippi State University, 130 Creelman Street, Mississippi State, MS 39762, USA}
+% \affil[b]{\small North Mississippi Research and Extension Center, Mississippi State University, 5421 MS-145, Verona, MS 38879, USA}
+% \affil[*]{\small Corresponding authors: Dakota Hester (\texttt{dh2306@msstate.edu}), Vitor S. Martins (\texttt{vmartins@abe.msstate.edu})}
 
 \begin{document}
 
-\maketitle
+\linenumbers
 
-\input{sections/abstract.tex}
+% \maketitle
 
-\tableofcontents
+% \input{sections/abstract.tex}
 
-\input{sections/introduction.tex}
+% \noindent
+% \textbf{Keywords:} Land cover classification, very high spatial resolution, self-supervised learning, deep learning, label efficiency
+
+% \tableofcontents
+
+\begin{frontmatter}
+  \title{Learning with less: label-efficient land cover classification at very high spatial resolution using self-supervised deep learning}
+  \author[a]{Dakota Hester\corref{cor1}}
+  \ead{dh2306@msstate.edu}
+  \author[a]{Vitor S. Martins\corref{cor1}}
+  \ead{vmartins@abe.msstate.edu}
+  \author[b]{Lucas B. Ferreira}
+  \author[a]{Thainara M. A. Lima}
+
+  \affiliation[a]{organization={Department of Agricultural and Biological Engineering, Mississippi State University},%Department and Organization
+    addressline={130 Creelman Street}, 
+    city={Mississippi State},
+    postcode={39762}, 
+    state={MS},
+    country={USA}
+  }
+  \affiliation[b]{organization={North Mississippi Research and Extension Center, Mississippi State University},
+    addressline={5421 MS-145},
+    city={Verona},
+    state={MS},
+    postcode={38879},
+    country={USA}
+  }
+
+  \cortext[cor1]{Corresponding author}
+  \date{\today}
+
+  \input{sections/abstract.tex}
+
+  \begin{keyword}
+    Land cover classification \sep very high spatial resolution \sep self-supervised learning \sep deep learning \sep label efficiency
+  \end{keyword}
+
+  
+
+\end{frontmatter}
+
+\input{sections/introduction_consolidated.tex}
+
+% \input{sections/related_work.tex}
 
 \input{sections/study_area.tex}
 
@@ -54,7 +129,27 @@
 
 \input{sections/results.tex}
 
-\bibliographystyle{plain}
+\input{sections/discussion.tex}
+
+\input{sections/conclusion.tex}
+
+\section*{Acknowledgments}
+
+This work was supported by the Mississippi Space Grant Consortium (MSSGC) Graduate Fellowship Program through NASA funding, as well as by the Mississippi Agricultural and Forestry Experiment Station (MAFES) Special Research Initiative. 
+Dr. Martins and Lima were supported by the NASA Early Career Investigator Program in Earth Science (award \#80NSSC24K1040).
+We also wish to acknowledge the University of Mississippi's Mississippi Center for Supercomputing Research and Mississippi State University's High Performance Computing Collaboratory for providing the computational resources necessary to complete this work.
+An online dashboard to visualize and interact with the final land cover product can be found at \url{https://www.gcerlab.com/projects/msland}, while the final land cover product can be downloaded from \url{https://doi.org/10.5281/zenodo.16762344}.
+The ground truth patches used to train the model can be found at \url{https://doi.org/10.5281/zenodo.15670823}.
+
+\section*{CRediT authorship contribution statement}
+
+\textbf{Dakota Hester}: Methodology, Software, Formal analysis, Data curation, Visualization, Writing - original draft.
+\textbf{Vitor S. Martins}: Conceptualization, Methodology, Supervision, Writing - review \& editing, Funding acquisition, Project administration.
+\textbf{Lucas B. Ferreira}: Methodology, Writing - review \& editing.
+\textbf{Thainara M. A. Lima}: Writing - review \& editing.
+
+% \input{sections/appendix.tex}
+\bibliographystyle{elsarticle-harv}
 \bibliography{bibliography}
 
 \end{document}

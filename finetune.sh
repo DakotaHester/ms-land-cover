@@ -25,9 +25,9 @@ GRES="gpu:a100_1g.10gb:1"
 MAIL_USER="dh2306@msstate.edu"
 PYTHON_ENV=".env/bin/activate"
 SCRIPT_NAME="finetune.py"
-BASE_LOG_DIR="./logs/finetune_20250707"
-BASE_WEIGHTS_DIR="./weights/finetune_20250707"
-SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250707"
+BASE_LOG_DIR="./logs/finetune_20250720"
+BASE_WEIGHTS_DIR="./weights/finetune_20250720"
+SLURM_SCRIPT_DIR="./slurm_scripts/finetune_20250720"
 SPLIT_DIR="./data/splits"
 MAX_JOBS=10
 
@@ -62,7 +62,10 @@ fi
 # PRETRAIN SCHEMES TO TEST
 # =========================
 # MODELS=("unet" "deeplabv3plus" "linear_probe")
-MODELS=("deeplabv3plus" "unet" "attention_unet" "linear_probe" "upernet" "pspnet" "bisenet" "danet" "pan")
+# MODELS=("deeplabv3plus" "unet" "attention_unet" "linear_probe" "upernet" "pspnet" "bisenet" "danet" "pan")
+# MODELS=("unet")
+# MODELS=("danet" "pan")
+MODELS=("fcn")
 PRETRAIN_SCHEMES=("imagenet" "byol" "byol_randinit" "none")
 # FREEZE_ENCODERS=(false true) # Freeze encoder options
 
@@ -142,6 +145,7 @@ for fold in $(seq 1 $n_folds); do
         if [[ $fold -gt 4 && $n_train -ne 500 ]]; then
             # echo "Skipping fold $fold for n_train $n_train (only 500 samples allowed
             continue
+            # echo "Rerunning"
         fi
             for scheme in "${PRETRAIN_SCHEMES[@]}"; do
                 for model in "${MODELS[@]}"; do
@@ -172,10 +176,10 @@ for fold in $(seq 1 $n_folds); do
 
                     FINISHED_FILE="${JOB_LOG_DIR}/finished.txt"
 
-                    if [[ -f "$FINISHED_FILE" ]]; then
-                        echo "Skipping $JOB_NAME (already finished)"
-                        continue
-                    fi
+                    # if [[ -f "$FINISHED_FILE" ]]; then
+                    #     echo "Skipping $JOB_NAME (already finished)"
+                    #     continue
+                    # fi
 
                     if [[ "$EXECUTION_MODE" == "slurm" ]]; then
                         # SLURM EXECUTION MODE

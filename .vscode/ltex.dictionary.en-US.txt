@@ -3,3 +3,8 @@ autoencoder
 backpropagation
 multispectral
 autocorrelation
+unannotated
+Color-infared
+self-distallation
+upsamples
+ensembling

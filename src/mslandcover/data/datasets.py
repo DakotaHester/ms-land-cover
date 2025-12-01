@@ -290,6 +290,9 @@ class FineTuneDataset(Dataset):
                 raise ValueError(f'mean must be a numpy array or a torch tensor, got {type(mean)}.')
         else:
             self.mean = utils.batched_mean(data_paths, as_tensor=True, device=device)
+            # if n_bands == 3 and self.mean.shape[0] == 4:
+                # use color infrared composite (4, 1, 2)
+                # self.mean = torch.tensor([self.mean[3], self.mean[0], self.mean[1]], device=device, dtype=torch.float32)
         
         if std is not None:
             if isinstance(std, np.ndarray):
@@ -300,6 +303,14 @@ class FineTuneDataset(Dataset):
                 raise ValueError(f'std must be a numpy array or a torch tensor, got {type(std)}.')
         else:
             self.std = utils.batched_std(data_paths, mean=self.mean, as_tensor=True, device=device)
+            # if n_bands == 3 and self.std.shape[0] == 4:
+                # use color infrared composite (4, 1, 2)
+                # self.std = torch.tensor([self.std[3], self.std[0], self.std[1]], device=device, dtype=torch.float32)
+        
+        if (mean is None or std is None) and self.n_bands == 3 and self.mean.shape[0] == 4:
+            # use color infrared composite (4, 1, 2)
+            self.mean = torch.tensor([self.mean[3], self.mean[0], self.mean[1]], device=device, dtype=torch.float32)
+            self.std = torch.tensor([self.std[3], self.std[0], self.std[1]], device=device, dtype=torch.float32)
         
         if self.preload:
             worker = partial(utils.read_image, as_float=True, as_tensor=True, device=device)

@@ -1,0 +1,15 @@
+n_train,fold,split_1,split_2,split_3,split_4
+28,1,train,val,val,val
+28,2,val,train,val,val
+28,3,val,val,train,val
+28,4,val,val,val,train
+56,1,train,train,val,val
+56,2,train,val,train,val
+56,3,train,val,val,train
+56,4,val,train,train,val
+56,5,val,train,val,train
+56,6,val,val,train,train
+84,1,train,train,train,val
+84,2,train,train,val,train
+84,3,train,val,train,train
+84,4,val,train,train,train

@@ -527,3 +527,12 @@ def byol_loss_fn(p, z, reduction='sum'):
         return loss
     else:
         raise ValueError(f'Invalid reduction: {reduction}')
+    
+def moco_loss_fn(output, target, reduction='mean'):
+    """
+    MoCo loss is standard CrossEntropyLoss.
+    Args:
+        output: logits from MoCoWrapper (N, 1+K)
+        target: labels (all zeros) (N)
+    """
+    return F.cross_entropy(output, target, reduction=reduction)

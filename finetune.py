@@ -1,21 +1,24 @@
 import argparse
 from glob import glob
+import json
 import math
 import os
 from time import time
 import numpy as np
 import pandas as pd
+import sklearn.metrics
 import torch
 from torch.amp import autocast, GradScaler
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 from tqdm import tqdm
 
+from mslandcover.config import LEGEND_CLASSES
 from mslandcover.utils import Logger, get_torch_device, ProfilerHistory, load_pth
 from mslandcover.data.datasets import FineTuneDataset
 from mslandcover.data.transforms import StandardDataAugmentations 
 from mslandcover.loss import FocalLoss
-from mslandcover.models import DeepLabV3Plus, ResNetBackbone, UNet, AttentionUNet, ResNetBackboneUNet, SimpleLinearProbingResNet, MultiScaleLinearProbingResNet, UPerNet, PSPNet, BiSeNet, DANet, PAN
+from mslandcover.models import DeepLabV3Plus, ResNetBackbone, UNet, AttentionUNet, ResNetBackboneUNet, SimpleLinearProbingResNet, MultiScaleLinearProbingResNet, UPerNet, PSPNet, BiSeNet, DANet, PAN, FCN
 from mslandcover import metrics
 
 
@@ -25,7 +28,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--model',
         type=str,
-        choices=['deeplabv3plus', 'unet', 'attention_unet', 'linear_probe', 'multiscale_linear_probe', 'upernet', 'pspnet', 'bisenet', 'danet', 'pan'],
+        choices=['deeplabv3plus', 'unet', 'attention_unet', 'linear_probe', 'multiscale_linear_probe', 'upernet', 'pspnet', 'bisenet', 'danet', 'pan', 'fcn'],
         default='linear_probe',
         help='The model to use for training',
     )
@@ -55,7 +58,7 @@ def parse_arguments() -> argparse.Namespace:
         '--n_train_samples',
         type=int,
         default=250,
-        choices=[250, 500, 750],
+        # choices=[250, 500, 750],
         help="Number of samples to use for training. Choose from 250, 500, or 750 samples. This is used to limit the number of samples in the dataset for faster training.",
     )
     
@@ -89,12 +92,12 @@ def parse_arguments() -> argparse.Namespace:
     #     help='The directory containing the validation data',
     # )
     
-    # parser.add_argument(
-    #     '--test_dir',
-    #     type=str,
-    #     default='./data/splits/test',
-    #     help='The directory containing the test data',
-    # )
+    parser.add_argument(
+        '--test_dir',
+        type=str,
+        default=None,
+        help='The directory containing the test data',
+    )
     
     parser.add_argument(
         '--freeze_encoder',
@@ -303,9 +306,10 @@ def main() -> None:
         data_paths=[file for split in train_splits for file in glob(os.path.join(args.split_dir, split, 'input', '*.tif'))],
         target_paths=[file for split in train_splits for file in glob(os.path.join(args.split_dir, split, 'target', '*.tif'))],
         n_bands=args.n_bands,
-        mean=mean,
-        std=std,
+        mean=mean if 'cpb' not in args.split_dir else None,
+        std=std if 'cpb' not in args.split_dir else None,
         noise_std=0.0,
+        # transform=StandardDataAugmentations(s=1.0 if 'cpb' not in args.split_dir else 0.0),
         transform=StandardDataAugmentations(s=1.0),
         preload=args.preload,
         n_threads=args.num_workers,
@@ -315,8 +319,8 @@ def main() -> None:
         data_paths=[file for split in val_splits for file in glob(os.path.join(args.split_dir, split, 'input', '*.tif'))],
         target_paths=[file for split in val_splits for file in glob(os.path.join(args.split_dir, split, 'target', '*.tif'))],
         n_bands=args.n_bands,
-        mean=mean,
-        std=std,
+        mean=mean if 'cpb' not in args.split_dir else train_dataset.mean,
+        std=std if 'cpb' not in args.split_dir else train_dataset.std,
         noise_std=0.0,
         transform=None,
         preload=args.preload,
@@ -325,6 +329,9 @@ def main() -> None:
     
     logger.log(f'Training dataset: {len(train_dataset)} samples')
     logger.log(f'Validation dataset: {len(val_dataset)} samples')
+    
+    logger.log(f'Training dataset mean: {train_dataset.mean}')
+    logger.log(f'Training dataset std: {train_dataset.std}')
     
     class_dist = train_dataset.get_class_distribution()
     num_classes = len(class_dist)
@@ -369,10 +376,11 @@ def main() -> None:
     logger.log(f'Class weights: {alpha}')
     criterion = FocalLoss(alpha=alpha, gamma=args.focal_gamma, reduction='sum').to(device)
     
-    num_classes = 8
+    # num_classes = 8
     
-    if args.model == 'deeplabv3plus':
+    if args.model in ('deeplabv3plus', 'pan', 'pspnet', 'danet'):
         
+        # output_stride = 16
         backbone = ResNetBackbone(
             in_channels=args.n_bands,
             pretrained=args.encoder_weights == 'imagenet',
@@ -387,13 +395,19 @@ def main() -> None:
             else:
                 raise FileNotFoundError(f'Encoder weights not found at {args.encoder_weights}')
         
-        model = DeepLabV3Plus(
-            backbone=backbone,
-            num_classes=num_classes,
-        )
+        if args.model == 'deeplabv3plus':
+            model = DeepLabV3Plus(backbone=backbone, num_classes=num_classes,)
+        elif args.model == 'danet':
+            model = DANet(backbone=backbone, num_classes=num_classes)
+        elif args.model == 'pan':
+            model = PAN(backbone=backbone, num_classes=num_classes)
+        elif args.model == 'pspnet':
+            model = PSPNet(backbone=backbone, num_classes=num_classes)
+            
         model = model.to(device)
     
-    elif args.model in ['unet', 'attention_unet', 'multiscale_linear_probe', 'linear_probe', 'upernet', 'pspnet', 'bisenet', 'danet', 'pan']:
+    
+    elif args.model in ['unet', 'attention_unet', 'multiscale_linear_probe', 'linear_probe', 'upernet', 'bisenet', 'fcn']:
         
         backbone = ResNetBackboneUNet(
             in_channels=args.n_bands,
@@ -439,15 +453,11 @@ def main() -> None:
             # Use the same backbone instance as above
         if args.model == 'upernet':
             model = UPerNet(backbone=backbone, num_classes=num_classes)
-        elif args.model == 'pspnet':
-            model = PSPNet(backbone=backbone, num_classes=num_classes)
         elif args.model == 'bisenet':
             model = BiSeNet(backbone=backbone, num_classes=num_classes)
-        elif args.model == 'danet':
-            model = DANet(backbone=backbone, num_classes=num_classes)
-        elif args.model == 'pan':
-            model = PAN(backbone=backbone, num_classes=num_classes)
-        
+        elif args.model == 'fcn':
+            model = FCN(backbone=backbone, num_classes=num_classes)
+            
         model = model.to(device)
     
     else:
@@ -650,7 +660,7 @@ def main() -> None:
             'history_dict': history_dict,
             'profiler_dict': profiler.profiler_history_dict,
         }
-        torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
+        # torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
         
         if epoch - best_epoch > args.early_stopping_patience:
             logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
@@ -664,164 +674,245 @@ def main() -> None:
         f.write(f'Best validation loss: {best_val_loss:.5f} at epoch {best_epoch}.\n')
     
     
-    ### 
-    # OLD CODE FOR TESTING - NOT USED IN THIS SCRIPT
-    ###
-    
-    # test_dataset = FineTuneDataset(
-    #     data_paths=glob(os.path.join(args.test_dir, 'input', '*.tif')),
-    #     target_paths=glob(os.path.join(args.test_dir, 'target', '*.tif')),
-    #     mean=mean,
-    #     std=std,
-    #     transform=None,
-    #     preload=not args.load_data_from_disk,
-    #     n_threads=args.num_workers,
-    #     n_threads=args.num_workers,
-    # )
-    # logger.log(f'Test dataset: {len(test_dataset)} samples')
-
-    # test_loader = torch.utils.data.DataLoader(
-    #     test_dataset,
-    #     batch_size=args.mini_batch_size,
-    #     batch_size=args.mini_batch_size,
-    #     shuffle=False,
-    #     # num_workers=args.num_workers,
-    #     # pin_memory=True,
-    #     # prefetch_factor=4,
-    #     # num_workers=args.num_workers,
-    #     # pin_memory=True,
-    #     # prefetch_factor=4,
-    # )
-    
-    # phase_metrics = {'loss': []}
-    # for metric_fn in metric_fns:
-    #     phase_metrics[metric_fn.__name__] = []
-    # test_metrics = {}
-    
-    # model.load_state_dict(load_pth(os.path.join(out_dir, 'best_model.pth')))
-    # model.eval()
-    # torch.set_grad_enabled(False)
-    # y_preds = []
-    # y_trues = []
-    
-    # total_steps = math.ceil(len(test_loader) / args.grad_accumulation_steps)
-    # with tqdm(total=total_steps, desc='Testing', unit='batch') as pbar:
-    #     for step, (X, y) in enumerate(test_loader):
-    #         X, y = X.to(device), y.to(device)
-    #         y_hat = model(X)
-    #         if hasattr(y_hat, 'logits'):
-    #             y_hat = y_hat.logits
-    #             y_hat = torch.nn.functional.interpolate(y_hat, size=y.shape[-2:], mode='bilinear', align_corners=False)
-
-    #         if hasattr(y_hat, 'logits'):
-    #             y_hat = y_hat.logits
-    #             y_hat = torch.nn.functional.interpolate(y_hat, size=y.shape[-2:], mode='bilinear', align_corners=False)
-
-            
-    #         loss = criterion(y_hat, y)
-    #         phase_metrics['loss'].append(loss.detach().cpu().item())
-    #         test_metrics['loss'] = sum(phase_metrics['loss']) / ((step * test_loader.batch_size) + len(X))
-    #         phase_metrics['loss'].append(loss.detach().cpu().item())
-    #         test_metrics['loss'] = sum(phase_metrics['loss']) / ((step * test_loader.batch_size) + len(X))
-            
-    #         for metric_fn in metric_fns:
-    #             phase_metrics[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X))
-    #             test_metrics[metric_fn.__name__] = sum(phase_metrics[metric_fn.__name__]) / ((step * test_loader.batch_size) + len(X))
-                
-    #         y_preds.append(y_hat.argmax(axis=1).cpu().numpy().flatten())
-    #         y_trues.append(y.cpu().numpy().flatten())
-            
-    #         if (step + 1) % args.grad_accumulation_steps == 0 or step == len(test_loader) - 1:
-    #             tqdm_postfix = {
-    #                 'loss': f"{test_metrics['loss']:.3e}",
-    #                 'f1': f"{test_metrics['f1_score']:.3f}",
-    #                 'macro_f1': f"{test_metrics['macro_f1_score']:.3f}",
-    #             }
-    #             pbar.set_postfix(tqdm_postfix)
-    #             pbar.update(1)
-    #             phase_metrics[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X))
-    #             test_metrics[metric_fn.__name__] = sum(phase_metrics[metric_fn.__name__]) / ((step * test_loader.batch_size) + len(X))
-                
-    #         y_preds.append(y_hat.argmax(axis=1).cpu().numpy().flatten())
-    #         y_trues.append(y.cpu().numpy().flatten())
-            
-    #         if (step + 1) % args.grad_accumulation_steps == 0 or step == len(test_loader) - 1:
-    #             tqdm_postfix = {
-    #                 'loss': f"{test_metrics['loss']:.3e}",
-    #                 'f1': f"{test_metrics['f1_score']:.3f}",
-    #                 'macro_f1': f"{test_metrics['macro_f1_score']:.3f}",
-    #             }
-    #             pbar.set_postfix(tqdm_postfix)
-    #             pbar.update(1)
-    
-    # logger.log(f'Test loss: {test_metrics["loss"]:.5f}')
-    # for metric_fn in metric_fns:
-    #     logger.log(f'Test {metric_fn.__name__}: {test_metrics[metric_fn.__name__]:.5f}')
-    
-    # test_metrics_df = pd.DataFrame(test_metrics, index=[0])
-    # test_metrics_df.to_csv(os.path.join(log_dir, 'test_metrics.csv'), index=False)
-    
-    # y_preds = np.concatenate(y_preds)
-    # y_trues = np.concatenate(y_trues)
-    
-    
-    # if 'cpb' in args.test_dir:
-    #     legend_classes = {
-    #         1: 'Water',
-    #         2: 'Tree canopy',
-    #         3: 'Shrubland',
-    #         4: 'Low vegetation',
-    #         5: 'Barren land',
-    #         6: 'Impervious structures',
-    #         7: 'Other impervious',
-    #     }
-    # else:
-    #     legend_classes = LEGEND_CLASSES
+    if args.test_dir is not None:
         
-    # y_trues_class_names = [legend_classes[i+1] for i in y_trues]
-    # y_preds_class_names = [legend_classes[i+1] for i in y_preds]
-    # class_names_list = [legend_classes[i+1] for i in range(num_classes)]
+        test_dataset = FineTuneDataset(
+            data_paths=glob(os.path.join(args.test_dir, 'input', '*.tif')),
+            target_paths=glob(os.path.join(args.test_dir, 'target', '*.tif')),
+            mean=mean if 'cpb' not in args.split_dir else train_dataset.mean,
+            std=std if 'cpb' not in args.split_dir else train_dataset.std,
+            transform=None,
+            preload=args.preload,
+            n_threads=args.num_workers,
+            n_bands=args.n_bands,
+            # n_threads=args.num_workers,
+        )
+        logger.log(f'Test dataset: {len(test_dataset)} samples')
 
-    # cm = confusion_matrix(y_trues_class_names, y_preds_class_names, labels=class_names_list)
-    # cm_df = pd.DataFrame(cm, index=class_names_list, columns=class_names_list)
-    # cm_df.to_csv(os.path.join(log_dir, 'confusion_matrix.csv'), index=True)
-    
-    # cr = classification_report(y_trues, y_preds, target_names=class_names_list, output_dict=True, zero_division=0)
-    
-    # cr_df = pd.DataFrame(cr).transpose()
-    # cr_df.to_csv(os.path.join(log_dir, 'classification_report.csv'), index=True)
-
-
-    
-    # y_preds = np.concatenate(y_preds)
-    # y_trues = np.concatenate(y_trues)
-    
-    
-    # if 'cpb' in args.test_dir:
-    #     legend_classes = {
-    #         1: 'Water',
-    #         2: 'Tree canopy',
-    #         3: 'Shrubland',
-    #         4: 'Low vegetation',
-    #         5: 'Barren land',
-    #         6: 'Impervious structures',
-    #         7: 'Other impervious',
-    #     }
-    # else:
-    #     legend_classes = LEGEND_CLASSES
+        # test_loader = torch.utils.data.DataLoader(
+        #     test_dataset,
+        #     batch_size=args.mini_batch_size,
+        #     # batch_size=args.mini_batch_size,
+        #     shuffle=False,
+        #     num_workers=args.num_workers,
+        #     # pin_memory=True,
+        #     # prefetch_factor=4,
+        #     # num_workers=args.num_workers,
+        #     # pin_memory=True,
+        #     # prefetch_factor=4,
+        # )
         
-    # y_trues_class_names = [legend_classes[i+1] for i in y_trues]
-    # y_preds_class_names = [legend_classes[i+1] for i in y_preds]
-    # class_names_list = [legend_classes[i+1] for i in range(num_classes)]
+        test_loader = torch.utils.data.DataLoader(
+            test_dataset,
+            batch_size=args.mini_batch_size,
+            shuffle=False,
+            num_workers=args.num_workers if args.num_workers > 1 else 0,
+            pin_memory=True if args.num_workers > 1 else False,
+            # prefetch_factor=4 if args.num_workers > 1 else 0,
+        )
+    
+        # phase_metrics = {'loss': []}
+        # for metric_fn in metric_fns:
+        #     phase_metrics[metric_fn.__name__] = []
+        # test_metrics = {}
+    
+        model.load_state_dict(load_pth(os.path.join(out_dir, 'best_model.pth')))
+        model.eval()
+        torch.set_grad_enabled(False)
+        
+        # y_preds = []
+        # y_trues = []
+        
+        num_classes = len(LEGEND_CLASSES) if 'cpb' not in args.test_dir else 7
+        total_cm = np.zeros((num_classes, num_classes), dtype=np.int64)
+        
+        total_steps = math.ceil(len(test_loader) / args.grad_accumulation_steps)
+        with tqdm(total=total_steps, desc='Testing', unit='batch') as pbar:
+            for step, (X, y) in enumerate(test_loader):
+                X, y = X.to(device), y.to(device)
+                y_hat = model(X)
+                if hasattr(y_hat, 'logits'):
+                    y_hat = y_hat.logits
+                    y_hat = torch.nn.functional.interpolate(y_hat, size=y.shape[-2:], mode='bilinear', align_corners=False)
 
-    # cm = confusion_matrix(y_trues_class_names, y_preds_class_names, labels=class_names_list)
-    # cm_df = pd.DataFrame(cm, index=class_names_list, columns=class_names_list)
-    # cm_df.to_csv(os.path.join(log_dir, 'confusion_matrix.csv'), index=True)
+                # if hasattr(y_hat, 'logits'):
+                #     y_hat = y_hat.logits
+                #     y_hat = torch.nn.functional.interpolate(y_hat, size=y.shape[-2:], mode='bilinear', align_corners=False)
+
+                
+                loss = criterion(y_hat, y)
+                # phase_metrics['loss'].append(loss.detach().cpu().item())
+                # test_metrics['loss'] = sum(phase_metrics['loss']) / ((step * test_loader.batch_size) + len(X))
+                # phase_metrics['loss'].append(loss.detach().cpu().item())
+                # test_metrics['loss'] = sum(phase_metrics['loss']) / ((step * test_loader.batch_size) + len(X))
+                
+                # for metric_fn in metric_fns:
+                #     phase_metrics[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X))
+                #     test_metrics[metric_fn.__name__] = sum(phase_metrics[metric_fn.__name__]) / ((step * test_loader.batch_size) + len(X))
+                    
+                y_pred_flat = y_hat.argmax(axis=1).cpu().numpy().flatten()
+                y_true_flat = y.cpu().numpy().flatten()
+                
+                total_cm += sklearn.metrics.confusion_matrix(y_true_flat, y_pred_flat, labels=list(range(num_classes)))
+                
+                if (step + 1) % args.grad_accumulation_steps == 0 or step == len(test_loader) - 1:
+                    # tqdm_postfix = {
+                    #     'loss': f"{test_metrics['loss']:.3e}",
+                    #     'f1': f"{test_metrics['f1_score']:.3f}",
+                    #     'macro_f1': f"{test_metrics['macro_f1_score']:.3f}",
+                    # }
+                    # pbar.set_postfix(tqdm_postfix)
+                    pbar.update(1)
+                    # phase_metrics[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X))
+                    # test_metrics[metric_fn.__name__] = sum(phase_metrics[metric_fn.__name__]) / ((step * test_loader.batch_size) + len(X))
+                    
+                # y_preds.append(y_hat.argmax(axis=1).cpu().numpy().flatten())
+                # # y_trues.append(y.cpu().numpy().flatten())
+                
+                # if (step + 1) % args.grad_accumulation_steps == 0 or step == len(test_loader) - 1:
+                #     # tqdm_postfix = {
+                #     #     'loss': f"{test_metrics['loss']:.3e}",
+                #     #     'f1': f"{test_metrics['f1_score']:.3f}",
+                #     #     'macro_f1': f"{test_metrics['macro_f1_score']:.3f}",
+                #     # }
+                #     # pbar.set_postfix(tqdm_postfix)
+                #     pbar.update(1)
+        
+        # logger.log(f'Test loss: {test_metrics["loss"]:.5f}')
+        # for metric_fn in metric_fns:
+            # logger.log(f'Test {metric_fn.__name__}: {test_metrics[metric_fn.__name__]:.5f}')
+        
+        # test_metrics_df = pd.DataFrame(test_metrics, index=[0])
+        # test_metrics_df.to_csv(os.path.join(log_dir, 'test_metrics.csv'), index=False)
+        
+        # y_preds = np.concatenate(y_preds)
+        # y_trues = np.concatenate(y_trues)
+        
+        if 'cpb' in args.test_dir:
+            # legend_classes = {
+                # 1: 'Water',
+                # 2: 'Tree canopy',
+                # 3: 'Shrubland',
+                # 4: 'Low vegetation',
+                # 5: 'Barren land',
+                # 6: 'Impervious structures',
+                # 7: 'Other impervious',
+            # }
+            
+            legend_classes = {
+                # 0: "Nodata",
+                1: "Water",
+                2: "Impervious structures",
+                3: "Impervious surfaces",
+                4: "Barren",
+                5: "Forest canopy",
+                6: "Herbaceous",
+                7: "Cultivated Crops",
+            }
+        else:
+            legend_classes = LEGEND_CLASSES
+            
+        # y_trues_class_names = [legend_classes[i+1] for i in y_trues]
+        # y_preds_class_names = [legend_classes[i+1] for i in y_preds]
+        class_names_list = [legend_classes[i+1] for i in range(num_classes)]
+
+        # cm = sklearn.metrics.confusion_matrix(y_trues_class_names, y_preds_class_names, labels=class_names_list)
+        cm_df = pd.DataFrame(total_cm, index=class_names_list, columns=class_names_list)
+        cm_df.to_csv(os.path.join(log_dir, 'confusion_matrix.csv'), index=True)
     
-    # cr = classification_report(y_trues, y_preds, target_names=class_names_list, output_dict=True, zero_division=0)
-    
-    # cr_df = pd.DataFrame(cr).transpose()
-    # cr_df.to_csv(os.path.join(log_dir, 'classification_report.csv'), index=True)
+        # Derive TP, FP, FN, TN for each class
+        tp = np.diag(total_cm)
+        fp = total_cm.sum(axis=0) - tp
+        fn = total_cm.sum(axis=1) - tp
+        tn = total_cm.sum() - (tp + fp + fn)
+        support = total_cm.sum(axis=1)
+        
+        # Calculate per-class metrics, handling division by zero
+        with np.errstate(divide='ignore', invalid='ignore'):
+            precision = tp / (tp + fp)
+            recall = tp / (tp + fn)
+            f1 = 2 * (precision * recall) / (precision + recall)
+            jaccard = tp / (tp + fp + fn)
+
+        precision = np.nan_to_num(precision)
+        recall = np.nan_to_num(recall)
+        f1 = np.nan_to_num(f1)
+        jaccard = np.nan_to_num(jaccard)
+
+        # Create classification report DataFrame
+        cr_dict = {}
+        for i, class_name in enumerate(class_names_list):
+            cr_dict[class_name] = {
+                'precision': precision[i],
+                'recall': recall[i],
+                'f1-score': f1[i],
+                'support': support[i]
+            }
+        cr_df = pd.DataFrame(cr_dict).transpose()
+        cr_df.to_csv(os.path.join(log_dir, 'classification_report.csv'), index=True)
+        
+        # Calculate overall, macro, and weighted metrics
+        accuracy = tp.sum() / total_cm.sum()
+        
+        # For Kappa, we need expected agreement
+        expected_accuracy = (support * total_cm.sum(axis=0)).sum() / (total_cm.sum()**2)
+        kappa = (accuracy - expected_accuracy) / (1 - expected_accuracy) if (1 - expected_accuracy) != 0 else 0
+
+        metrics_dict = {
+            # overall metrics (equivalent to micro-average)
+            'accuracy': accuracy,
+            'f1_score': np.average(f1, weights=support),
+            'precision': np.average(precision, weights=support),
+            'recall': np.average(recall, weights=support),
+            'jaccard': np.average(jaccard, weights=support),
+            'kappa': kappa,
+            # macro metrics
+            'macro_f1_score': np.mean(f1),
+            'macro_precision': np.mean(precision),
+            'macro_recall': np.mean(recall),
+            'macro_jaccard': np.mean(jaccard),
+            # weighted metrics
+            'weighted_f1_score': np.average(f1, weights=support),
+            'weighted_precision': np.average(precision, weights=support),
+            'weighted_recall': np.average(recall, weights=support),
+            'weighted_jaccard': np.average(jaccard, weights=support),
+        }
+        with open(os.path.join(log_dir, 'assessment_metrics.json'), 'w') as f:
+            json.dump(metrics_dict, f, indent=4)
+        
+        # cr = sklearn.metrics.classification_report(y_trues, y_preds, target_names=class_names_list, output_dict=True, zero_division=0)
+        
+        # cr_df = pd.DataFrame(cr).transpose()
+        # cr_df.to_csv(os.path.join(log_dir, 'classification_report.csv'), index=True)
+        
+        # calculate metrics
+        # metrics_dict = {
+        #     # overall metrics
+        #     'accuracy': sklearn.metrics.accuracy_score(y_trues, y_preds),
+        #     'f1_score': sklearn.metrics.f1_score(y_trues, y_preds, average='micro'),
+        #     'precision': sklearn.metrics.precision_score(y_trues, y_preds, average='micro'),
+        #     'recall': sklearn.metrics.recall_score(y_trues, y_preds, average='micro'),
+        #     'jaccard': sklearn.metrics.jaccard_score(y_trues, y_preds, average='micro'),
+        #     'kappa': sklearn.metrics.cohen_kappa_score(y_trues, y_preds),
+        #     # 'cross_entropy': np.mean(preds_df['cross_entropy']),
+        #     # 'brier_score': np.mean(preds_df['brier_score']),
+        #     # macro metrics
+        #     'macro_f1_score': sklearn.metrics.f1_score(y_trues, y_preds, average='macro'),
+        #     'macro_precision': sklearn.metrics.precision_score(y_trues, y_preds, average='macro'),
+        #     'macro_recall': sklearn.metrics.recall_score(y_trues, y_preds, average='macro'),
+        #     'macro_jaccard': sklearn.metrics.jaccard_score(y_trues, y_preds, average='macro'),
+        #     # 'macro_cross_entropy': np.mean(preds_df.groupby('ground_truth_class_idx')['cross_entropy'].mean()),
+        #     # 'macro_brier_score': np.mean(preds_df.groupby('ground_truth_class_idx')['brier_score'].mean()),
+        #     # weighted metrics
+        #     'weighted_f1_score': sklearn.metrics.f1_score(y_trues, y_preds, average='weighted'),
+        #     'weighted_precision': sklearn.metrics.precision_score(y_trues, y_preds, average='weighted'),
+        #     'weighted_recall': sklearn.metrics.recall_score(y_trues, y_preds, average='weighted'),
+        #     'weighted_jaccard': sklearn.metrics.jaccard_score(y_trues, y_preds, average='weighted'),
+        #     # 'weighted_cross_entropy': weighted_cross_entropy,
+        #     # 'weighted_brier_score': weighted_brier_score,
+        # }
+        # with open(os.path.join(log_dir, 'assessment_metrics.json'), 'w') as f:
+        #     json.dump(metrics_dict, f, indent=4)
 
 
 

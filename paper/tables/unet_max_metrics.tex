@@ -1,0 +1,25 @@
+\begin{table}[H]
+    \centering
+    \caption{Maximum U-Net performance across pre-training methods and training set sizes.}
+    \label{tab:max_unet_performance}
+    \begin{tblr}{
+        colspec = {Q[l, m] Q[c, m] Q[c, m] Q[c, m]},
+        row{1} = {font=\bfseries},
+    }
+        \toprule
+        Pretrain Method & $N_{train}$ & Max Overall Accuracy (\%) & Max mIOU (\%) \\
+        \midrule
+        ImageNet        & 250 & 85.40 & 57.28 \\
+        ImageNet        & 500 & 86.20 & 60.24 \\
+        ImageNet        & 750 & 86.66 & 60.61 \\
+        \midrule
+        BYOL            & 250 & 85.62 & 57.63 \\
+        BYOL            & 500 & 86.84 & 59.96 \\
+        BYOL            & 750 & 86.58 & 59.02 \\
+        \midrule
+        ImageNet + BYOL & 250 & 86.44 & 59.46 \\
+        ImageNet + BYOL & 500 & 87.42 & 63.01 \\
+        ImageNet + BYOL & 750 & 86.61 & 61.91 \\
+        \bottomrule
+    \end{tblr}
+\end{table}
