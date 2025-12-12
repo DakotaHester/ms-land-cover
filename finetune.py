@@ -924,6 +924,8 @@ def adjust_backbone_weights(weights):
             new_key = key.replace('encoder.', '')
         elif key.startswith('online_encoder.0.'):
             new_key = key.replace('online_encoder.0.', '')
+        else:
+            new_key = key
             
         # initial layers should match up
         if new_key == 'conv1.weight':
