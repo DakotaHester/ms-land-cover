@@ -390,7 +390,8 @@ def main() -> None:
             if os.path.exists(args.encoder_weights):
                 logger.log(f'Loading encoder weights from {args.encoder_weights}')
                 encoder_weights = load_pth(args.encoder_weights, map_location=device)
-                encoder_weights = adjust_backbone_weights(encoder_weights)
+                if not args.encoder_weights in ['moco', 'moco_randinit']:
+                    encoder_weights = adjust_backbone_weights(encoder_weights)
                 backbone.load_state_dict(encoder_weights, strict=True)
             else:
                 raise FileNotFoundError(f'Encoder weights not found at {args.encoder_weights}')

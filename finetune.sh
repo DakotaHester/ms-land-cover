@@ -62,11 +62,10 @@ fi
 # PRETRAIN SCHEMES TO TEST
 # =========================
 # MODELS=("unet" "deeplabv3plus" "linear_probe")
-# MODELS=("deeplabv3plus" "unet" "attention_unet" "linear_probe" "upernet" "pspnet" "bisenet" "danet" "pan")
+MODELS=("deeplabv3plus" "unet" "attention_unet" "linear_probe" "upernet"  "pan" "fcn")
 # MODELS=("unet")
 # MODELS=("danet" "pan")
-MODELS=("fcn")
-PRETRAIN_SCHEMES=("imagenet" "byol" "byol_randinit" "none")
+PRETRAIN_SCHEMES=("moco")
 # FREEZE_ENCODERS=(false true) # Freeze encoder options
 
 # Dataset sizes and folds
@@ -156,6 +155,8 @@ for fold in $(seq 1 $n_folds); do
                         ENCODER_WEIGHTS="./weights/resnet101_20250624/byol_bands3_size256_randinitfalse/resnet101/byol_last.pth"
                     elif [[ "$scheme" == "byol_randinit" ]]; then
                         ENCODER_WEIGHTS="./weights/resnet101_20250624/byol_bands3_size256_randinittrue/resnet101_randinit/byol_last.pth"
+                    elif [[ "$scheme" == "moco" ]]; then
+                        ENCODER_WEIGHTS="./weights/resnet101_20250720/moco_bands3_size256_randinitfalse/resnet101/moco_last.pth"
                     else
                         ENCODER_WEIGHTS="$scheme"
                     fi
