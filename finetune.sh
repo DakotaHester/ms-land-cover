@@ -65,7 +65,7 @@ fi
 MODELS=("deeplabv3plus" "unet" "attention_unet" "linear_probe" "upernet"  "pan" "fcn")
 # MODELS=("unet")
 # MODELS=("danet" "pan")
-PRETRAIN_SCHEMES=("dino" "dino_randinit"))
+PRETRAIN_SCHEMES=("dino" "dino_randinit")
 # FREEZE_ENCODERS=(false true) # Freeze encoder options
 
 # Dataset sizes and folds
