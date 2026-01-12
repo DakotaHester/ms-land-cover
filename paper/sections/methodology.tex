@@ -170,7 +170,7 @@ DeepLabV3+ is an evolution of the DeepLab family of semantic segmentation archit
 At the core of DeepLabV3+ is an Atrous Spatial Pyramid Pooling (ASPP) module that aggregates multi-scale context from the final feature maps produced by the encoder.
 This ASPP module uses parallel atrous convolutions to encode feature maps at multiple scales as opposed to using pooling operations: the use of atrous (i.e., dilated) convolutions allows the network to capture features at multiple scales in a learned manner.
 A comparatively simple decoder network is utilized that upsamples the output of the ASPP module using bilinear interpolation, concatenates it with low-level feature maps from the encoder, and upsamples the result to produce the final segmentation map.
-Like U-Net, DeepLabV3+ has seen wide adoption for remote sensing applications~\citep{duIncorporatingDeepLabv3Objectbased2021, liuComparisonMultisourceSatellite2021,krestenitisOilSpillIdentification2019}
+Like U-Net, DeepLabV3+ has seen wide adoption for remote sensing applications~\citep{duIncorporatingDeepLabv3Objectbased2021, liuComparisonMultisourceSatellite2021,krestenitisOilSpillIdentification2019}.
 DeepLabV3+ was originally designed to use a modified ResNet-101 encoder, and as such minimal effort was necessary to replace the original encoder with our pre-trained ResNet-101 encoder.
 
 \paragraph{UPerNet}
