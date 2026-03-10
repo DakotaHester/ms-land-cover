@@ -1,3 +1,9 @@
+"""
+This module contains utility functions for preprocessing raster imager, including 
+unzipping, converting from .sid to .tif, resampling, and extracting masks.
+"""
+
+
 from contextlib import nullcontext
 import os
 from zipfile import ZipFile

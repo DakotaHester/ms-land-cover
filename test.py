@@ -1,3 +1,9 @@
+"""Model evaluation entrypoint for held-out assessment points/tiles.
+
+This script loads a trained segmentation model, runs prediction over a
+`TestDataset`, and computes aggregate metrics written to disk.
+"""
+
 import os
 from mslandcover.config import LEGEND_CLASSES
 from mslandcover.data.datasets import TestDataset
@@ -51,8 +57,8 @@ def parse_args() -> ArgumentParser:
         '--n_bands',
         type=int,
         default=3,
-        choices=[3, 4],
-        help='Number of bands in the raster data (default is 3 for RGB).'
+        choices=[3],
+        help='Number of bands in the raster data. Only 3-band CIR is supported.'
     )
     
     parser.add_argument(
@@ -77,6 +83,7 @@ def main():
     parser = parse_args()
     args = parser.parse_args()
     
+    # 1) Prepare labels/raster inputs and normalization statistics.
     points_gdf = gpd.read_file(args.ground_truth_shapefile)
     points_gdf = points_gdf.rename(columns={'ground_tru': 'ground_truth', 'ground_t_1': 'ground_truth_class_name'})
     points_gdf = points_gdf[points_gdf['ground_truth'] != 0]
@@ -85,12 +92,11 @@ def main():
     if len(raster_paths) == 0:
         raise ValueError(f"No raster files found in the directory: {args.raster_dir}")
 
-    if args.n_bands == 3:
-        mean = load_pth('./weights/pretrain_mean.pth')
-        std = load_pth('./weights/pretrain_std.pth')
-    elif args.n_bands == 4:
-        mean = load_pth('./weights/pretrain_mean_4.pt')
-        std = load_pth('./weights/pretrain_std_4.pt')
+    if args.n_bands != 3:
+        raise ValueError('Only 3-band CIR inputs are supported for testing.')
+
+    mean = load_pth('./weights/pretrain_mean.pth')
+    std = load_pth('./weights/pretrain_std.pth')
 
     # Initialize the dataset with the provided arguments
     test_dataset = TestDataset(
@@ -101,6 +107,7 @@ def main():
         std=std,
     )
 
+    # 2) Instantiate model architecture matching training configuration.
     if args.model == 'deeplabv3plus':
         model = DeepLabV3Plus(
             backbone=ResNetBackbone(
@@ -184,6 +191,7 @@ def main():
     else:
         raise ValueError(f"Unsupported model type: {args.model}. Choose from the available options.")
     
+    # 3) Optionally restore model weights and move model to active device.
     if args.model_weights is not None:
         if not os.path.exists(args.model_weights):
             raise FileNotFoundError(f"Model weights file not found: {args.model_weights}")
@@ -205,6 +213,7 @@ def main():
 
     test_loader = DataLoader(test_dataset, batch_size=args.batch_size)
     
+    # 4) Run batched inference and compute point-level error terms.
     for batch in tqdm(test_loader, desc="Assessing model performance", unit="batch"):
         images = batch['image']
         images = images.to(device)
@@ -249,6 +258,7 @@ def main():
         preds_df.groupby('ground_truth_class_idx')['brier_score'].mean() * class_counts
     ).sum()
 
+    # 5) Aggregate per-point outputs into summary metrics for reporting.
     metrics_dict = {
         # overall metrics
         'accuracy': metrics.accuracy_score(preds_df['ground_truth_class_idx'], preds_df['predicted_class_idx']),

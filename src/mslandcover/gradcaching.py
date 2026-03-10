@@ -8,6 +8,9 @@ Code below is modified from the `GradCache` package, which can be found at
 https://github.com/luyug/GradCache.
 
 For more information, see the paper: https://arxiv.org/abs/2101.06983
+
+If you're using BYOL/MoCoV2 (or really anything that isn't SimCLR/SimCLR-like),
+you can ignore this module.
 '''
 
 from functools import wraps

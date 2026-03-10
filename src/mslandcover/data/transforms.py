@@ -1,3 +1,5 @@
+"""Augmentation and normalization utilities for multispectral imagery workflows."""
+
 import torch
 from torchvision.transforms import functional as F
 from torchvision.transforms import transforms
@@ -214,7 +216,7 @@ class MultispectralRandomGrayscale:
 
 def get_multispectral_augmentations(s=1.0):
     """
-    Returns a composition of augmentations suitable for 4-band multispectral data.
+    Returns a composition of augmentations suitable for multispectral CIR inputs.
     """
     return transforms.Compose([
         RandomGamma(gamma_range=((1/(2 * s)), 2 * s)),
@@ -654,13 +656,13 @@ def visualize_transforms(
     return_hsv: bool,
     return_lab: bool,
     return_si: bool,
-    noisy_input: bool,
     dataset: torch.utils.data.Dataset, 
     data_paths: List[str], 
     pretrain_schema: str,
     mean: torch.Tensor,
     std: torch.Tensor,
     n_examples: int=20,
+    noisy_input: bool=False,
 ) -> None:
     """
     Very crude function to load a few images from the dataset, visualize the

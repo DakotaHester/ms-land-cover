@@ -1,3 +1,10 @@
+"""Batch raster inference entrypoint.
+
+This script loads one or more trained segmentation checkpoints and runs tiled
+prediction across large NAIP rasters. It delegates heavy lifting to
+`mslandcover.inference.process_single_raster`.
+"""
+
 import os
 from typing import Union
 import numpy as np
@@ -77,7 +84,8 @@ def parse_arguments():
         '--in_channels',
         type=int,
         default=3,
-        help='Number of input channels (spectral bands). Default: 3 (NIR, Red, Green)'
+        choices=[3],
+        help='Number of input channels. Only 3-band CIR (NIR, Red, Green) is supported.'
     )
     
     # Processing parameters
@@ -230,6 +238,8 @@ def main():
         mp.set_start_method('spawn', force=True)
     
     args = parse_arguments()
+    if args.in_channels != 3:
+        raise ValueError('Only 3-channel CIR model inputs are supported for inference.')
     
     # Print configuration
     print("Land Cover Inference Configuration:")

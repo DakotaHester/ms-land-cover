@@ -1,3 +1,9 @@
+"""EDA helper for computing channel statistics over pretraining imagery.
+
+This script is a standalone utility used to estimate mean/std tensors that are
+later reused by pretraining, fine-tuning, and inference pipelines.
+"""
+
 import numpy as np
 import dask
 import dask.array as da
@@ -7,6 +13,7 @@ from glob import glob
 import torch
 
 def main():
+    # Configure a local dask cluster and lazily load raster files.
     client = Client(n_workers=16, memory_limit='4GB')
     print(client)
 
@@ -43,6 +50,10 @@ def main():
 
     mean = data_da.mean(axis=(0, 2, 3)).compute()
     std = data_da.std(axis=(0, 2, 3)).compute()
+
+    # Keep only CIR order: NIR, Red, Green (source bands 4, 1, 2).
+    mean = np.array([mean[3], mean[0], mean[1]], dtype=np.float32)
+    std = np.array([std[3], std[0], std[1]], dtype=np.float32)
     
     print("Mean: ", mean)
     print("Std: ", std)
@@ -50,8 +61,8 @@ def main():
     mean_tensor = torch.tensor(mean, dtype=torch.float32)
     std_tensor = torch.tensor(std, dtype=torch.float32)
 
-    torch.save(mean_tensor, r"./weights/pretrain_mean_4.pt")
-    torch.save(std_tensor, r"./weights/pretrain_std_4.pt")
+    torch.save(mean_tensor, r"./weights/pretrain_mean.pth")
+    torch.save(std_tensor, r"./weights/pretrain_std.pth")
 
 
 

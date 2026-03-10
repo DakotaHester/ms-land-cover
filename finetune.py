@@ -1,3 +1,14 @@
+"""Supervised fine-tuning entrypoint for land-cover segmentation.
+
+This script wires together:
+- split selection and dataset construction
+- model selection (UNet/DeepLab/etc.)
+- training loop with mixed precision and gradient accumulation
+- metric logging and checkpoint management
+
+For handoff: start by reading `parse_arguments()` and then `main()` in order.
+"""
+
 import argparse
 from glob import glob
 import json
@@ -18,7 +29,7 @@ from mslandcover.utils import Logger, get_torch_device, ProfilerHistory, load_pt
 from mslandcover.data.datasets import FineTuneDataset
 from mslandcover.data.transforms import StandardDataAugmentations 
 from mslandcover.loss import FocalLoss
-from mslandcover.models import DeepLabV3Plus, ResNetBackbone, UNet, AttentionUNet, ResNetBackboneUNet, SimpleLinearProbingResNet, MultiScaleLinearProbingResNet, UPerNet, PSPNet, BiSeNet, DANet, PAN, FCN
+from mslandcover.models import DeepLabV3Plus, ResNetBackbone, UNet, AttentionUNet, ResNetBackboneUNet, SimpleLinearProbingResNet, UPerNet, PSPNet, BiSeNet, DANet, PAN, FCN
 from mslandcover import metrics
 
 
@@ -28,7 +39,7 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--model',
         type=str,
-        choices=['deeplabv3plus', 'unet', 'attention_unet', 'linear_probe', 'multiscale_linear_probe', 'upernet', 'pspnet', 'bisenet', 'danet', 'pan', 'fcn'],
+        choices=['deeplabv3plus', 'unet', 'attention_unet', 'linear_probe', 'upernet', 'pspnet', 'bisenet', 'danet', 'pan', 'fcn'],
         default='linear_probe',
         help='The model to use for training',
     )
@@ -58,7 +69,7 @@ def parse_arguments() -> argparse.Namespace:
         '--n_train_samples',
         type=int,
         default=250,
-        # choices=[250, 500, 750],
+        choices=[250, 500, 750],
         help="Number of samples to use for training. Choose from 250, 500, or 750 samples. This is used to limit the number of samples in the dataset for faster training.",
     )
     
@@ -74,23 +85,9 @@ def parse_arguments() -> argparse.Namespace:
         '--n_bands',
         type=int,
         default=3,
-        choices=[3, 4],
-        help='The number of bands in the input data. 3 for Color Infrared (CIR) and 4 for VisNIR data.',
+        choices=[3],
+        help='Number of input bands. Only 3-band CIR composites (NIR, Red, Green) are supported.',
     )
-    
-    # parser.add_argument(
-    #     '--train_dir',
-    #     type=str,
-    #     default='./data/splits/train',
-    #     help='The directory containing the training data',
-    # )
-    
-    # parser.add_argument(
-    #     '--val_dir',
-    #     type=str,
-    #     default='./data/splits/val',
-    #     help='The directory containing the validation data',
-    # )
     
     parser.add_argument(
         '--test_dir',
@@ -106,22 +103,16 @@ def parse_arguments() -> argparse.Namespace:
     )
     
     parser.add_argument(
-        '--freeze_decoder',
-        action='store_true',
-        help='Freeze the decoder weights',
-    )
-    
-    parser.add_argument(
         '--mini_batch_size',
         type=int,
-        default=16,
+        default=32,
         help='The mini-batch size to use for training (for gradient accumulation)',
     )
     
     parser.add_argument(
         '--full_batch_size',
         type=int,
-        default=16,
+        default=32,
         help='The effective batch size to use for training',
     )
     
@@ -142,14 +133,14 @@ def parse_arguments() -> argparse.Namespace:
     parser.add_argument(
         '--early_stopping_patience',
         type=int,
-        default=25,
+        default=50,
         help='The number of epochs to wait before early stopping',
     )
     
     parser.add_argument(
         '--reduce_lr_patience',
         type=int,
-        default=3,
+        default=15,
         help='The number of epochs to wait before reducing the learning rate',
     )
     
@@ -165,12 +156,6 @@ def parse_arguments() -> argparse.Namespace:
         type=str,
         default='./weights/finetuned_unet',
         help='The directory to save weights',
-    )
-    
-    parser.add_argument(
-        '--preload',
-        action='store_true',
-        help='Load data into memory before training.',
     )
     
     parser.add_argument(
@@ -191,34 +176,6 @@ def parse_arguments() -> argparse.Namespace:
         '--load_checkpoint',
         action='store_true',
         help='Load a checkpoint from the log directory and resume training',
-    )
-    
-    parser.add_argument(
-        '--minimum_class_proportion',
-        type=float,
-        default=0.0, # set to 0 to disable oversampling
-        help='Minimum proportion of a class in the dataset for it to be considered for oversampling',
-    )
-    
-    parser.add_argument(
-        '--oversample_factor',
-        type=int,
-        default=2,
-        help='Number of times to duplicate samples that contain underrepresented classes',
-    )
-    
-    parser.add_argument(
-        '--minimum_oversample_ratio_factor',
-        type=float,
-        default=2.0,
-        help='Factor to multiply the minimum class proportion by to determine the minimum oversample ratio',
-    )
-    
-    parser.add_argument(
-        '--alpha_power',
-        type=float,
-        default=0.0,
-        help='The inverse power to raise the class distribution to for class weighting in the focal loss (i.e., 2.0 ~ sqrt(1 / class_distribution) to balance the loss for each class)',
     )
     
     parser.add_argument(
@@ -262,6 +219,7 @@ def main() -> None:
     
     args = parse_arguments()
     
+    # Reproducibility and run directory setup.
     torch.random.manual_seed(args.seed)
     np.random.seed(args.seed)
 
@@ -284,15 +242,15 @@ def main() -> None:
         torch.backends.cudnn.deteministic = True
         torch.cuda.manual_seed_all(args.seed)
     
-    if args.n_bands == 3:
-        mean_path = './weights/pretrain_mean.pth'
-        std_path = './weights/pretrain_std.pth'
-    else:
-        mean_path = './weights/pretrain_mean_4.pt'
-        std_path = './weights/pretrain_std_4.pt'
+    if args.n_bands != 3:
+        raise ValueError('Only 3-band CIR inputs are supported for fine-tuning.')
+
+    mean_path = './weights/pretrain_mean.pth'
+    std_path = './weights/pretrain_std.pth'
     mean = load_pth(mean_path) if os.path.exists(mean_path) else None
     std = load_pth(std_path) if os.path.exists(std_path) else None
     
+    # Resolve train/validation split columns for the selected fold + train size.
     splits_df = pd.read_csv(os.path.join(args.split_dir, 'splits.csv'))
     splits_df = splits_df.loc[splits_df['n_train'] == args.n_train_samples]
     splits_df = splits_df.loc[splits_df['fold'] == args.fold]
@@ -302,6 +260,7 @@ def main() -> None:
     logger.log(f"Train splits: {train_splits}")
     logger.log(f"Validation splits: {val_splits}")
     
+    # Build datasets. Training data uses augmentation; validation does not.
     train_dataset = FineTuneDataset(
         data_paths=[file for split in train_splits for file in glob(os.path.join(args.split_dir, split, 'input', '*.tif'))],
         target_paths=[file for split in train_splits for file in glob(os.path.join(args.split_dir, split, 'target', '*.tif'))],
@@ -311,7 +270,6 @@ def main() -> None:
         noise_std=0.0,
         # transform=StandardDataAugmentations(s=1.0 if 'cpb' not in args.split_dir else 0.0),
         transform=StandardDataAugmentations(s=1.0),
-        preload=args.preload,
         n_threads=args.num_workers,
     )
     
@@ -323,7 +281,6 @@ def main() -> None:
         std=std if 'cpb' not in args.split_dir else train_dataset.std,
         noise_std=0.0,
         transform=None,
-        preload=args.preload,
         n_threads=args.num_workers,
     )
     
@@ -333,23 +290,6 @@ def main() -> None:
     logger.log(f'Training dataset mean: {train_dataset.mean}')
     logger.log(f'Training dataset std: {train_dataset.std}')
     
-    class_dist = train_dataset.get_class_distribution()
-    num_classes = len(class_dist)
-    
-    oversample_classes = []
-    minimum_oversample_ratios = []
-    for i, prob in enumerate(class_dist):
-        if prob < args.minimum_class_proportion:
-            oversample_classes.append(i)
-            minimum_oversample_ratios.append(args.minimum_oversample_ratio_factor * prob)
-    logger.log(f'Class distribution: {class_dist}')
-    
-    if len(oversample_classes) > 0:
-        train_dataset.oversample_classes(oversample_classes, oversample_factor=args.oversample_factor, minimum_ratio=minimum_oversample_ratios)
-        logger.log(f'Oversampled classes: {oversample_classes}')
-        logger.log(f'New class distribution: {train_dataset.get_class_distribution()}')
-        logger.log(f'New N_train: {len(train_dataset)}')
-    
     train_loader = torch.utils.data.DataLoader(
         train_dataset,
         batch_size=args.mini_batch_size,
@@ -357,30 +297,21 @@ def main() -> None:
         drop_last=True,
         num_workers=args.num_workers if args.num_workers > 1 else 0,
         pin_memory=True if args.num_workers > 1 else False,
-        # prefetch_factor=4 if args.num_workers > 1 else 0,
     )
     val_loader = torch.utils.data.DataLoader(
         val_dataset,
         batch_size=args.mini_batch_size,
         shuffle=False,
         num_workers=args.num_workers if args.num_workers > 1 else 0,
-        pin_memory=True if args.num_workers > 1 else False,
         # prefetch_factor=4 if args.num_workers > 1 else 0,
     )
     
-    # class weighting is the inverse of the class distribution raised to the power of 1 over the alpha power
-    if args.alpha_power == 0:
-        alpha = torch.ones(num_classes)
-    else:
-        alpha = class_dist ** (-1 / args.alpha_power)
-    logger.log(f'Class weights: {alpha}')
-    criterion = FocalLoss(alpha=alpha, gamma=args.focal_gamma, reduction='sum').to(device)
+    criterion = FocalLoss(alpha=None, gamma=args.focal_gamma, reduction='sum').to(device)
     
-    # num_classes = 8
-    
+    # Build architecture from CLI flag and optionally inject pretrained encoder weights.
     if args.model in ('deeplabv3plus', 'pan', 'pspnet', 'danet'):
-        
-        # output_stride = 16
+        # These models use a backbone designed for DeepLabV3+
+                
         backbone = ResNetBackbone(
             in_channels=args.n_bands,
             pretrained=args.encoder_weights == 'imagenet',
@@ -406,8 +337,8 @@ def main() -> None:
             
         model = model.to(device)
     
-    
-    elif args.model in ['unet', 'attention_unet', 'multiscale_linear_probe', 'linear_probe', 'upernet', 'bisenet', 'fcn']:
+    # these models require a backbone with skip connections for the decoder,
+    elif args.model in ['unet', 'attention_unet', 'linear_probe', 'upernet', 'bisenet', 'fcn']:
         
         backbone = ResNetBackboneUNet(
             in_channels=args.n_bands,
@@ -424,34 +355,12 @@ def main() -> None:
                 raise FileNotFoundError(f'Encoder weights not found at {args.encoder_weights}')
         
         if args.model == 'unet':
-            model = UNet(
-                backbone=backbone,
-                num_classes=num_classes,
-            )
-            
+            model = UNet(backbone=backbone,num_classes=num_classes,)
         elif args.model == 'attention_unet':
-            model = AttentionUNet(
-                backbone=backbone,
-                num_classes=num_classes,
-            )
-            
-        elif args.model == 'multiscale_linear_probe':
-            model = MultiScaleLinearProbingResNet(
-                backbone=backbone,
-                num_classes=num_classes,
-            )
-        
+            model = AttentionUNet(backbone=backbone, num_classes=num_classes)
         elif args.model == 'linear_probe':
-            model = SimpleLinearProbingResNet(
-                backbone=backbone,
-                num_classes=num_classes,
-            )
-        
-        # model = model.to(device)
-    
-        # elif args.model in ['upernet', 'pspnet', 'bisenet', 'danet', 'pan']:
-            # Use the same backbone instance as above
-        if args.model == 'upernet':
+            model = SimpleLinearProbingResNet(backbone=backbone,num_classes=num_classes)
+        elif args.model == 'upernet':
             model = UPerNet(backbone=backbone, num_classes=num_classes)
         elif args.model == 'bisenet':
             model = BiSeNet(backbone=backbone, num_classes=num_classes)
@@ -463,17 +372,11 @@ def main() -> None:
     else:
         raise ValueError(f'Unknown model: {args.model}')
     
+    # Freeze behavior is primarily used for transfer-learning ablations - not necessary
     if args.freeze_encoder:
         logger.log('Freezing encoder weights')
         for param in model.backbone.parameters():
             param.requires_grad = False
-        
-        # if using 4 bands and imagenet weights, we need to unfreeze the first layer that has been replaced with a 4-channel input layer
-        if args.n_bands == 4 and args.encoder_weights == 'imagenet':
-            model.backbone.initial[0].weight.requires_grad = True
-                
-    if args.freeze_decoder:
-        raise NotImplementedError('Freezing decoder weights is not implemented for DeepLabV3Plus')
         
     total_params = sum(p.numel() for p in model.parameters())
     trainable_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
@@ -481,6 +384,7 @@ def main() -> None:
     logger.log(f'Total parameters: {total_params}')
     logger.log(f'Trainable parameters: {trainable_params}')
 
+    # Optimizer/scheduler/metrics are shared across all architecture variants.
     optimizer = AdamW(
         params=model.parameters(),
         lr=args.lr,  # This will be overridden by warmup if epoch < warmup_epochs
@@ -689,39 +593,17 @@ def main() -> None:
         )
         logger.log(f'Test dataset: {len(test_dataset)} samples')
 
-        # test_loader = torch.utils.data.DataLoader(
-        #     test_dataset,
-        #     batch_size=args.mini_batch_size,
-        #     # batch_size=args.mini_batch_size,
-        #     shuffle=False,
-        #     num_workers=args.num_workers,
-        #     # pin_memory=True,
-        #     # prefetch_factor=4,
-        #     # num_workers=args.num_workers,
-        #     # pin_memory=True,
-        #     # prefetch_factor=4,
-        # )
-        
         test_loader = torch.utils.data.DataLoader(
             test_dataset,
             batch_size=args.mini_batch_size,
             shuffle=False,
             num_workers=args.num_workers if args.num_workers > 1 else 0,
             pin_memory=True if args.num_workers > 1 else False,
-            # prefetch_factor=4 if args.num_workers > 1 else 0,
         )
-    
-        # phase_metrics = {'loss': []}
-        # for metric_fn in metric_fns:
-        #     phase_metrics[metric_fn.__name__] = []
-        # test_metrics = {}
     
         model.load_state_dict(load_pth(os.path.join(out_dir, 'best_model.pth')))
         model.eval()
         torch.set_grad_enabled(False)
-        
-        # y_preds = []
-        # y_trues = []
         
         num_classes = len(LEGEND_CLASSES) if 'cpb' not in args.test_dir else 7
         total_cm = np.zeros((num_classes, num_classes), dtype=np.int64)
@@ -734,21 +616,8 @@ def main() -> None:
                 if hasattr(y_hat, 'logits'):
                     y_hat = y_hat.logits
                     y_hat = torch.nn.functional.interpolate(y_hat, size=y.shape[-2:], mode='bilinear', align_corners=False)
-
-                # if hasattr(y_hat, 'logits'):
-                #     y_hat = y_hat.logits
-                #     y_hat = torch.nn.functional.interpolate(y_hat, size=y.shape[-2:], mode='bilinear', align_corners=False)
-
-                
+                    
                 loss = criterion(y_hat, y)
-                # phase_metrics['loss'].append(loss.detach().cpu().item())
-                # test_metrics['loss'] = sum(phase_metrics['loss']) / ((step * test_loader.batch_size) + len(X))
-                # phase_metrics['loss'].append(loss.detach().cpu().item())
-                # test_metrics['loss'] = sum(phase_metrics['loss']) / ((step * test_loader.batch_size) + len(X))
-                
-                # for metric_fn in metric_fns:
-                #     phase_metrics[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X))
-                #     test_metrics[metric_fn.__name__] = sum(phase_metrics[metric_fn.__name__]) / ((step * test_loader.batch_size) + len(X))
                     
                 y_pred_flat = y_hat.argmax(axis=1).cpu().numpy().flatten()
                 y_true_flat = y.cpu().numpy().flatten()
@@ -756,49 +625,9 @@ def main() -> None:
                 total_cm += sklearn.metrics.confusion_matrix(y_true_flat, y_pred_flat, labels=list(range(num_classes)))
                 
                 if (step + 1) % args.grad_accumulation_steps == 0 or step == len(test_loader) - 1:
-                    # tqdm_postfix = {
-                    #     'loss': f"{test_metrics['loss']:.3e}",
-                    #     'f1': f"{test_metrics['f1_score']:.3f}",
-                    #     'macro_f1': f"{test_metrics['macro_f1_score']:.3f}",
-                    # }
-                    # pbar.set_postfix(tqdm_postfix)
                     pbar.update(1)
-                    # phase_metrics[metric_fn.__name__].append(metric_fn(y, torch.argmax(y_hat, dim=1)) * len(X))
-                    # test_metrics[metric_fn.__name__] = sum(phase_metrics[metric_fn.__name__]) / ((step * test_loader.batch_size) + len(X))
-                    
-                # y_preds.append(y_hat.argmax(axis=1).cpu().numpy().flatten())
-                # # y_trues.append(y.cpu().numpy().flatten())
-                
-                # if (step + 1) % args.grad_accumulation_steps == 0 or step == len(test_loader) - 1:
-                #     # tqdm_postfix = {
-                #     #     'loss': f"{test_metrics['loss']:.3e}",
-                #     #     'f1': f"{test_metrics['f1_score']:.3f}",
-                #     #     'macro_f1': f"{test_metrics['macro_f1_score']:.3f}",
-                #     # }
-                #     # pbar.set_postfix(tqdm_postfix)
-                #     pbar.update(1)
-        
-        # logger.log(f'Test loss: {test_metrics["loss"]:.5f}')
-        # for metric_fn in metric_fns:
-            # logger.log(f'Test {metric_fn.__name__}: {test_metrics[metric_fn.__name__]:.5f}')
-        
-        # test_metrics_df = pd.DataFrame(test_metrics, index=[0])
-        # test_metrics_df.to_csv(os.path.join(log_dir, 'test_metrics.csv'), index=False)
-        
-        # y_preds = np.concatenate(y_preds)
-        # y_trues = np.concatenate(y_trues)
         
         if 'cpb' in args.test_dir:
-            # legend_classes = {
-                # 1: 'Water',
-                # 2: 'Tree canopy',
-                # 3: 'Shrubland',
-                # 4: 'Low vegetation',
-                # 5: 'Barren land',
-                # 6: 'Impervious structures',
-                # 7: 'Other impervious',
-            # }
-            
             legend_classes = {
                 # 0: "Nodata",
                 1: "Water",
@@ -879,41 +708,6 @@ def main() -> None:
         }
         with open(os.path.join(log_dir, 'assessment_metrics.json'), 'w') as f:
             json.dump(metrics_dict, f, indent=4)
-        
-        # cr = sklearn.metrics.classification_report(y_trues, y_preds, target_names=class_names_list, output_dict=True, zero_division=0)
-        
-        # cr_df = pd.DataFrame(cr).transpose()
-        # cr_df.to_csv(os.path.join(log_dir, 'classification_report.csv'), index=True)
-        
-        # calculate metrics
-        # metrics_dict = {
-        #     # overall metrics
-        #     'accuracy': sklearn.metrics.accuracy_score(y_trues, y_preds),
-        #     'f1_score': sklearn.metrics.f1_score(y_trues, y_preds, average='micro'),
-        #     'precision': sklearn.metrics.precision_score(y_trues, y_preds, average='micro'),
-        #     'recall': sklearn.metrics.recall_score(y_trues, y_preds, average='micro'),
-        #     'jaccard': sklearn.metrics.jaccard_score(y_trues, y_preds, average='micro'),
-        #     'kappa': sklearn.metrics.cohen_kappa_score(y_trues, y_preds),
-        #     # 'cross_entropy': np.mean(preds_df['cross_entropy']),
-        #     # 'brier_score': np.mean(preds_df['brier_score']),
-        #     # macro metrics
-        #     'macro_f1_score': sklearn.metrics.f1_score(y_trues, y_preds, average='macro'),
-        #     'macro_precision': sklearn.metrics.precision_score(y_trues, y_preds, average='macro'),
-        #     'macro_recall': sklearn.metrics.recall_score(y_trues, y_preds, average='macro'),
-        #     'macro_jaccard': sklearn.metrics.jaccard_score(y_trues, y_preds, average='macro'),
-        #     # 'macro_cross_entropy': np.mean(preds_df.groupby('ground_truth_class_idx')['cross_entropy'].mean()),
-        #     # 'macro_brier_score': np.mean(preds_df.groupby('ground_truth_class_idx')['brier_score'].mean()),
-        #     # weighted metrics
-        #     'weighted_f1_score': sklearn.metrics.f1_score(y_trues, y_preds, average='weighted'),
-        #     'weighted_precision': sklearn.metrics.precision_score(y_trues, y_preds, average='weighted'),
-        #     'weighted_recall': sklearn.metrics.recall_score(y_trues, y_preds, average='weighted'),
-        #     'weighted_jaccard': sklearn.metrics.jaccard_score(y_trues, y_preds, average='weighted'),
-        #     # 'weighted_cross_entropy': weighted_cross_entropy,
-        #     # 'weighted_brier_score': weighted_brier_score,
-        # }
-        # with open(os.path.join(log_dir, 'assessment_metrics.json'), 'w') as f:
-        #     json.dump(metrics_dict, f, indent=4)
-
 
 
 def adjust_backbone_weights(weights):

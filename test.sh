@@ -29,7 +29,6 @@ MODELS=("unet" "deeplabv3plus" "linear_probe")
 # PRETRAIN_SCHEMES=("hires_simclr" "simclr" "imagenet")
 # PRETRAIN_SCHEMES=("imagenet" "simclr")
 PRETRAIN_SCHEMES=("none" "imagenet" "byol")
-BANDS=(3)  # 4 bands for hires_simclr, 3 bands for simclr
 PRETRAIN_SIZES=(256)
 FREEZE_ENCODERS=(false true) # Freeze encoder options
 
@@ -55,7 +54,7 @@ for model in "${MODELS[@]}"; do
             for scheme in "${PRETRAIN_SCHEMES[@]}"; do
                 for pre_size in "${PRETRAIN_SIZES[@]}"; do
                     
-                    if [[ "$scheme" -eq "imagenet" ]]; then
+                    if [[ "$scheme" == "imagenet" ]]; then
                         pre_size=256  # Imagenet always uses 256 (imagenet technically uses 224, but we use 256 for simplicity here)
                     fi
 
@@ -67,14 +66,7 @@ for model in "${MODELS[@]}"; do
                         pre_batch=512
                     fi
 
-                    for bands in "${BANDS[@]}"; do
-                        for freeze_encoder in "${FREEZE_ENCODERS[@]}"; do
-
-                            if [[ "$scheme" == "hires_simclr" && "$bands" -ne 4 ]]; then
-                                continue
-                            elif [[ "$scheme" == "simclr" && "$bands" -ne 3 ]]; then
-                                continue
-                            fi
+                    for freeze_encoder in "${FREEZE_ENCODERS[@]}"; do
 
                             # Set encoder weights path or keyword
 #                             if [[ "$scheme" == "imagenet" ]]; then
@@ -82,8 +74,8 @@ for model in "${MODELS[@]}"; do
 #                             fi
 
                             # Unique log/output directories for this job
-                            JOB_NAME="${model}_test_${scheme}_bands${bands}_size${pre_size}_batch${pre_batch}_randinitfalse_frozenencoder${freeze_encoder}_n${n_train}_fold${fold}"
-                            BASE_DIR="${model}/${scheme}/${bands}_bands/presize_${pre_size}/prebatch_${pre_batch}/randinit_false/frozenencoder_${freeze_encoder}/${n_train}/fold_${fold}"
+                            JOB_NAME="${model}_test_${scheme}_bands3_size${pre_size}_batch${pre_batch}_randinitfalse_frozenencoder${freeze_encoder}_n${n_train}_fold${fold}"
+                            BASE_DIR="${model}/${scheme}/3_bands/presize_${pre_size}/prebatch_${pre_batch}/randinit_false/frozenencoder_${freeze_encoder}/${n_train}/fold_${fold}"
                             JOB_LOG_DIR="${BASE_LOG_DIR}/${BASE_DIR}/test"
                             JOB_WEIGHTS_PATH="${BASE_WEIGHTS_DIR}/${BASE_DIR}/best_model.pth"
                             mkdir -p "$JOB_LOG_DIR"
@@ -131,7 +123,7 @@ export CUDA_VISIBLE_DEVICES=0
 python $SCRIPT_NAME \
     --model "$model" \
     --model_weights "$JOB_WEIGHTS_PATH" \
-    --n_bands "$bands" \
+    --n_bands 3 \
     --output_dir "$JOB_LOG_DIR" \
     --batch_size "$BATCH_SIZE"
 EOL
@@ -142,7 +134,6 @@ EOL
                             COUNT=$((COUNT+1))
                             sleep 5 # Slight delay to avoid race conditions
 
-                            done
                         done
                     done
                 done

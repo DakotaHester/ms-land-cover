@@ -1,3 +1,5 @@
+"""Loss functions used by SSL pretraining and semantic segmentation."""
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -529,7 +531,7 @@ def byol_loss_fn(p, z, reduction='sum'):
     else:
         raise ValueError(f'Invalid reduction: {reduction}')
     
-def moco_loss_fn(output, target, reduction='mean'):
+def moco_loss_fn(output, target, reduction='sum'):
     """
     MoCo loss is standard CrossEntropyLoss.
     Args:
@@ -545,7 +547,8 @@ class DINOLoss(nn.Module):
     """
     def __init__(self, student_temp=0.1, 
                  warmup_teacher_temp=0.04, teacher_temp=0.07, 
-                 warmup_teacher_temp_epochs=30, total_epochs=100):
+                 warmup_teacher_temp_epochs=30, total_epochs=100,
+                 reduction='sum'):
         super().__init__()
         self.student_temp = student_temp
         self.total_epochs = total_epochs

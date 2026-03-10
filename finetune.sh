@@ -34,24 +34,17 @@ MAX_JOBS=10
 # =========================
 # MODEL & TRAINING CONFIGURATION
 # =========================
-FREEZE_DECODER=false         # --freeze_decoder (not supported atm)
 MINI_BATCH_SIZE=32           # --mini_batch_size
 FULL_BATCH_SIZE=32           # --full_batch_size
 LR=1e-4                      # --lr
 NUM_EPOCHS=1000              # --num_epochs
 EARLY_STOPPING_PATIENCE=50   # --early_stopping_patience
 REDUCE_LR_PATIENCE=15        # --reduce_lr_patience
-PRELOAD=false                # --load_data_from_disk
 NUM_WORKERS=$N_TASKS         # --num_workers
 SEED=1701                    # --seed
 LOAD_CHECKPOINT=false        # --load_checkpoint
 
-# Advanced/optional loss and sampling configs
-MINIMUM_CLASS_PROPORTION=0.0         # --minimum_class_proportion
-OVERSAMPLE_FACTOR=2                  # --oversample_factor
-MINIMUM_OVERSAMPLE_RATIO_FACTOR=2.0  # --minimum_oversample_ratio_factor
-ALPHA_POWER=0.0                      # --alpha_power
-FOCAL_GAMMA=2.0                      # --focal_gamma
+# Note: this launcher only uses currently supported finetune.py flags.
 
 # Ensure script directory exists (only for SLURM mode)
 if [[ "$EXECUTION_MODE" == "slurm" ]]; then
@@ -122,14 +115,7 @@ run_python_job() {
         --num_workers "$NUM_WORKERS" \
         --seed "$SEED" \
         $( [[ "$freeze_encoder" == true ]] && echo "--freeze_encoder" ) \
-        $( [[ "$FREEZE_DECODER" == true ]] && echo "--freeze_decoder" ) \
-        $( [[ "$PRELOAD" == true ]] && echo "--preload" ) \
         $( [[ "$LOAD_CHECKPOINT" == true ]] && echo "--load_checkpoint" ) \
-        --minimum_class_proportion "$MINIMUM_CLASS_PROPORTION" \
-        --oversample_factor "$OVERSAMPLE_FACTOR" \
-        --minimum_oversample_ratio_factor "$MINIMUM_OVERSAMPLE_RATIO_FACTOR" \
-        --alpha_power "$ALPHA_POWER" \
-        --focal_gamma "$FOCAL_GAMMA"
 }
 
 # =========================
@@ -255,14 +241,7 @@ python $SCRIPT_NAME \\
 --num_workers $NUM_WORKERS \\
 --seed $SEED \\
 \$( [[ "$freeze_encoder" == true ]] && echo "--freeze_encoder" ) \\
-\$( [[ "$FREEZE_DECODER" == true ]] && echo "--freeze_decoder" ) \\
-\$( [[ "$PRELOAD" == true ]] && echo "--preload" ) \\
 \$( [[ "$LOAD_CHECKPOINT" == true ]] && echo "--load_checkpoint" ) \\
---minimum_class_proportion $MINIMUM_CLASS_PROPORTION \\
---oversample_factor $OVERSAMPLE_FACTOR \\
---minimum_oversample_ratio_factor $MINIMUM_OVERSAMPLE_RATIO_FACTOR \\
---alpha_power $ALPHA_POWER \\
---focal_gamma $FOCAL_GAMMA
 
 python test.py \\
     --model "$model" \\

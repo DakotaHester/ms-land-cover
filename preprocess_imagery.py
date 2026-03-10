@@ -1,8 +1,11 @@
-'''
-Use multithreading to unzip files, convert from MrSid to GeoTIFF, resample to 1m
-resolution, and reproject to Mississippi Transvere Mercator projection 
-(EPSG:3813).
-'''
+"""Imagery preprocessing entrypoint.
+
+Pipeline:
+1) unzip source NAIP archives
+2) convert MrSID -> GeoTIFF
+3) resample to 1m
+4) reproject to Mississippi Transverse Mercator (EPSG:3813)
+"""
 
 from src.mslandcover.data.preprocessing import preprocess_file
 from concurrent.futures import ThreadPoolExecutor
@@ -12,7 +15,7 @@ from tqdm import tqdm
 
 def main():
     
-    # check if gdal is active, if not try to activate the gdal environment
+    # Validate that GDAL tools are available before launching threaded jobs.
     try:
         Popen(['gdalinfo', '--version']).wait()
     except:
@@ -29,6 +32,7 @@ def main():
     n_threads = 4
     
     print(f'Processing {n_files} files with {n_threads} threads.')
+    # Fan out file-level preprocessing work across threads for throughput.
     with tqdm(total=n_files, desc='files processed', unit='file') as pbar:
         with ThreadPoolExecutor(max_workers=n_threads) as executor:
             # print('Processing files...')

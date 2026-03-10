@@ -1,10 +1,18 @@
+"""Self-supervised pretraining entrypoint (BYOL/MoCo/DINO variants).
+
+This is the central script for representation learning before supervised fine-tuning.
+The control flow is:
+1) parse pretraining configuration
+2) build augmentations and datasets
+3) construct encoder + SSL wrapper
+4) run training/validation and persist checkpoints
+"""
+
 import math
 from time import time
-from typing import OrderedDict
 import pandas as pd
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 from torch.utils.data import DataLoader
 from torch.optim.lr_scheduler import CosineAnnealingLR, LambdaLR, SequentialLR
 from torch.amp import autocast, GradScaler
@@ -19,31 +27,27 @@ import json
 from mslandcover.utils import ProfilerHistory, Logger, get_torch_device, load_pth
 from mslandcover.data.datasets import DINOPreTrainDataset, PreTrainDataset
 from mslandcover.data import transforms
-from mslandcover.models import DINOWrapper, SimCLRProjectionHead, BYOLWrapper, MoCoWrapper
-from mslandcover.loss import DINOLoss, moco_loss_fn, nt_xent_loss, byol_loss_fn
-from mslandcover.metrics import psnr, ssim
+from mslandcover.models import DINOWrapper, BYOLWrapper, MoCoWrapper
+from mslandcover.loss import DINOLoss, moco_loss_fn, byol_loss_fn
 from mslandcover.optim import LARS
 
 from argparse import ArgumentParser
 
 def parse_arguments():
+    # Keep CLI definitions centralized so experiment configs are reproducible
+    # from command history / shell scripts.
     parser = ArgumentParser()
     
+    # Core run identity: objective to optimize.
     parser.add_argument(
         '--pretrain_scheme',
         type=str,
-        default='dino',
-        choices=['dae', 'simclr', 'hires_simclr', 'byol', 'hires_byol', 'moco', 'dino'],
-        help='The pretraining scheme to use. Options: simclr, hires_simclr, dae, byol, hires_byol.',
+        default='byol',
+        choices=['byol', 'moco', 'dino'],
+        help='The pretraining scheme to use. Options: byol, moco, dino.',
     )
     
-    parser.add_argument(
-        '--model',
-        type=str,
-        default='resnet101',
-        choices=['resnet101', 'resnet152', 'deeplabv3p'],
-    )
-    
+    # Data roots for train/validation pretraining tiles.
     parser.add_argument(
         '--pretrain_data_dir', 
         type=str,  
@@ -58,18 +62,12 @@ def parse_arguments():
         help='Path to the directory containing the pretraining validation data.',
     )
     
+    # Optimization schedule controls.
     parser.add_argument(
         '--num_epochs',
         type=int,
         default=300,
         help='The number of epochs to train for.',
-    )
-    
-    parser.add_argument(
-        '--early_stopping_patience',
-        type=int,
-        default=-1,
-        help='The number of epochs to wait for validation loss improvement before stopping training. Set to -1 to disable early stopping.',
     )
     
     parser.add_argument(
@@ -79,13 +77,6 @@ def parse_arguments():
         help='The number of epochs to use for learning rate warmup. If None, no warmup is applied.',
     )
     
-    # parser.add_argument(
-    #     '--reduce_lr_patience',
-    #     type=int,
-    #     default=0,
-    #     help='The number of epochs to wait for validation loss improvement before reducing the learning rate.',
-    # )
-    
     parser.add_argument(
         '--init_lr',
         type=float,
@@ -93,13 +84,7 @@ def parse_arguments():
         help='The initial learning rate to use for training.',
     )
     
-    parser.add_argument(
-        '--temperature',
-        type=float,
-        default=0.1,
-        help='The temperature to use for the NT-Xent loss during SimCLR training.',
-    )
-    
+    # BYOL-specific EMA base coefficient.
     parser.add_argument(
         '--tau_base',
         type=float,
@@ -107,10 +92,11 @@ def parse_arguments():
         help='The base value for the temperature in BYOL training.',
     )
     
+    # Full batch size is achieved using accumulation with mini-batches.
     parser.add_argument(
         '--full_batch_size', 
         type=int, 
-        default=4096, # 4096 in original SimCLR implementation
+        default=4096,
         help='The batch size to use for pretraining.',
     )
     
@@ -118,16 +104,10 @@ def parse_arguments():
         '--mini_batch_size',
         type=int,
         default=256,
-        help='The mini-batch size to use for gradient accumulation. Only relevant if using pretraining scheme "dae".',
+        help='The mini-batch size to use for gradient accumulation.',
     )
     
-    parser.add_argument(
-        '--frozen_encoder',
-        default=False,
-        action='store_true',
-        help='Freeze the encoder during training.',
-    )
-    
+    # Output locations for metrics/logs and saved weights.
     parser.add_argument(
         '--log_dir', 
         type=str, 
@@ -144,6 +124,7 @@ def parse_arguments():
                 'output_dir/model_name/imagenet.pth'
     )
     
+    # Runtime controls.
     parser.add_argument(
         '--encoder_weights',
         type=str,
@@ -183,26 +164,11 @@ def parse_arguments():
         '--n_bands',
         type=int,
         default=3,
-        help='The number of bands in the input data. If 3, then color infrared composites are used (NIR, Red, Green)',
+        choices=[3],
+        help='Number of input bands. Only 3-band CIR composites (NIR, Red, Green) are supported.',
     )
     
-    parser.add_argument(
-        '--optimizer',
-        type=str,
-        default='adamw',
-        choices=['adamw', 'lars'],
-        help='The optimizer to use for training. Options: adamw, lars.',
-    )
-    
-    parser.add_argument(
-        '--visualize_augmentations_dir',
-        type=str,
-        default='./paper/images/augmentations/' if False else None,
-        help='The directory to save augmented images for visualization. If \
-            provided, the script will only visualize the augmentations and not \
-            train the model.',
-    )
-    
+    # Debug mode trims data and batch settings for quick smoke tests.
     parser.add_argument(
         '--debug',
         default=False,
@@ -210,6 +176,7 @@ def parse_arguments():
         help='Run the script in debug mode - reduce amount of training data used.',
     )
     
+    # Resume support for interrupted long-running jobs.
     parser.add_argument(
         '--load_checkpoint',
         default=False,
@@ -217,14 +184,7 @@ def parse_arguments():
         help='Load a checkpoint from the log directory and resume training.',
     )
     
-    parser.add_argument(
-        '--preload_data',
-        default=False,
-        action='store_true',
-        help='Preload the entire dataset into memory. NOTE: This will use a lot of memory.',
-    )
-    
-    # MoCo specific arguments
+    # MoCo objective hyperparameters.
     parser.add_argument('--moco_dim', type=int, default=128, help='Feature dimension for MoCo.')
     parser.add_argument('--moco_k', type=int, default=65536, help='Queue size; number of negative keys.')
     parser.add_argument('--moco_m', type=float, default=0.999, help='MoCo momentum of updating key encoder.')
@@ -242,23 +202,23 @@ def main():
     
     args = parse_arguments()
     
+    # Seed setup and run directory naming are important for reproducible experiments.
     torch.random.manual_seed(args.seed)
     np.random.seed(args.seed)
     
-    log_dir = os.path.join(args.log_dir, args.model, args.pretrain_scheme)
+    # Build per-run output directories. Naming encodes key experiment toggles.
+    log_dir = os.path.join(args.log_dir, 'resnet101', args.pretrain_scheme)
     if args.rand_init:
         log_dir += '_randinit'
-    if args.frozen_encoder:
-        log_dir += '_frozenencoder'
-    out_dir = os.path.join(args.weights_dir, args.model)
+    
+    out_dir = os.path.join(args.weights_dir, 'resnet101')
     if args.rand_init:
         out_dir += '_randinit'
-    if args.frozen_encoder:
-        out_dir += '_frozenencoder'
         
     os.makedirs(log_dir, exist_ok=True)
     os.makedirs(out_dir, exist_ok=True)
     
+    # Record full configuration at run start for exact reproducibility.
     logger = Logger(os.path.join(log_dir, 'log.txt'))
     
     logger.log(f'Configuration:')
@@ -266,19 +226,18 @@ def main():
         logger.log(f'{k}: {v}', prepend_timestamp=False)
     logger.log('='*20, prepend_timestamp=False)
     
-    is_contrastive = 'simclr' in args.pretrain_scheme
-    is_reconstruction = 'dae' in args.pretrain_scheme 
-    is_byol = 'byol' in args.pretrain_scheme
+    # Canonical flags used later to branch into objective-specific implementations.
+    is_byol = args.pretrain_scheme == 'byol'
     is_moco = args.pretrain_scheme == 'moco'
     is_dino = args.pretrain_scheme == 'dino'
 
-    if is_contrastive and args.mini_batch_size != args.full_batch_size:
-        raise ValueError('Contrastive learning requires the mini-batch size to be equal to the full batch size.')
-    if args.n_bands not in [3, 4]:
-        raise ValueError('Number of bands must be 3 (RGB) or 4 (CIR) for pretraining.')
-    if args.n_bands == 4 and args.pretrain_scheme in ['simclr', 'byol']:
-        raise ValueError('SimCLR and BYOL pretraining schemes are not supported for 4-band data. Use DAE instead.')
+    # Validate supported input configuration early to fail fast with clear errors.
+    if not (is_byol or is_moco or is_dino):
+        raise ValueError(f'Unsupported pretrain_scheme: {args.pretrain_scheme}. Use byol, moco, or dino.')
+    if args.n_bands != 3:
+        raise ValueError('Only 3-band CIR inputs are supported for pretraining.')
     
+    # Choose device once and keep all tensors/models consistent with it.
     device = get_torch_device()
     logger.log(f'Using device: {device}')
     if device.type == 'cuda':
@@ -286,16 +245,14 @@ def main():
         torch.backends.cudnn.deterministic = True
         torch.cuda.manual_seed_all(args.seed)
     
-    if is_contrastive:
-        if args.pretrain_scheme == 'hires_simclr':
-            transform = transforms.HiResDataAugmentation(size=args.image_size, s=1.0)
-        else:
-            transform = transforms.SimCLRDataAugmentation(size=args.image_size, s=1.0)
-    elif is_byol:
-        if args.pretrain_scheme == 'hires_byol':
-            transform = [transforms.HiResDataAugmentation(size=args.image_size, s=2.0), transforms.HiResDataAugmentation(size=args.image_size, s=2.0, alt_transform=True)]
-        else:
-            transform = [transforms.BYOLDataAugmentation(size=args.image_size, s=2.0), transforms.BYOLDataAugmentation(size=args.image_size, s=2.0, alt_transform=True)]
+    # Select view generation policy based on objective.
+    # BYOL/MoCo: two augmented views of same image.
+    # DINO: multi-crop setup (global + local crops).
+    if is_byol:
+        transform = [
+            transforms.BYOLDataAugmentation(size=args.image_size, s=1.0),
+            transforms.BYOLDataAugmentation(size=args.image_size, s=1.0, alt_transform=True),
+        ]
     elif is_moco:
         transform = [transforms.MoCoV2DataAugmentation(size=args.image_size, s=1.0), transforms.MoCoV2DataAugmentation(size=args.image_size, s=1.0)]
     elif is_dino:
@@ -305,54 +262,37 @@ def main():
             local_crops_number=args.dino_local_crops_number,
             global_size=args.image_size,
         )
-
-    noisy_input = args.pretrain_scheme in ['dae', 'hires_simclr', 'hires_byol']
-
     
-    if args.n_bands == 4:
-        mean_path = os.path.join('weights', 'pretrain_mean_4.pt')
-        std_path = os.path.join('weights', 'pretrain_std_4.pt')
-    else:
-        mean_path = os.path.join('weights', 'pretrain_mean.pth')
-        std_path = os.path.join('weights', 'pretrain_std.pth')
+    # Load cached normalization stats if available; datasets can compute them otherwise.
+    mean_path = os.path.join('weights', 'pretrain_mean.pth')
+    std_path = os.path.join('weights', 'pretrain_std.pth')
     
     mean = load_pth(mean_path) if os.path.exists(mean_path) else None
     std = load_pth(std_path) if os.path.exists(std_path) else None
     
+    # Resolve image file lists once so train/val datasets share same discovery logic.
     train_data_paths = glob(os.path.join(args.pretrain_data_dir, '*.tif'))
     val_data_paths = glob(os.path.join(args.pretrain_val_data_dir, '*.tif'))
     
     # print(len(train_paths))
+    # DINO uses a dedicated dataset with variable number of crops.
+    # BYOL/MoCo reuse the generic pretraining dataset with two views.
     if not is_dino:
-        n_views = 2 if (is_contrastive or is_byol or is_moco) else 1
+        n_views = 2
         train_dataset = PreTrainDataset(
-            # hdf5_path=args.pretrain_hdf5_path,
-            # hdf5_group=args.pretrain_hdf5_group,
             data_paths=train_data_paths,
-            # data_paths=train_paths,
             transform=transform,
             n_views=n_views,
             mean=mean,
             std=std,
-            noisy_input=noisy_input,
-            noise_std=1.0,
-            # noise_pct=0.5,
-            preload=args.preload_data,
             n_bands=args.n_bands,
         )
         val_dataset = PreTrainDataset(
-            # hdf5_path=args.pretrain_hdf5_path,
-            # hdf5_group=args.pretrain_val_hdf5_group,
             data_paths=val_data_paths,
-            # data_paths=val_paths,
             n_views=n_views,
             mean=train_dataset.mean,
             std=train_dataset.std,
             transform=transform,
-            noisy_input=noisy_input,
-            noise_std=1.0,
-            # noise_pct=0.5,n
-            preload=args.preload_data,
             n_bands=args.n_bands,
         )
     else:
@@ -364,7 +304,6 @@ def main():
             mean=mean,
             std=std,
             n_bands=args.n_bands,
-            preload=args.preload_data,
         )
         val_dataset = DINOPreTrainDataset(
             data_paths=val_data_paths,
@@ -373,9 +312,9 @@ def main():
             std=train_dataset.std,
             transform=transform,
             n_bands=args.n_bands,
-            preload=args.preload_data,
         )
     
+    # Debug path for quick end-to-end checks without full dataset cost.
     if args.debug:
         train_dataset.ids_list = train_dataset.ids_list[:(512)*4]
         val_dataset.ids_list = val_dataset.ids_list[:512]
@@ -383,6 +322,7 @@ def main():
         args.full_batch_size = 128
         args.mini_batch_size = 16
     
+    # Persist data statistics so downstream fine-tuning/inference can reuse them.
     logger.log(f'Training dataset size: {len(train_dataset)}')
     logger.log(f'Validation dataset size: {len(val_dataset)}')
     
@@ -393,10 +333,12 @@ def main():
     if mean is None:  torch.save(train_dataset.mean, mean_path)
     if std is None: torch.save(train_dataset.std, std_path) 
     
-    # take into account grad cache steps when setting the batch size
+    # Effective batch size is achieved via accumulation over mini-batches.
     grad_accum_steps = args.full_batch_size // args.mini_batch_size
     logger.log(f'Full batch size: {args.full_batch_size}, Mini batch size: {args.mini_batch_size}, Grad cache steps: {grad_accum_steps}')
     
+    # Keep DataLoader settings explicit because worker/prefetch config has large
+    # performance impact on HPC runs.
     train_loader = DataLoader(
         train_dataset, 
         batch_size=args.mini_batch_size, 
@@ -417,97 +359,28 @@ def main():
         prefetch_factor=4,
         persistent_workers=True,
     )
-    
-    if args.visualize_augmentations_dir is not None:
-        transforms.visualize_transforms(
-            args.visualize_augmentations_dir,
-            n_views,
-            False,
-            False,
-            False,
-            noisy_input,
-            train_dataset,
-            glob(os.path.join(args.pretrain_data_dir, '*.tif')),
-            args.pretrain_scheme,
-            train_dataset.mean,
-            train_dataset.std,
-        )
-        return
 
-    if args.model == 'resnet152':
-        encoder = resnet152(weights=ResNet152_Weights.IMAGENET1K_V2 if not args.rand_init else None)
-        if args.n_bands == 4:
-            encoder.conv1 = nn.Conv2d(4, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-        encoder.fc = nn.Identity()
-        
-        if is_contrastive:
-            model = nn.Sequential(OrderedDict([
-                ('encoder', encoder),
-                ('projection_head', SimCLRProjectionHead(in_channels=2048))
-            ]))
-        elif is_byol:
-            model = BYOLWrapper(encoder, tau_base=args.tau_base, total_steps=args.num_epochs * len(train_loader) // grad_accum_steps)
-        elif is_moco:
-            model = MoCoWrapper(
-                encoder=encoder,
-                dim=args.moco_dim,
-                K=args.moco_k,
-                m=args.moco_m,
-                T=args.moco_t,
-            )
-        elif is_dino:
-            model = DINOWrapper(encoder, total_steps=args.num_epochs * len(train_loader) // grad_accum_steps)
+    # Backbone definition shared by all three objectives.
+    encoder = resnet101(weights=ResNet101_Weights.IMAGENET1K_V2 if not args.rand_init else None)
+    encoder.fc = nn.Identity()
     
-    elif args.model == 'resnet101':
-        encoder = resnet101(weights=ResNet101_Weights.IMAGENET1K_V2 if not args.rand_init else None)
-        if args.n_bands == 4:
-            encoder.conv1 = nn.Conv2d(4, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False)
-        encoder.fc = nn.Identity()
-        
-        if is_contrastive:
-            model = nn.Sequential(OrderedDict([
-                ('encoder', encoder),
-                ('projection_head', SimCLRProjectionHead(in_channels=2048))
-            ]))
-        elif is_byol:
-            model = BYOLWrapper(encoder, tau_base=args.tau_base, total_steps=args.num_epochs * len(train_loader) // grad_accum_steps)
-        elif is_moco:
-            model = MoCoWrapper(
-                encoder=encoder,
-                dim=args.moco_dim,
-                K=args.moco_k,
-                m=args.moco_m,
-                T=args.moco_t,
-            )
-        elif is_dino:
-            model = DINOWrapper(encoder, total_steps=args.num_epochs * len(train_loader) // grad_accum_steps)
-    
-    elif args.model == 'deeplabv3p':
-        raise NotImplementedError('DeepLabV3+ not implemented yet.')
-        # encoder = ResNetBackbone()
-        # model = DeepLabV3Plus(
-        #     backbone=ResNetBackbone(pretrained=args.encoder_weights if args.encoder_weights is not None else not args.rand_init, in_channels=args.n_bands),
-        #     num_classes=args.n_bands,
-        # )
-        
-    else:
-        raise ValueError(f'Invalid model: {args.model}')
+    # Wrap backbone with the selected SSL objective head/training wrapper.
+    if is_byol:
+        model = BYOLWrapper(encoder, tau_base=args.tau_base, total_steps=args.num_epochs * len(train_loader) // grad_accum_steps)
+    elif is_moco:
+        model = MoCoWrapper(
+            encoder=encoder,
+            dim=args.moco_dim,
+            K=args.moco_k,
+            m=args.moco_m,
+            T=args.moco_t,
+        )
+    elif is_dino:
+        model = DINOWrapper(encoder, total_steps=args.num_epochs * len(train_loader) // grad_accum_steps)
     
     model.to(device)
     
-    if args.frozen_encoder and args.model not in ['deeplabv3p']:
-        for encoder_block in model.encoder_blocks:
-            for param in encoder_block.parameters():
-                param.requires_grad = False
-    elif args.frozen_encoder:
-        for param in model.backbone.parameters():
-            param.requires_grad = False
-        # if not loading encoder weights, then unfreeze the backbone.initial.
-        if args.encoder_weights is None:
-            logger.log('NOTE! Unfreezing backbone.initial parameters to account for discrepancies in channels.')
-            for param in model.backbone.initial[0].parameters():
-                param.requires_grad = True
-    
+    # FLOPs/MACs logging helps compare objective cost and checkpoint complexity.
     if is_byol:
         calflops_model = model.online_encoder
     elif is_moco:
@@ -536,33 +409,17 @@ def main():
         }, f, indent=4)
         
 
-    if args.optimizer == 'adamw':
-        optimizer = torch.optim.AdamW(params=model.parameters(), lr=args.init_lr)
-    elif args.optimizer == 'lars':
-        optimizer = LARS(
-            params=model.parameters(),
-            lr=args.init_lr,
-            weight_decay=1.5e-6,
-            momentum=0.9,
-            eta=1e-3,
-        )
-    else:
-        raise ValueError(f'Invalid optimizer: {args.optimizer}')
+    # Single optimizer choice in this script revision for simplicity.
+    optimizer = torch.optim.AdamW(params=model.parameters(), lr=args.init_lr)
     
+    # DINO maintains additional loss state (teacher temperature schedule).
     if is_dino:
         dino_loss = DINOLoss(total_epochs=args.num_epochs)
-            
     
-    # Initialize mixed precision scaler
+    # Mixed precision scaler for stable fp16/bf16 training steps.
     scaler = GradScaler()
     
-    # reduce_lr_on_plateau = ReduceLROnPlateau(
-    #     optimizer=optimizer,
-    #     patience=args.reduce_lr_patience,
-    #     factor=0.1,
-    #     eps=0,
-    # )
-    
+    # Warmup + cosine decay scheduler used for all supported objectives.
     if args.warmup_epochs is not None or args.warmup_epochs > 0:
         
         warmup_scheduler = LambdaLR(
@@ -579,6 +436,7 @@ def main():
             schedulers=[warmup_scheduler, cosine_scheduler],
             milestones=[args.warmup_epochs],
         )
+        
     else:
         scheduler = CosineAnnealingLR(
             optimizer=optimizer,
@@ -586,15 +444,14 @@ def main():
             eta_min=0,
         )
     
+    # Metric history written each epoch for offline plotting and analysis.
     history_dict = {
         'learning_rate': [],
     }
     for phase in ['train', 'val']:
         history_dict[f'{phase}_loss'] = []
-        if is_reconstruction:
-            history_dict[f'{phase}_psnr'] = []
-            history_dict[f'{phase}_ssim'] = []
     
+    # Profiler captures timing and hardware counters from utility helper.
     profiler = ProfilerHistory(device)
     profiler.update(epoch=-1, phase='init', step=0, time=0)
     
@@ -602,6 +459,7 @@ def main():
     best_val_loss = np.inf
     best_epoch = -1
     
+    # Optional resume from checkpoint (model, optimizer, scaler, scheduler, history).
     if args.load_checkpoint:
         checkpoint = torch.load(os.path.join(log_dir, 'checkpoint.pth'), weights_only=False)
         model.load_state_dict(checkpoint['model'])
@@ -619,6 +477,7 @@ def main():
         
         logger.log(f'Loaded checkpoint from epoch {starting_epoch - 1}.')
     
+    # Main epoch loop. Epoch 0 is used as a dry run baseline (no backprop).
     logger.log(f'Starting training at epoch {starting_epoch}...')
     for epoch in range(starting_epoch, args.num_epochs+1):
         
@@ -629,12 +488,15 @@ def main():
             phase_start_time = time()
             tqdm_postfix = {'LR': f'{lr:.0e}',}
             
+            # Train/val phase setup with explicit grad mode control.
             if phase == 'train':
                 torch.set_grad_enabled(epoch != 0) # disable backpropagation for the first epoch to get a baseline loss
                 optimizer.zero_grad() # just in case
                 model.train()
                 loader = train_loader
                 
+                # DINO tracks teacher outputs across accumulation window to
+                # update running center once per optimizer step.
                 if is_dino:
                     teacher_outputs_list = []
             
@@ -643,6 +505,7 @@ def main():
                 model.eval()
                 loader = val_loader
             
+            # Progress bar counts optimizer updates (train) rather than mini-batches.
             total_steps = math.ceil(len(loader) // grad_accum_steps) if phase == 'train' else len(loader) // grad_accum_steps
             with tqdm(
                 desc=f'Epoch {epoch}/{args.num_epochs} {phase.capitalize()}', 
@@ -652,59 +515,14 @@ def main():
             ) as pbar:
                 
                 loss_values = []
-                if is_reconstruction:
-                    psnr_values = []
-                    ssim_values = []
                 
-                # A note on extensive profiling:
-                # Trying to track the memory usage of each method as extensively as possible
+                # Inner loop over mini-batches.
                 for step, batch in enumerate(loader):
-                    if is_contrastive:
-                        # load batch
-                        X_0, X_1 = batch
-                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                        
-                        # send to GPU
-                        X_0, X_1 = X_0[0].to(device), X_1[0].to(device)
-                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                        
-                        # Mixed precision forward passes
-                        with autocast(str(device)):
-                            z_0 = model(X_0)
-                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                            
-                            z_1 = model(X_1)
-                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                            
-                            # calculate loss
-                            loss = nt_xent_loss(z_0, z_1, temperature=args.temperature, reduction='sum')
-                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                        
-                        # metrics
-                        loss_values.append(loss.item())
-                        epoch_loss = np.sum(loss_values) / ((step * args.mini_batch_size) + len(batch))
-                        tqdm_postfix['Loss'] = f'{epoch_loss:.2e}'
-                        
-                        # no grad accumulation for contrastive loss - can go ahead and update the model
-                        if phase == 'train' and epoch != 0:
-                            # backpropagation with mixed precision
-                            scaler.scale(loss).backward()
-                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                            
-                            # parameter update
-                            scaler.step(optimizer)
-                            scaler.update()
-                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                            
-                            # reset gradients
-                            optimizer.zero_grad()
-                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                        
-                        pbar.set_postfix(tqdm_postfix)
-                        pbar.update(1)
-                    
-                    elif is_byol:
-                        # BYOL training with gradient accumulation using mixed precision
+                    if is_byol:
+                        # BYOL branch:
+                        # 1) build online predictions and target projections
+                        # 2) compute symmetric BYOL loss
+                        # 3) accumulate grads and periodically step optimizer
                         v, v_prime = batch
                         v, v_prime = v[0].to(device), v_prime[0].to(device)
 
@@ -713,13 +531,15 @@ def main():
                             loss = byol_loss_fn(q, z_prime) + byol_loss_fn(q_prime, z)
                             loss = loss / grad_accum_steps
 
-                        loss_values.append(loss.item() * grad_accum_steps)  # store unscaled loss for logging
+                        # Store unscaled loss so logging reflects true objective magnitude.
+                        loss_values.append(loss.item() * grad_accum_steps)
                         epoch_loss = np.sum(loss_values) / ((step * args.mini_batch_size) + len(batch))
                         tqdm_postfix['Loss'] = f'{epoch_loss:.2e}'
 
                         if phase == 'train' and epoch != 0:
                             scaler.scale(loss).backward()
 
+                        # The target encoder is momentum-updated only after optimizer step.
                         if (step + 1) % grad_accum_steps == 0:
                             if phase == 'train' and epoch != 0:
                                 scaler.step(optimizer)
@@ -732,6 +552,8 @@ def main():
                         pbar.set_postfix(tqdm_postfix)
                     
                     elif is_moco:
+                        # MoCo branch:
+                        # query/key views -> logits against dynamic queue -> CE loss.
                         im_q, im_k = batch
                         im_q, im_k = im_q[0].to(device), im_k[0].to(device)
                         
@@ -747,6 +569,7 @@ def main():
                         if phase == 'train' and epoch != 0:
                             scaler.scale(loss).backward()
                         
+                        # Key encoder momentum update is coupled to optimizer steps.
                         if (step + 1) % grad_accum_steps == 0:
                             if phase == 'train' and epoch != 0:
                                 scaler.step(optimizer)
@@ -759,6 +582,8 @@ def main():
                         pbar.set_postfix(tqdm_postfix)
                     
                     elif is_dino:
+                        # DINO branch:
+                        # multi-crop views -> student/teacher outputs -> DINO loss.
                         if step == 0:
                             dino_loss.step(epoch) # update temperature schedule at the beginning of each epoch
                         
@@ -772,10 +597,12 @@ def main():
                         epoch_loss = np.sum(loss_values) / ((step * args.mini_batch_size) + len(batch))
                         tqdm_postfix['Loss'] = f'{epoch_loss:.2e}'
                         
+                        # Keep detached teacher outputs for center update after step.
                         if phase == 'train' and epoch != 0:
                             scaler.scale(loss).backward()
                             teacher_outputs_list.extend([t.detach() for t in teacher_outputs])
                         
+                        # Update teacher EMA and center once per accumulated step.
                         if (step + 1) % grad_accum_steps == 0:
                             if phase == 'train' and epoch != 0:
                                 scaler.step(optimizer)
@@ -790,70 +617,20 @@ def main():
                             pbar.update(1)
                             
                         pbar.set_postfix(tqdm_postfix)
-                    
-                    # standard DAE training with gradient accumulation using mixed precision
+
                     else:
-                        # load batch
-                        X, y = batch
-                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                        
-                        # send to GPU
-                        X, y = X.to(device), y.to(device)
-                        profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                        
-                        # forward pass through model with mixed precision
-                        with autocast(str(device)):
-                            y_hat = model(X)
-                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                            
-                            # reconstruction_loss = F.mse_loss(y_hat, y, reduction='sum')
-                            # NOTE: L1/MAE loss is used instead of MSE loss 
-                            # https://research.nvidia.com/sites/default/files/pubs/2017-03_Loss-Functions-for/NN_ImgProc.pdf
-                            # https://openaccess.thecvf.com/content/WACV2022/papers/Mustafa_Training_a_Task-Specific_Image_Reconstruction_Loss_WACV_2022_paper.pdf
-                            loss = F.l1_loss(y_hat, y, reduction='sum') 
-                            loss = loss / grad_accum_steps  # scale loss for gradient accumulation
-                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                        
-                        loss_values.append(loss.item() * grad_accum_steps)
-                        ssim_values.append(ssim(y_hat, y, reduction='sum').item())
-                        psnr_values.append(psnr(y_hat, y, reduction='sum').item())
-                        
-                        epoch_loss = np.sum(loss_values) / ((step * args.mini_batch_size) + len(batch))
-                        epoch_ssim = np.sum(ssim_values) / ((step * args.mini_batch_size) + len(batch))
-                        epoch_psnr = np.sum(psnr_values) / ((step * args.mini_batch_size) + len(batch))
-                        tqdm_postfix['Loss'] = f'{epoch_loss:.2e}'
-                        tqdm_postfix['PSNR'] = f'{epoch_psnr:.2f}'
-                        tqdm_postfix['SSIM'] = f'{epoch_ssim:.2f}'
-                        
-                        pbar.set_postfix(tqdm_postfix)
-                        
-                        if phase == 'train' and epoch != 0:
-                            # backpropagation with mixed precision
-                            scaler.scale(loss).backward()
-                            profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                            
-                        if (step + 1) % grad_accum_steps == 0:
-                            if phase == 'train' and epoch != 0:
-                                # parameter update with mixed precision
-                                scaler.step(optimizer)
-                                scaler.update()
-                                profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                            
-                                # reset gradients
-                                optimizer.zero_grad()
-                                profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
-                        
-                            pbar.update(1)
+                        raise RuntimeError(f'Unsupported pretrain_scheme at runtime: {args.pretrain_scheme}')
 
                     profiler.update(epoch=epoch, phase=phase, step=step, time=time()-phase_start_time)
                                    
-                history_dict[f'{phase}_loss'].append(epoch_loss)            
-                if is_reconstruction:
-                    history_dict[f'{phase}_psnr'].append(epoch_psnr)
-                    history_dict[f'{phase}_ssim'].append(epoch_ssim)
+                # Store final aggregated phase loss for this epoch.
+                history_dict[f'{phase}_loss'].append(epoch_loss)
                 
+                # Persist profiler each phase so interrupted runs still keep diagnostics.
                 profiler.save(os.path.join(log_dir, 'profiler.csv'))
                 
+            # NOTE: this compares against the latest phase loss from loop above.
+            # In current structure, that corresponds to validation phase loss.
         if epoch_loss < best_val_loss:
             logger.log(f'Validation loss improved from {best_val_loss:.5f} at epoch {best_epoch} to {epoch_loss:.5f} during epoch {epoch}. Saving model...')
             best_val_loss = epoch_loss
@@ -862,6 +639,7 @@ def main():
         
         # reduce_lr_on_plateau.step(epoch_loss)
         scheduler.step()
+        # Save full-state checkpoint every epoch for robust resume behavior.
         checkpoint = {
             'epoch': epoch,
             'model': model.state_dict(),
@@ -878,24 +656,22 @@ def main():
         with open(os.path.join(log_dir, 'best_epoch.txt'), 'w') as f:
             f.write(str(best_epoch)) # just in case
         
+        # Save history on every epoch for real-time plotting during long jobs.
         num_epochs_total = len(history_dict['learning_rate'])
         history_df = pd.DataFrame(history_dict).set_index(pd.Index(range(num_epochs_total)))
         history_df.to_csv(os.path.join(log_dir, 'history.csv'), index=True)
         
+        # Export encoder weights in a finetuning-friendly format.
         if is_byol:
-            model_state_dict = model.online_encoder[0].state_dict() # In BYOL we use the online encoder for fine-tuning
+            model_state_dict = model.online_encoder[0].state_dict() # In BYOL we use the online encoder 
         elif is_moco:
-            model_state_dict = model.encoder_q[0].state_dict() # In MoCo we use the query encoder for fine-tuning
+            model_state_dict = model.encoder_q[0].state_dict() # In MoCo we use the query encoder 
         elif is_dino:
-            model_state_dict = model.teacher[0].state_dict() # In DINO we use the teacher encoder for fine-tuning
+            model_state_dict = model.teacher[0].state_dict() # In DINO we use the teacher encoder 
         else:
             model_state_dict = model.state_dict()
         
         torch.save(model_state_dict, os.path.join(out_dir, f'{args.pretrain_scheme}_last.pth'))
-                
-        if epoch - best_epoch > args.early_stopping_patience and args.early_stopping_patience > 0:
-            logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')
-            break
     
     logger.log(f'Best validation loss: {best_val_loss:.5f} at epoch {best_epoch}.')
     logger.log(f'Finished training at epoch {epoch}.')

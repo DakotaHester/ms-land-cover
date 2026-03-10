@@ -78,3 +78,7 @@ data/assessment
 *.bkp
 *.dtmp
 *~*.docx
+
+
+data/shapefiles/tl_2024_us_county/
+data/shapefiles/tl_2024_us_county/tl_2024_us_county.shp

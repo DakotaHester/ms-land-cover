@@ -18,6 +18,7 @@ dependencies = [
     "scikit-learn",
     "scipy",
     "rasterio",
+    "rioxarray",
     "geopandas",
     "shapely",
     "h5py",
@@ -29,7 +30,8 @@ dependencies = [
     "affine",
     "pyproj",
     "pyarrow",
-    "pyogrio"
+    "pyogrio",
+    "xarray",
 ]
 
 [project.optional-dependencies]

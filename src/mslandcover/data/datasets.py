@@ -1,3 +1,11 @@
+"""Dataset implementations used by pretraining, fine-tuning, and evaluation.
+
+Key classes:
+- `PreTrainDataset` / `DINOPreTrainDataset` for SSL pipelines
+- `FineTuneDataset` for supervised segmentation
+- `TestDataset` for point-based evaluation workflows
+"""
+
 from concurrent.futures import ThreadPoolExecutor
 from functools import partial
 
@@ -33,7 +41,7 @@ class PreTrainDataset(Dataset):
         return_spectral_indices: bool=False,
         noisy_input: bool=False,
         noise_std: float=2.0,
-        n_bands: int=4,
+        n_bands: int=3,
         # noise_pct: float=0.5,
         return_metadata: bool=False,
         device: torch.device=torch.device('cpu'),
@@ -74,6 +82,9 @@ class PreTrainDataset(Dataset):
         self.noisy_input = noisy_input
         self.noise_std = noise_std
         self.n_bands = n_bands
+        if self.n_bands != 3:
+            raise ValueError('PreTrainDataset supports only 3-band CIR inputs.')
+
         self.return_metadata = return_metadata
         self.device = device
         self.preload = preload
@@ -181,12 +192,15 @@ class PreTrainDataset(Dataset):
                 device=self.device,
             )
             
-            if self.n_bands == 3:
-                # create nir composite
+            if img.shape[9] == 4:
+                # Convert source imagery to 3-band CIR (NIR, Red, Green).
                 nir_band = img[3, :, :]
                 red_band = img[0, :, :]
                 green_band = img[1, :, :]
                 img = torch.stack([nir_band, red_band, green_band], dim=0)
+            
+            if img.shape[0] != self.n_bands:
+                raise ValueError(f'Expected image with {self.n_bands} bands, got {img.shape[0]} bands.')
                 
         returns = []
         for i in range(self.n_views):
@@ -264,8 +278,14 @@ class DINOPreTrainDataset(PreTrainDataset):
         else:
             path = self.data_paths[idx]
             img = utils.read_image(path, as_float=True, as_tensor=True, device=self.device)
-            if self.n_bands == 3:
-                img = torch.stack([img[3, :, :], img[0, :, :], img[1, :, :]], dim=0)
+            if img.shape[0] == 4:
+                # Convert source imagery to 3-band CIR (NIR, Red, Green).
+                nir_band = img[3, :, :]
+                red_band = img[0, :, :]
+                green_band = img[1, :, :]
+                img = torch.stack([nir_band, red_band, green_band], dim=0)
+            if img.shape[0] != self.n_bands:
+                raise ValueError(f'Expected image with {self.n_bands} bands, got {img.shape[0]} bands.')
 
         # 2. Apply Multi-Crop Transform
         # self.transform is expected to be an instance of DINODataAugmentation
@@ -295,7 +315,7 @@ class FineTuneDataset(Dataset):
         mean: Optional[np.ndarray]=None,
         std: Optional[np.ndarray]=None,
         noise_std: float=0.0, # disable noise by default
-        n_bands: int=4,
+        n_bands: int=3,
         transform: Optional[transforms.Compose]=T.StandardDataAugmentations(),
         return_metadata: bool=False,
         device: torch.device=torch.device('cpu'),
@@ -304,6 +324,9 @@ class FineTuneDataset(Dataset):
     ):
         
         self.n_bands = n_bands
+        if self.n_bands != 3:
+            raise ValueError('FineTuneDataset supports only 3-band CIR inputs.')
+
         self.transform = transform
         self.return_metadata = return_metadata
         self.device = device
@@ -350,7 +373,7 @@ class FineTuneDataset(Dataset):
                 # use color infrared composite (4, 1, 2)
                 # self.std = torch.tensor([self.std[3], self.std[0], self.std[1]], device=device, dtype=torch.float32)
         
-        if (mean is None or std is None) and self.n_bands == 3 and self.mean.shape[0] == 4:
+        if (mean is None or std is None) and self.mean.shape[0] == 4:
             # use color infrared composite (4, 1, 2)
             self.mean = torch.tensor([self.mean[3], self.mean[0], self.mean[1]], device=device, dtype=torch.float32)
             self.std = torch.tensor([self.std[3], self.std[0], self.std[1]], device=device, dtype=torch.float32)
@@ -425,8 +448,8 @@ class FineTuneDataset(Dataset):
                 target = target.unsqueeze(0) if len(target.shape) == 2 else target
                 target = target - 1
 
-        if self.n_bands == 3:
-            # create nir composite
+        # Convert source imagery to 3-band CIR (NIR, Red, Green).
+        if img.shape[0] == 4:
             nir_band = img[3, :, :]
             red_band = img[0, :, :]
             green_band = img[1, :, :]
@@ -505,6 +528,9 @@ class TestDataset(Dataset):
         self.n_bands = n_bands
         self.mean = mean
         self.std = std
+
+        if self.n_bands != 3:
+            raise ValueError('TestDataset supports only 3-band CIR inputs.')
         
         self.points_gdf = points_gdf.loc[points_gdf['ground_truth'] != 0]
     
@@ -523,7 +549,7 @@ class TestDataset(Dataset):
         
         img, meta = utils.read_image(raster_path, as_float=True, as_tensor=True, return_metadata=True)
         
-        if self.n_bands == 3:
+        if img.shape[0] == 4:
             nir_band = img[3, :, :]
             red_band = img[0, :, :]
             green_band = img[1, :, :]

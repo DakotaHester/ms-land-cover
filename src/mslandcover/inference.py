@@ -39,7 +39,7 @@ class RasterProcessor:
     ):
         self.tile_size = tile_size
         self.stride = stride
-        self.sigma = gaussian_sigma
+        self.sigma = gaussian_sigma # lower = stronger smoothing, higher = more inference (potentally better but has edge effects)
         self.batch_size = batch_size
         self.device = device
         self.tta = tta  # Test Time Augmentation flag
@@ -205,7 +205,6 @@ class RasterProcessor:
         # Initialize outputs
         outputs = torch.zeros((num_classes, height, width))
         # weights_sum = torch.zeros((height, width))
-        
         
         # estimate total batches based on raster size, tile size, and stride
         total_batches = ((height - self.tile_size) // self.stride + 1)
@@ -542,10 +541,6 @@ def load_raster_for_processing(path: str, args: ArgumentParser, gdf: Optional[gp
             #     in_data = in_data.rio.clip(gdf.buffer(args.tile_size), crs=gdf.crs, all_touched=True)
             # else:
             #     in_data = rxr.open_rasterio(tmp_file.name)
-        
-        # NOTE: Only here due to issue with ban ordering - remove later
-        if args.bands == [1, 2, 4]:
-            in_data = in_data.sel(band=[2, 3, 1])
         
         # # check and resample to 1m 
         # if in_data.rio.resolution() != (1.0, 1.0):
