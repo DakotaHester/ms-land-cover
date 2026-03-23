@@ -239,7 +239,7 @@ def main() -> None:
     
     if device.type == 'cuda':
         torch.backends.cudnn.benchmark = True
-        torch.backends.cudnn.deteministic = True
+        torch.backends.cudnn.deterministic = True
         torch.cuda.manual_seed_all(args.seed)
     
     if args.n_bands != 3:
@@ -564,7 +564,7 @@ def main() -> None:
             'history_dict': history_dict,
             'profiler_dict': profiler.profiler_history_dict,
         }
-        # torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
+        torch.save(checkpoint, os.path.join(log_dir, 'checkpoint.pth'))
         
         if epoch - best_epoch > args.early_stopping_patience:
             logger.log(f'No improvement in validation loss for {args.early_stopping_patience} epochs. Stopping early.')

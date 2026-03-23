@@ -285,14 +285,20 @@ def extract_mask(
             out_image, out_transform = mask(raster_dataset, [sample['geometry']], crop=True, all_touched=True)
                 
         except Exception as e:
-            print(f'EXCEPTION: type({e}) raised while extracting mask for sample {sample.name} in split {sample['split']}: {e}')
+            print(
+                f"EXCEPTION: type({type(e)}) raised while extracting mask for sample {sample.name} "
+                f"in split {sample['split']}: {e}"
+            )
             print(f'Continuing to the next sample...')
             if pbar is not None:
                 pbar.update(1)
             return
         
-        except Warning: # catch warnings and retry just in case
-            print(f'WARNING: type({e}) raised while extracting mask for sample {sample.name} in split {sample['split']}')
+        except Warning as e:  # catch warnings and retry just in case
+            print(
+                f"WARNING: type({type(e)}) raised while extracting mask for sample {sample.name} "
+                f"in split {sample['split']}: {e}"
+            )
             if i < max_tries:
                 print(f'Retrying... ({i+1}/{max_tries})')
                 sleep(1)
@@ -311,7 +317,7 @@ def extract_mask(
         out_image = out_image[:, :256, :256]
 
     filename = str(sample.name)
-    if out_image.shape != (3, 256, 256):\
+    if out_image.shape != (3, 256, 256):
         return
     
     # image nodata values are set to 0, even though 0 is a valid value for the image

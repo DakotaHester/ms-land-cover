@@ -7,7 +7,7 @@ Pipeline:
 4) reproject to Mississippi Transverse Mercator (EPSG:3813)
 """
 
-from src.mslandcover.data.preprocessing import preprocess_file
+from mslandcover.data.preprocessing import preprocess_file
 from concurrent.futures import ThreadPoolExecutor
 from subprocess import Popen
 from glob import glob

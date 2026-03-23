@@ -191,8 +191,8 @@ class PreTrainDataset(Dataset):
                 return_metadata=True, 
                 device=self.device,
             )
-            
-            if img.shape[9] == 4:
+
+            if img.shape[0] == 4:
                 # Convert source imagery to 3-band CIR (NIR, Red, Green).
                 nir_band = img[3, :, :]
                 red_band = img[0, :, :]
